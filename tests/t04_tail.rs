@@ -5,6 +5,9 @@
 //! at least three tests for cases it doesn't name. The hidden golden suite has
 //! several.
 
+// Delete once the tests are written.
+#![allow(unused)]
+
 mod common;
 
 use std::io::{BufReader, Cursor, Seek, SeekFrom, Write};

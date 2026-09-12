@@ -35,20 +35,7 @@ pub async fn serve(
     view: watch::Receiver<Arc<View>>,
     proc_root: PathBuf,
 ) {
-    let proc_root: Arc<Path> = proc_root.into();
-    loop {
-        let Ok((stream, _addr)) = listener.accept().await else {
-            continue;
-        };
-        let (read, write) = stream.into_split();
-        tokio::spawn(handle(
-            read,
-            write,
-            inbox.clone(),
-            view.clone(),
-            proc_root.clone(),
-        ));
-    }
+    todo!("T11")
 }
 
 /// Serve one connection until the peer closes it.
@@ -65,58 +52,11 @@ pub async fn handle<R, W>(
     R: AsyncRead + Unpin,
     W: AsyncWrite + Unpin,
 {
-    let mut lines = BufReader::new(read.take(MAX_CONNECTION_BYTES)).lines();
-
-    while let Ok(Some(line)) = lines.next_line().await {
-        let reply = match decode_request(&line) {
-            Err(e) => error_reply(&e),
-
-            Ok(Request::Hook(frame)) => {
-                let process = resolve(&proc_root, frame.pid, &view).await;
-                let ctx = Ctx {
-                    now: now(),
-                    process,
-                };
-                offer(&inbox, claude::hook(&frame, &ctx));
-                ok_reply()
-            }
-
-            Ok(Request::Statusline(frame)) => {
-                let process = resolve(&proc_root, frame.pid, &view).await;
-                let ctx = Ctx {
-                    now: now(),
-                    process,
-                };
-                offer(&inbox, claude::statusline(&frame, &default_account(), &ctx));
-                ok_reply()
-            }
-
-            Ok(Request::List) => snapshot_line(&view.borrow_and_update()),
-
-            Ok(Request::Subscribe) => {
-                // The last request on a connection: from here it only writes.
-                loop {
-                    let line = snapshot_line(&view.borrow_and_update());
-                    if write_line(&mut write, &line).await.is_err() {
-                        return;
-                    }
-                    if view.changed().await.is_err() {
-                        return;
-                    }
-                }
-            }
-        };
-
-        if write_line(&mut write, &reply).await.is_err() {
-            return;
-        }
-    }
+    todo!("T11")
 }
 
 async fn write_line<W: AsyncWrite + Unpin>(write: &mut W, line: &str) -> std::io::Result<()> {
-    write.write_all(line.as_bytes()).await?;
-    write.write_all(b"\n").await?;
-    write.flush().await
+    todo!("T11")
 }
 
 fn snapshot_line(view: &View) -> String {
@@ -127,11 +67,7 @@ fn snapshot_line(view: &View) -> String {
 /// Offer inputs without waiting. A full inbox means the core is behind; a
 /// dropped hook is recovered by the transcript, a stalled agent is not.
 fn offer(inbox: &mpsc::Sender<Input>, inputs: Vec<Input>) {
-    for input in inputs {
-        if inbox.try_send(input).is_err() {
-            eprintln!("switchboard: inbox full or closed, input dropped");
-        }
-    }
+    todo!("T11")
 }
 
 /// The tracked agent a hook came from: the nearest ancestor of the
@@ -145,17 +81,5 @@ pub async fn resolve(
     pid: Option<u32>,
     view: &watch::Receiver<Arc<View>>,
 ) -> Option<ProcKey> {
-    let pid = pid?;
-    let tracked: Vec<ProcKey> = view.borrow().agents.iter().map(|a| a.process).collect();
-    if tracked.is_empty() {
-        return None;
-    }
-    let root = Arc::clone(proc_root);
-    tokio::task::spawn_blocking(move || {
-        ancestors(&root, pid, ANCESTOR_LIMIT)
-            .find_map(|p| tracked.iter().copied().find(|key| key.pid == p))
-    })
-    .await
-    .ok()
-    .flatten()
+    todo!("T11")
 }

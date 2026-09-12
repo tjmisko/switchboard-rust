@@ -5,6 +5,9 @@
 //! add at least two tests for cases this list does not name. The hidden golden
 //! suite has some.
 
+// Delete once the tests are written.
+#![allow(unused)]
+
 use std::io::{BufRead, BufReader, Write};
 use std::os::unix::net::UnixListener;
 use std::path::PathBuf;

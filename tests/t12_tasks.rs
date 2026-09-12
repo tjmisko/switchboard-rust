@@ -41,7 +41,8 @@ async fn recv(inbox: &mut mpsc::Receiver<Input>) -> Event {
     }
 }
 
-const PROMPT: &str = r#"{"type":"user","promptId":"p1","message":{"content":"hi"},"origin":{"kind":"human"}}"#;
+const PROMPT: &str =
+    r#"{"type":"user","promptId":"p1","message":{"content":"hi"},"origin":{"kind":"human"}}"#;
 const TOOL: &str = r#"{"type":"assistant","message":{"content":[{"type":"tool_use","id":"c1","name":"Bash","input":{}}]}}"#;
 
 #[tokio::test]
@@ -58,7 +59,10 @@ async fn should_replay_the_tail_as_inferred_then_follow_new_lines_as_confirmed()
     assert!(matches!(replayed.kind, EventKind::TurnStarted { .. }));
     assert_eq!(replayed.process, Some(key(1)));
 
-    let mut f = std::fs::OpenOptions::new().append(true).open(&path).unwrap();
+    let mut f = std::fs::OpenOptions::new()
+        .append(true)
+        .open(&path)
+        .unwrap();
     writeln!(f, "{TOOL}").unwrap();
     let live = recv(&mut inbox).await;
     assert_eq!(live.confidence, Confidence::Confirmed);

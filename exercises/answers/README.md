@@ -1,0 +1,3 @@
+# Kata answers
+
+One file per task: `T01.md`, `T02.md`, ...

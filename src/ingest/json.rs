@@ -9,22 +9,22 @@ use serde_json::Value;
 
 /// `v[key]` as a string. `None` when absent or not a string.
 pub fn str_at<'a>(v: &'a Value, key: &str) -> Option<&'a str> {
-    v.get(key).and_then(Value::as_str)
+    todo!("T03")
 }
 
 /// `v[key]` as a string with at least one non-whitespace character.
 pub fn nonblank_str_at<'a>(v: &'a Value, key: &str) -> Option<&'a str> {
-    str_at(v, key).filter(|s| !s.trim().is_empty())
+    todo!("T03")
 }
 
 /// `v[key]` as a non-negative integer.
 pub fn u64_at(v: &Value, key: &str) -> Option<u64> {
-    v.get(key).and_then(Value::as_u64)
+    todo!("T03")
 }
 
 /// `v[key]` as a boolean.
 pub fn bool_at(v: &Value, key: &str) -> Option<bool> {
-    v.get(key).and_then(Value::as_bool)
+    todo!("T03")
 }
 
 /// Follow a path of object keys: `at(v, &["origin", "kind"])`.
@@ -32,12 +32,12 @@ pub fn bool_at(v: &Value, key: &str) -> Option<bool> {
 /// Written as a fold over `Option<&Value>`: each step either descends or
 /// stays `None` for the rest of the walk.
 pub fn at<'a>(v: &'a Value, path: &[&str]) -> Option<&'a Value> {
-    path.iter().try_fold(v, |cur, key| cur.get(key))
+    todo!("T03")
 }
 
 /// `at(v, path)` as a string.
 pub fn str_path<'a>(v: &'a Value, path: &[&str]) -> Option<&'a str> {
-    at(v, path).and_then(Value::as_str)
+    todo!("T03")
 }
 
 /// The elements of `v[key]` when it is an array, and nothing otherwise.
@@ -46,7 +46,9 @@ pub fn str_path<'a>(v: &'a Value, path: &[&str]) -> Option<&'a str> {
 /// `flatten` turns "maybe an array" into "the array's elements, or none"
 /// without a branch.
 pub fn array_at<'a>(v: &'a Value, key: &str) -> impl Iterator<Item = &'a Value> {
-    v.get(key).and_then(Value::as_array).into_iter().flatten()
+    todo!("T03");
+    #[allow(unreachable_code)]
+    std::iter::empty()
 }
 
 #[cfg(test)]

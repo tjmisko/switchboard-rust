@@ -25,27 +25,7 @@ pub async fn run_until_closed(
     view: watch::Sender<Arc<View>>,
     effects: mpsc::UnboundedSender<Effect>,
 ) -> Board {
-    loop {
-        // Recomputed every pass: the last input may have moved it.
-        let deadline = next_deadline(&board);
-        let wake = async move {
-            match deadline {
-                Some(at) => sleep_until(TokioInstant::from_std(at)).await,
-                None => future::pending().await,
-            }
-        };
-
-        let produced = tokio::select! {
-            input = inbox.recv() => match input {
-                Some(input) => reduce::apply(&mut board, input),
-                None => break,
-            },
-            () = wake => reduce::tick(&mut board, now()),
-        };
-
-        dispatch(&board, produced, &view, &effects);
-    }
-    board
+    todo!("T10")
 }
 
 /// The task body the daemon spawns.
@@ -64,26 +44,11 @@ fn dispatch(
     view: &watch::Sender<Arc<View>>,
     effects: &mpsc::UnboundedSender<Effect>,
 ) {
-    for effect in produced {
-        match effect {
-            Effect::PublishState => publish(board, view),
-            // A closed runner means shutdown is under way; nothing to do.
-            other => {
-                let _ = effects.send(other);
-            }
-        }
-    }
+    todo!("T10")
 }
 
 /// Replace the published view only if it differs, so subscribers wake only
 /// for real changes.
 fn publish(board: &Board, view: &watch::Sender<Arc<View>>) {
-    let next = View::render(board);
-    view.send_if_modified(|current| {
-        if **current == next {
-            return false;
-        }
-        *current = Arc::new(next);
-        true
-    });
+    todo!("T10")
 }

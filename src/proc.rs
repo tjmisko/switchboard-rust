@@ -46,57 +46,20 @@ impl Stat {
 /// the only safe split is at the *last* `)`. Fields after it are counted from
 /// field 3 (`state`).
 pub fn parse_stat(s: &str) -> Result<Stat, StatError> {
-    let open = s.find('(').ok_or(StatError::NoComm)?;
-    let close = s.rfind(')').ok_or(StatError::NoComm)?;
-    if close < open {
-        return Err(StatError::NoComm);
-    }
-
-    let pid = number(s[..open].trim(), "pid")?;
-    let comm = s[open + 1..close].to_owned();
-
-    let fields: Vec<&str> = s[close + 1..].split_whitespace().collect();
-    // `fields[0]` is stat field 3, so field N is `fields[N - 3]`.
-    let field =
-        |n: usize, name: &'static str| fields.get(n - 3).copied().ok_or(StatError::Missing(name));
-
-    let state = field(3, "state")?
-        .chars()
-        .next()
-        .ok_or(StatError::Missing("state"))?;
-    let ppid = number(field(4, "ppid")?, "ppid")?;
-    let tty_nr = number(field(7, "tty_nr")?, "tty_nr")?;
-    let utime: u64 = number(field(14, "utime")?, "utime")?;
-    let stime: u64 = number(field(15, "stime")?, "stime")?;
-    let start = number(field(22, "starttime")?, "starttime")?;
-
-    Ok(Stat {
-        pid,
-        comm,
-        state,
-        ppid,
-        tty_nr,
-        cpu_ticks: utime + stime,
-        start,
-    })
+    todo!("T06")
 }
 
 fn number<T: std::str::FromStr<Err = std::num::ParseIntError>>(
     text: &str,
     field: &'static str,
 ) -> Result<T, StatError> {
-    text.parse()
-        .map_err(|source| StatError::BadNumber { field, source })
+    todo!("T06")
 }
 
 /// `/proc/<pid>/cmdline`: NUL-separated, NUL-terminated, not necessarily
 /// UTF-8. Each argument borrows from `bytes` unless it had to be repaired.
 pub fn parse_cmdline(bytes: &[u8]) -> Vec<Cow<'_, str>> {
-    bytes
-        .split(|&b| b == 0)
-        .filter(|arg| !arg.is_empty())
-        .map(String::from_utf8_lossy)
-        .collect()
+    todo!("T06")
 }
 
 /// Whether a process is an interactive Claude session.
@@ -104,39 +67,14 @@ pub fn parse_cmdline(bytes: &[u8]) -> Vec<Cow<'_, str>> {
 /// `exe` is `None` when the link cannot be read, which for another user's
 /// process is normal; the check then rests on `comm` and `argv` alone.
 pub fn classify<S: AsRef<str>>(comm: &str, exe: Option<&Path>, argv: &[S]) -> Option<Provider> {
-    if comm != "claude" {
-        return None;
-    }
-    if let Some(exe) = exe
-        && !exe.to_string_lossy().contains("/claude/")
-    {
-        return None;
-    }
-    let mut args = argv.iter().map(AsRef::as_ref);
-    let _program = args.next();
-    if matches!(args.clone().next(), Some("daemon" | "mcp")) {
-        return None;
-    }
-    if args.any(|a| a == "-p" || a == "--print") {
-        return None;
-    }
-    Some(Provider::Claude)
+    todo!("T06")
 }
 
 /// A session file `~/.claude/sessions/<pid>.json` names the conversation only
 /// if it was written by this very process: `procStart` is a string and must
 /// equal the stat start time.
 pub fn session_from_file(v: &Value, key: ProcKey) -> Option<SessionId> {
-    let pid_matches = u64_at(v, "pid") == Some(u64::from(key.pid));
-    let start_matches = str_at(v, "procStart")
-        .and_then(|s| s.parse::<u64>().ok())
-        .is_some_and(|start| start == key.start);
-    if !(pid_matches && start_matches) {
-        return None;
-    }
-    str_at(v, "sessionId")
-        .filter(|s| !s.is_empty())
-        .map(SessionId::from)
+    todo!("T06")
 }
 
 /// Read and classify one `/proc/<pid>`. `None` for anything that is not a
@@ -186,11 +124,7 @@ pub fn sweep(proc_root: &Path, sessions: &Path) -> Vec<ProcessRow> {
 
 /// The parent of `pid`, or `None` at the root or when it cannot be read.
 pub fn parent_of(proc_root: &Path, pid: u32) -> Option<u32> {
-    let text = fs::read_to_string(proc_root.join(pid.to_string()).join("stat")).ok()?;
-    parse_stat(&text)
-        .ok()
-        .map(|s| s.ppid)
-        .filter(|&ppid| ppid != 0)
+    todo!("T06")
 }
 
 /// `pid`, its parent, its grandparent, … at most `limit` of them.
@@ -198,13 +132,14 @@ pub fn parent_of(proc_root: &Path, pid: u32) -> Option<u32> {
 /// A hook runs as `claude -> sh -> switchboard-hook`, so the pid the
 /// forwarder reports is rarely the agent itself.
 pub fn ancestors(proc_root: &Path, pid: u32, limit: usize) -> impl Iterator<Item = u32> + '_ {
-    std::iter::successors(Some(pid), move |&p| parent_of(proc_root, p)).take(limit)
+    todo!("T06");
+    #[allow(unreachable_code)]
+    std::iter::empty()
 }
 
 /// The start time of `pid`, to turn a bare pid into a `ProcKey`.
 pub fn key_of(proc_root: &Path, pid: u32) -> Option<ProcKey> {
-    let text = fs::read_to_string(proc_root.join(pid.to_string()).join("stat")).ok()?;
-    parse_stat(&text).ok().map(|s| s.key())
+    todo!("T06")
 }
 
 #[cfg(test)]

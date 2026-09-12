@@ -9,6 +9,9 @@
 //! transcript replay can do to an agent nobody has heard from, and what order
 //! an interrupt and a `Stop` can arrive in.
 
+// Delete once the tests are written.
+#![allow(unused)]
+
 mod common;
 
 use std::path::PathBuf;
@@ -215,8 +218,3 @@ fn should_publish_nothing_for_session_end_because_it_is_not_liveness() {
 // ---------------------------------------------------------------------------
 // yours: at least four more
 // ---------------------------------------------------------------------------
-
-#[allow(dead_code)]
-fn _keep_imports_used() -> (PathBuf, serde_json::Value) {
-    (PathBuf::new(), json!({}))
-}

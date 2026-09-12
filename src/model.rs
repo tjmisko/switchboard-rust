@@ -1196,18 +1196,17 @@ impl Agent {
             }
         }
 
-        // Checked before `Turn`: a turn parked on a gate nobody owns is not
-        // working, and R3 forbids calling it attention. Grey.
-        if self.has_unowned_gate() {
-            return Phase::Unknown;
-        }
-
         if let Activity::Turn { .. } = self.activity {
             return Phase::Working;
         }
 
         // Never heard from. Grey: it interrupts nobody and claims nothing.
         if let Activity::Unobserved { .. } = self.activity {
+            return Phase::Unknown;
+        }
+
+        // T08: this check is in the wrong place for a gate held mid-turn.
+        if self.has_unowned_gate() {
             return Phase::Unknown;
         }
 
@@ -1264,33 +1263,16 @@ impl Agent {
         own || unjoined || subagents
     }
 
-    /// A gate whose owner was never established, anywhere under this agent.
-    /// Codex hooks report a gate without saying who holds it.
+    /// A gate whose owner was never established. Codex hooks report a gate
+    /// without saying who holds it.
+    ///
+    /// T08: this only sees parked prompts. A gate on a call, or on a
+    /// subagent, is invisible to it.
     fn has_unowned_gate(&self) -> bool {
-        let unowned = |g: &Gate| {
-            matches!(
-                g,
-                Gate::Blocked {
-                    owner: Ownership::Unknown,
-                    ..
-                }
-            )
-        };
-        let own = match &self.activity {
-            Activity::Turn { tools, .. } => tools.values().any(|t| unowned(&t.gate)),
-            Activity::Idle { .. } | Activity::Unobserved { .. } => false,
-        };
-        let unjoined = self
-            .prompts
+        self.prompts
             .unjoined
             .iter()
-            .any(|p| p.owner == Ownership::Unknown);
-        let subagents = self
-            .subagents
-            .rows
-            .values()
-            .any(|s| s.gate.as_ref().is_some_and(unowned));
-        own || unjoined || subagents
+            .any(|p| p.owner == Ownership::Unknown)
     }
 }
 

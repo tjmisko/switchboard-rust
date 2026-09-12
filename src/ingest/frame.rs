@@ -52,47 +52,13 @@ pub struct StatuslineFrame {
 
 /// Decode one request line.
 pub fn decode_request(line: &str) -> Result<Request, FrameError> {
-    let v: Value = serde_json::from_str(line)?;
-    if !v.is_object() {
-        return Err(FrameError::NotAnObject);
-    }
-
-    let cmd = required_str(&v, "cmd")?;
-    match cmd {
-        "list" => Ok(Request::List),
-        "subscribe" => Ok(Request::Subscribe),
-        "hook" => {
-            let event = required_str(&v, "event")?.into();
-            let pid = optional_pid(&v)?;
-            let session = required_str(&v, "session_id")?.into();
-            Ok(Request::Hook(HookFrame {
-                event,
-                pid,
-                session,
-                payload: v,
-            }))
-        }
-        "statusline" => {
-            let pid = optional_pid(&v)?;
-            let session = required_str(&v, "session_id")?.into();
-            Ok(Request::Statusline(StatuslineFrame {
-                pid,
-                session,
-                payload: v,
-            }))
-        }
-        other => Err(FrameError::UnknownCommand(other.into())),
-    }
+    todo!("T02")
 }
 
 /// A string field the protocol requires. Absent and mistyped are different
 /// errors, because they point at different bugs in the sender.
 fn required_str<'a>(v: &'a Value, field: &'static str) -> Result<&'a str, FrameError> {
-    let raw = v.get(field).ok_or(FrameError::Missing(field))?;
-    raw.as_str().ok_or(FrameError::WrongType {
-        field,
-        expected: "a string",
-    })
+    todo!("T02")
 }
 
 /// `pid` may be absent. When present it must fit a `u32`.
@@ -101,16 +67,7 @@ fn required_str<'a>(v: &'a Value, field: &'static str) -> Result<&'a str, FrameE
 /// `transpose` is what lets `?` reject a bad value without also rejecting a
 /// missing one.
 fn optional_pid(v: &Value) -> Result<Option<u32>, FrameError> {
-    v.get("pid")
-        .map(|raw| {
-            raw.as_u64()
-                .and_then(|n| u32::try_from(n).ok())
-                .ok_or(FrameError::WrongType {
-                    field: "pid",
-                    expected: "a u32",
-                })
-        })
-        .transpose()
+    todo!("T02")
 }
 
 /// `{"ok":true}`

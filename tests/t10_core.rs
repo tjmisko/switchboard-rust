@@ -120,8 +120,16 @@ async fn should_forward_every_effect_except_publish_to_the_runner() {
         forwarded.push(e);
     }
     assert!(forwarded.iter().all(|e| *e != Effect::PublishState));
-    assert!(forwarded.iter().any(|e| matches!(e, Effect::WatchTranscript { process, .. } if process.pid == 7)));
-    assert!(forwarded.iter().any(|e| matches!(e, Effect::AppendHistory(HistoryEntry::AgentFound { .. }))));
+    assert!(
+        forwarded
+            .iter()
+            .any(|e| matches!(e, Effect::WatchTranscript { process, .. } if process.pid == 7))
+    );
+    assert!(
+        forwarded
+            .iter()
+            .any(|e| matches!(e, Effect::AppendHistory(HistoryEntry::AgentFound { .. })))
+    );
 }
 
 #[tokio::test(start_paused = true)]

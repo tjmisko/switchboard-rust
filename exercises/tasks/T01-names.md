@@ -10,8 +10,9 @@ conversions, then uses them on paths.
 
 ## Implement
 
-**`src/names.rs`**, the body of `id_impls!`. One macro arm generates, for every
-id type:
+**`src/names.rs`**, the bodies inside `id_impls!`. The impl blocks are already
+there with `todo!()` bodies, because the rest of the crate won't compile
+without the signatures. One macro arm generates, for every id type:
 
 - `as_str(&self) -> &str`
 - `Deref<Target = str>`
@@ -20,8 +21,9 @@ id type:
 - `Display`, which writes the bare id
 - `From<&str>` and `From<String>`. The `String` one must reuse the allocation.
 
-Write the impls for `SessionId` by hand first. Once they compile, move them
-into the macro.
+Inside the macro, `$name` is the type and `$name(x)` constructs one. If macro
+syntax gets in the way, write the `SessionId` versions in a scratch module
+first, then paste the bodies back.
 
 Also in `names.rs`:
 

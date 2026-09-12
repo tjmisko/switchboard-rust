@@ -41,7 +41,7 @@ impl UnknownName {
 
 impl fmt::Display for UnknownName {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "unknown {}: {:?}", self.vocabulary, self.value)
+        todo!("T02")
     }
 }
 
@@ -75,30 +75,19 @@ pub enum FrameError {
 
 impl fmt::Display for FrameError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            FrameError::Json(e) => write!(f, "malformed JSON: {e}"),
-            FrameError::NotAnObject => f.write_str("frame is not a JSON object"),
-            FrameError::Missing(field) => write!(f, "missing field `{field}`"),
-            FrameError::WrongType { field, expected } => {
-                write!(f, "field `{field}` is not {expected}")
-            }
-            FrameError::UnknownCommand(cmd) => write!(f, "unknown command: {cmd}"),
-        }
+        todo!("T02")
     }
 }
 
 impl Error for FrameError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match self {
-            FrameError::Json(e) => Some(e),
-            _ => None,
-        }
+        todo!("T02")
     }
 }
 
 impl From<serde_json::Error> for FrameError {
     fn from(e: serde_json::Error) -> FrameError {
-        FrameError::Json(e)
+        todo!("T02")
     }
 }
 
@@ -122,22 +111,13 @@ pub enum StatError {
 
 impl fmt::Display for StatError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            StatError::NoComm => f.write_str("stat has no (comm) section"),
-            StatError::Missing(field) => write!(f, "stat ends before `{field}`"),
-            StatError::BadNumber { field, source } => {
-                write!(f, "stat field `{field}` is not a number: {source}")
-            }
-        }
+        todo!("T02")
     }
 }
 
 impl Error for StatError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match self {
-            StatError::BadNumber { source, .. } => Some(source),
-            _ => None,
-        }
+        todo!("T02")
     }
 }
 
@@ -160,44 +140,31 @@ pub enum RecordError {
 
 impl fmt::Display for RecordError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            RecordError::Io(e) => write!(f, "read failed: {e}"),
-            RecordError::Json(e) => write!(f, "malformed JSON: {e}"),
-            RecordError::Missing(field) => write!(f, "missing field `{field}`"),
-            RecordError::BadValue { field, value } => {
-                write!(f, "field `{field}` has unusable value {value:?}")
-            }
-            RecordError::Name(e) => e.fmt(f),
-        }
+        todo!("T02")
     }
 }
 
 impl Error for RecordError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match self {
-            RecordError::Io(e) => Some(e),
-            RecordError::Json(e) => Some(e),
-            RecordError::Name(e) => Some(e),
-            RecordError::Missing(_) | RecordError::BadValue { .. } => None,
-        }
+        todo!("T02")
     }
 }
 
 impl From<io::Error> for RecordError {
     fn from(e: io::Error) -> RecordError {
-        RecordError::Io(e)
+        todo!("T02")
     }
 }
 
 impl From<serde_json::Error> for RecordError {
     fn from(e: serde_json::Error) -> RecordError {
-        RecordError::Json(e)
+        todo!("T02")
     }
 }
 
 impl From<UnknownName> for RecordError {
     fn from(e: UnknownName) -> RecordError {
-        RecordError::Name(e)
+        todo!("T02")
     }
 }
 
@@ -226,23 +193,13 @@ pub enum ForwardError {
 
 impl fmt::Display for ForwardError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            ForwardError::Connect(e) => write!(f, "cannot reach daemon: {e}"),
-            ForwardError::Io(e) => write!(f, "socket i/o failed: {e}"),
-            ForwardError::Malformed(e) => write!(f, "daemon reply is not JSON: {e}"),
-            ForwardError::NoVerdict => f.write_str("daemon reply has no `ok` field"),
-            ForwardError::Rejected(why) => write!(f, "daemon refused the frame: {why}"),
-        }
+        todo!("T02")
     }
 }
 
 impl Error for ForwardError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
-        match self {
-            ForwardError::Connect(e) | ForwardError::Io(e) => Some(e),
-            ForwardError::Malformed(e) => Some(e),
-            ForwardError::NoVerdict | ForwardError::Rejected(_) => None,
-        }
+        todo!("T02")
     }
 }
 
@@ -250,7 +207,7 @@ impl Error for ForwardError {
 /// from `Io`, and that difference is the point of the type.
 impl From<serde_json::Error> for ForwardError {
     fn from(e: serde_json::Error) -> ForwardError {
-        ForwardError::Malformed(e)
+        todo!("T02")
     }
 }
 

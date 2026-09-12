@@ -37,55 +37,7 @@ pub struct WatchSpec {
 /// Run until the inbox closes. The effect runner ends a watcher by aborting
 /// its task.
 pub async fn run(spec: WatchSpec, inbox: mpsc::Sender<Input>) {
-    let mut ticker = interval(spec.poll);
-    ticker.set_missed_tick_behavior(MissedTickBehavior::Delay);
-
-    // `None` until the file exists: a brand-new session's transcript appears
-    // with its first line.
-    let mut state: Option<(File, Tail)> = None;
-    let mut confidence = Confidence::Inferred;
-
-    loop {
-        ticker.tick().await;
-        // A quiet transcript never sends, so it would never learn the core
-        // is gone by a failed send.
-        if inbox.is_closed() {
-            return;
-        }
-
-        let taken = state.take();
-        let path = spec.path.clone();
-        let replay = spec.replay_bytes;
-        // The file and the cursor move into the blocking closure and come
-        // back out with the result, so nothing is shared across the await.
-        let joined = tokio::task::spawn_blocking(move || poll_once(taken, &path, replay)).await;
-        let Ok((next, polled)) = joined else {
-            return;
-        };
-        state = next;
-        let Some(polled) = polled else {
-            continue;
-        };
-
-        let ctx = LineCtx {
-            process: spec.process,
-            session: spec.session.clone(),
-            account: spec.account.clone(),
-            now: now(),
-            confidence,
-        };
-        let inputs = polled
-            .lines
-            .iter()
-            .filter_map(|text| serde_json::from_str::<Value>(text).ok())
-            .flat_map(|v| line(&v, &ctx));
-        for input in inputs {
-            if inbox.send(input).await.is_err() {
-                return;
-            }
-        }
-        confidence = Confidence::Confirmed;
-    }
+    todo!("T12")
 }
 
 /// One blocking step: open the file if needed, then read what is new.
@@ -95,22 +47,9 @@ fn poll_once(
     path: &std::path::Path,
     replay_bytes: u64,
 ) -> (Option<(File, Tail)>, Option<Polled>) {
-    let opened = match state {
-        Some(open) => Ok(open),
-        None => open_at_tail(path, replay_bytes),
-    };
-    let Ok((mut file, mut tail)) = opened else {
-        return (None, None);
-    };
-    match tail.poll(&mut file) {
-        Ok(polled) => (Some((file, tail)), Some(polled)),
-        // Keep the cursor; a transient read error is retried next tick.
-        Err(_) => (Some((file, tail)), None),
-    }
+    todo!("T12")
 }
 
 fn open_at_tail(path: &std::path::Path, replay_bytes: u64) -> io::Result<(File, Tail)> {
-    let mut file = File::open(path)?;
-    let start = tail_start(&mut file, replay_bytes)?;
-    Ok((file, Tail::starting_at(start)))
+    todo!("T12")
 }

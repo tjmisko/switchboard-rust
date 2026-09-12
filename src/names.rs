@@ -25,47 +25,47 @@ macro_rules! id_impls {
     ($($name:ident),* $(,)?) => {$(
         impl $name {
             pub fn as_str(&self) -> &str {
-                &self.0
+                todo!("T01")
             }
         }
 
         impl Deref for $name {
             type Target = str;
             fn deref(&self) -> &str {
-                &self.0
+                todo!("T01")
             }
         }
 
         impl AsRef<str> for $name {
             fn as_ref(&self) -> &str {
-                &self.0
+                todo!("T01")
             }
         }
 
-        // Sound only because the derived `Ord`, `Eq` and `Hash` on a
-        // single-field tuple struct agree with those of the field, and
-        // `Box<str>` agrees with `str`.
+        // What contract does `Borrow` add over `AsRef`, and why does this
+        // type meet it? (T01 kata territory.)
         impl Borrow<str> for $name {
             fn borrow(&self) -> &str {
-                &self.0
+                todo!("T01")
             }
         }
 
         impl fmt::Display for $name {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-                f.write_str(&self.0)
+                todo!("T01")
             }
         }
 
         impl From<&str> for $name {
             fn from(s: &str) -> Self {
-                $name(s.into())
+                todo!("T01")
             }
         }
 
+        /// Must reuse the `String`'s allocation.
         impl From<String> for $name {
             fn from(s: String) -> Self {
-                $name(s.into_boxed_str())
+                todo!("T01")
             }
         }
     )*};
@@ -81,17 +81,13 @@ impl SubagentId {
     /// exactly once: a subagent genuinely named `agent-x` lives at
     /// `agent-agent-x`, and stripping twice would call it `x`.
     pub fn from_file_stem(stem: &str) -> Option<SubagentId> {
-        stem.strip_prefix("agent-")
-            .filter(|id| !id.is_empty())
-            .map(SubagentId::from)
+        todo!("T01")
     }
 
     /// The hook `agent_id` field is already the bare id. Taken as-is, with
     /// surrounding whitespace removed; blank means "not a subagent".
     pub fn from_hook(raw: &str) -> Option<SubagentId> {
-        Some(raw.trim())
-            .filter(|id| !id.is_empty())
-            .map(SubagentId::from)
+        todo!("T01")
     }
 }
 
@@ -135,10 +131,7 @@ impl FromStr for Phase {
     type Err = UnknownName;
 
     fn from_str(s: &str) -> Result<Phase, UnknownName> {
-        Phase::ALL
-            .into_iter()
-            .find(|p| p.as_str() == s)
-            .ok_or_else(|| UnknownName::new("phase", s))
+        todo!("T02")
     }
 }
 
@@ -146,13 +139,7 @@ impl FromStr for StartSource {
     type Err = UnknownName;
 
     fn from_str(s: &str) -> Result<StartSource, UnknownName> {
-        match s {
-            "startup" => Ok(StartSource::Startup),
-            "resume" => Ok(StartSource::Resume),
-            "clear" => Ok(StartSource::Clear),
-            "compact" => Ok(StartSource::Compact),
-            other => Err(UnknownName::new("start source", other)),
-        }
+        todo!("T02")
     }
 }
 
@@ -161,14 +148,7 @@ impl FromStr for Denier {
 
     /// The transcript's `toolDenialKind` vocabulary.
     fn from_str(s: &str) -> Result<Denier, UnknownName> {
-        match s {
-            "user-rejected" => Ok(Denier::User),
-            "permission-rule" => Ok(Denier::PermissionRule),
-            "automode-blocked" => Ok(Denier::AutoMode),
-            "automode-unavailable" => Ok(Denier::Unavailable),
-            "interrupted" => Ok(Denier::Interrupted),
-            other => Err(UnknownName::new("denial kind", other)),
-        }
+        todo!("T02")
     }
 }
 

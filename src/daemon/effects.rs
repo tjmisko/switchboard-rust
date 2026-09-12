@@ -23,37 +23,7 @@ pub async fn run(
     layout: Arc<Layout>,
     settings: Settings,
 ) {
-    let mut watchers = Watchers::default();
-
-    while let Some(effect) = effects.recv().await {
-        match effect {
-            Effect::WatchTranscript {
-                process,
-                session,
-                cwd,
-            } => {
-                let spec = WatchSpec {
-                    path: transcript_path(&layout.claude_projects, &cwd, &session),
-                    process,
-                    session,
-                    account: default_account(),
-                    poll: settings.transcript_poll,
-                    replay_bytes: settings.replay_bytes,
-                };
-                watchers.start(process, tokio::spawn(watcher::run(spec, inbox.clone())));
-            }
-            Effect::Forget { process } => watchers.stop(&process),
-            Effect::AppendHistory(entry) => {
-                // History is best-effort. A full appender drops rather than
-                // letting a slow disk back up into the core.
-                if history.try_send(entry).is_err() {
-                    eprintln!("switchboard: history appender full, entry dropped");
-                }
-            }
-            // The core publishes; it never forwards this.
-            Effect::PublishState => {}
-        }
-    }
+    todo!("T12")
 }
 
 /// Watcher tasks by process. Aborts every task it still holds when dropped,
@@ -66,15 +36,11 @@ pub struct Watchers {
 impl Watchers {
     /// Start a watcher, aborting any previous one for the same process.
     pub fn start(&mut self, process: ProcKey, task: JoinHandle<()>) {
-        if let Some(previous) = self.tasks.insert(process, task) {
-            previous.abort();
-        }
+        todo!("T12")
     }
 
     pub fn stop(&mut self, process: &ProcKey) {
-        if let Some(task) = self.tasks.remove(process) {
-            task.abort();
-        }
+        todo!("T12")
     }
 
     pub fn len(&self) -> usize {
@@ -88,8 +54,9 @@ impl Watchers {
 
 impl Drop for Watchers {
     fn drop(&mut self) {
-        for (_, task) in self.tasks.drain() {
-            task.abort();
-        }
+        // T12: abort every task still held.
+        //
+        // Not a `todo!()`: a panic inside `drop` while a failing test is
+        // already unwinding aborts the whole test binary.
     }
 }
