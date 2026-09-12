@@ -47,6 +47,11 @@ pub async fn run(spec: WatchSpec, inbox: mpsc::Sender<Input>) {
 
     loop {
         ticker.tick().await;
+        // A quiet transcript never sends, so it would never learn the core
+        // is gone by a failed send.
+        if inbox.is_closed() {
+            return;
+        }
 
         let taken = state.take();
         let path = spec.path.clone();

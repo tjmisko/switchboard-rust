@@ -736,7 +736,7 @@ pub struct Tool {
 
 /// A permission gate is a state of the call that caused it. Keeping a separate
 /// `blocked: bool` on the agent invites the two to disagree.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Gate {
     Running,
     Blocked {
