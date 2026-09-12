@@ -43,6 +43,11 @@ impl Watchers {
         todo!("T12")
     }
 
+    /// Abort every task still held.
+    pub fn abort_all(&mut self) {
+        todo!("T12")
+    }
+
     pub fn len(&self) -> usize {
         self.tasks.len()
     }
@@ -54,9 +59,13 @@ impl Watchers {
 
 impl Drop for Watchers {
     fn drop(&mut self) {
-        // T12: abort every task still held.
-        //
-        // Not a `todo!()`: a panic inside `drop` while a failing test is
-        // already unwinding aborts the whole test binary.
+        // Scaffold guard: a panic inside `drop` while a failing test is
+        // already unwinding aborts the whole test binary, so the `todo!()` in
+        // `abort_all` is only reached when it can fail cleanly. Keep or remove
+        // the guard once `abort_all` is implemented.
+        if std::thread::panicking() {
+            return;
+        }
+        self.abort_all();
     }
 }

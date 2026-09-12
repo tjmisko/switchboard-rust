@@ -26,7 +26,7 @@ cost model's **R4 — liberal in what lifts**.
   / `PermissionSettled`, plus `SubagentStarted` and `SubagentEnded`. When
   `subagents.source == Panel`, events may refine rows but never add or
   remove them.
-- **`src/model.rs`**: extend `Agent::has_unowned_gate`. Your sketch only
+- **`src/model.rs`**: implement the `unowned_gate_anywhere` stub (`todo!("T08")`), then make it the body of `Agent::has_unowned_gate` and delete the stub. Your sketch only
   checks parked prompts. It must also see tool gates and subagent gates, and
   its call in `Agent::phase` must move above the `Turn → Working` check.
   `should_render_an_unowned_gate_grey_never_red_even_mid_turn` fails until you
