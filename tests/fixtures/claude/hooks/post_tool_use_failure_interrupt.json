@@ -1,0 +1,1 @@
+{"session_id":"e0b4b21f-aaf6-4ab0-a8d6-2d595aba4065","cwd":"/home/u/Projects/switchboard","hook_event_name":"PostToolUseFailure","tool_name":"Bash","tool_input":{"command":"sleep 100"},"tool_use_id":"toolu_01SLP","error":"interrupted","is_interrupt":true,"duration_ms":5023}

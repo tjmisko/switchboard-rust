@@ -1,0 +1,13 @@
+{"ts":"2026-09-11T00:17:20.557938098-07:00","type":"activity","to":"active"}
+{"ts":"2026-09-11T08:36:29.148Z","type":"session_start","pid":4036,"cwd":"/home/u/Projects/Arachne"}
+{"ts":"2026-09-11T08:36:44.877141977-07:00","type":"focus"}
+{"ts":"2026-09-11T15:36:35.500Z","type":"shown","pid":4036,"session_id":"2a03923e-0000-4000-8000-000000000001","from":"unknown","to":"working","held_ms":6352}
+
+{"ts":"2026-09-11T08:40:00.000-07:00","type":"shown","pid":4036,"session_id":"2a03923e-0000-4000-8000-000000000001","from":"working","to":"attention","held_ms":204500}
+{"ts":"2026-09-11T00:07:35.512746564-07:00","type":"transition","session_id":"2a03923e-…","pid":2313575,"agent":"claude","from":"idle","to":"working","rule":"agent_graph_authority","dur_prev_ms":476239}
+{"ts":"2026-09-11T15:41:00.000Z","type":"shown","pid":4036,"from":"attention","to":"permission","held_ms":1}
+{"ts":"2026-09-11T15:42:00.000Z","type":"session_end"}
+this line is not json
+{"ts":"yesterday","type":"session_end","pid":4036}
+{"ts":"2026-09-11T15:43:00.000Z","type":"session_end","pid":4036,"session_id":"2a03923e-0000-4000-8000-000000000001"}
+{"ts":"2026-09-11T15:44:00.000Z","pid":1}

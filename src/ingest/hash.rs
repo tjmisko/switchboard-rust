@@ -35,8 +35,11 @@ impl InputHash {
     }
 
     /// Inverse of `to_hex`. Exactly sixteen hex digits, either case.
+    ///
+    /// The digit check is not redundant: `u8::from_str_radix` accepts a
+    /// leading `+`, so `"+f"` would otherwise parse as `0x0f`.
     pub fn from_hex(s: &str) -> Option<InputHash> {
-        if s.len() != 16 || !s.is_ascii() {
+        if s.len() != 16 || !s.bytes().all(|b| b.is_ascii_hexdigit()) {
             return None;
         }
         let bytes: Vec<u8> = s
