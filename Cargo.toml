@@ -3,5 +3,21 @@ name = "switchboard-rust"
 version = "0.1.0"
 edition = "2024"
 
+[lib]
+name = "switchboard"
+path = "src/lib.rs"
+
+[[bin]]
+name = "switchboard"
+path = "src/main.rs"
+
+[[bin]]
+name = "switchboard-hook"
+path = "src/bin/switchboard-hook.rs"
+
 [dependencies]
-tokio = "1.53.1"
+serde_json = "1"
+tokio = { version = "1.53.1", features = ["rt-multi-thread", "macros", "net", "sync", "time", "io-util", "fs", "signal"] }
+
+[dev-dependencies]
+tokio = { version = "1.53.1", features = ["test-util"] }
