@@ -50,7 +50,10 @@ that's worth talking through.
   `TurnEnded`, `ToolDispatched` / `ToolSettled` (**agent actor only**; T08
   does subagents), `CompactionStarted` / `Ended`, `CwdChanged`.
 - Helpers: `idle`, `working`, `end_turn`, `dispatch`, `settle_call`.
-  The `*_unjoined` helpers are T08. Stub them to return `None` / `false` for now.
+- `end_turn`, `dispatch` and `settle_call` call T08's `*_unjoined` helpers.
+  Until T08, replace those `todo!`s with placeholders: `clear_unjoined` and
+  `lift_sole_unjoined` return `false`, and `take_unjoined` returns `None`.
+  Leave the T08 arms of `transition` as `todo!()`.
 
 ## Rules the tests should pin
 

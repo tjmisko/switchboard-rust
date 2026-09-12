@@ -15,12 +15,13 @@ dwells promote.
 **`src/reduce/snapshot.rs`**:
 
 - `apply_snapshot` arms:
-  - `Processes`: discover new agents and adopt newly found sessions.
   - `Limits`: newer-or-equal only, publish nothing if the value is unchanged,
     and re-settle every agent on the account.
   - `Subagents`: drop the snapshot if it was taken before `last_event`.
   - `Waits`
-  - `Beat` and `Placements` are provided.
+  - `Processes` (with `discover` / `discovered`), `Beat` and `Placements` are
+    provided. Discovery ships early because every test harness from T07 on
+    builds boards through it.
 - `replace_panel(old: &Subagents, rows, taken) -> Subagents`: keep each
   surviving row's gate.
 - `replace_waits(old: BTreeMap<..>, rows, taken)`: note that it takes the old
