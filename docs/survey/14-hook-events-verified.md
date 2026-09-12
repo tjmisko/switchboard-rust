@@ -178,6 +178,18 @@ writer-blind sweeps are understood (D-35 came from a real incident).
 11. Does `Notification{quota_auto_resume_fired}` fire on 2.1.268?
 12. Does `StopFailure` fire for a `-p` headless root?
 13. Codex: does `Interrupt` fire when Ctrl-C lands during an approval prompt (vs. only mid-generation)?
+14. Codex: does `SessionEnd` fire on an idle timer (30 min?) rather than on exit? If so "session gone" and "session idle" are the same event and only the pidfd separates them.
+15. Refinement of 2: does Claude `Stop` fire on Esc when **no tool is open**? The tool-open case is settled — `PostToolUseFailure` carries `is_interrupt` with the id.
+16. What is the element shape inside `Stop.background_tasks[]` and `session_crons[]`? Key names verified in the bundle; nesting inferred.
+
+**Verified 2026-09-11 while answering a state-machine review** (no longer open):
+`Notification{permission_prompt}` fires on a hardcoded 6 000 ms timer (`NXe=6000`,
+`unref`'d); `Notification{idle_prompt}` fires at `messageIdleNotifThresholdMs`,
+default 60 000 ms and **user-configurable** — so item 3 is answered for
+`permission_prompt` and answered-with-a-caveat for `idle_prompt`: the delay is a
+setting and must not be hardcoded. `PostToolUseFailure.is_interrupt` is confirmed
+present on the emitter and optional in the schema, so an interrupt **with a tool
+open** is observable by exact id on Claude.
 
 Harness shape: one script, `switchboard-hookcap <Event>`, that appends
 `{"ts", "agent", "event", "payload"}` (payload verbatim, this is a local

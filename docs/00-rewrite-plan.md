@@ -3,7 +3,20 @@
 This is the synthesis of the surveys in `docs/survey/` (index in
 `docs/survey/README.md`; 01–08 cover the Go daemon and the prior Rust attempt,
 09–14 cover the signals, transcripts, hooks, and the two installed binaries).
-The concurrency argument behind §3 is in `docs/01-concurrency-design.md`. It is
+The concurrency argument behind §3 is in `docs/01-concurrency-design.md`;
+the state-machine shape behind §4 is in `docs/02-session-machine.md`; the
+concrete types and the per-transition harness mechanisms are in
+`docs/03-types-and-transitions.md`; the cost model that sets every latency and
+hysteresis decision is `docs/04-cost-model.md`; the module layout and the
+capability model for tracking daily harness releases are `docs/05-modules.md`;
+what the rewrite owes `switchboard-dashboard`, and why that is almost nothing,
+is `docs/06-dashboard-boundary.md`; the history record's own shape and how to
+stop recomputing it per request is `docs/07-history-data-model.md`; the lighter
+write/anneal/read architecture for the dashboard is `docs/08-dashboard-redesign.md`,
+and where precomputation should stop — superseding §4 of that document — is
+`docs/09-precomputation-boundary.md`. What is still undecided or unrecorded,
+ordered by how much it blocks, is `docs/10-open-items.md`.
+The types themselves are sketched, compiling, in `src/model.rs`. It is
 a proposal to iterate on, not a spec. Every section ends with the decisions it
 leaves open.
 
@@ -395,7 +408,100 @@ timing; pre-first-token double-Esc; `UserPromptSubmit.source` on a
 task-notification; `Stop.background_tasks` listing a persistent monitor;
 `SubagentStop` for workflow agents and teammate shutdown; `TeammateIdle`
 on error; hook `agent_id` form for teammates; `Notification{quota_auto_resume_fired}`
-on 2.1.268; `StopFailure` for `-p` headless roots.
+on 2.1.268; `StopFailure` for `-p` headless roots. Added 2026-09-11:
+does Codex `SessionEnd` fire on an idle timer rather than on exit (if so,
+`end_reason` is not termination and only the pidfd separates gone from
+idle); does Claude `Stop` fire on Esc when **no tool is open** (the
+tool-open case is settled by `PostToolUseFailure`); does Codex `Interrupt`
+fire during an approval prompt or only mid-generation; the element shapes
+inside `Stop.background_tasks[]` and `session_crons[]`.
+
+**Session machine (2026-09-11, `docs/02-session-machine.md`).** Three
+structural decisions, taken in response to an external state-machine review:
+
+1. *`Phase` is a fold, not a field.* Store orthogonal axes — `activity`,
+   `prompts`, `block`, `waits`, `compacting` — and compute the chip from them
+   in the order above. Approval is neither a turn substate nor a sibling of
+   `Idle`: making it a phase forces a `Stop` arriving on an open prompt to
+   choose between hiding a human-needed session and pinning a finished one
+   red, and it discards the writer that focus-switching needs.
+2. *A turn holds a map.* `Activity::Turn{tools: BTreeMap<ToolUseId,
+   ToolState>}`; both agents fire tool hooks concurrently for parallel calls.
+   There is no `Thinking` variant — it is `tools.is_empty()`. Compaction,
+   subagents and model switches are orthogonal regions, not substates.
+   `PostToolBatch` is the real drain edge and stays unwired anyway: thinking
+   and tool-running are both `working`, so it buys no pixel.
+3. *Children share the `Activity` machine, not the `Root` struct, in a flat
+   map keyed on `(root_session_id, normalised_agent_id)`.* A child has no
+   pid, pidfd, tty, pane or cwd, and — decisively — **no death primitive**,
+   so expiry is mandatory per kind with a capacity bound. Attention bubbles
+   to the root carrying its writer (a child's prompt renders in the root's
+   TUI, so the root is always where the human must go); activity does not
+   bubble as `working` but as `delegating`. The invariant, enforced in types:
+   **a child may only raise the root's attention, never lower it, and the
+   root's `Stop` must never clear a child's prompt** — D-35 restated.
+
+**Two non-hook channels close most of the gaps (2026-09-11,
+`docs/03-types-and-transitions.md`).** `statusLine` is a spawn-per-render with
+`refreshInterval`, carrying `rate_limits{status, resetsAt, unifiedWindows}` —
+the `Block` axis exactly, retiring the transcript tail scan to a fallback —
+and `cost.total_api_duration_ms`, a direct measurement of whether a request is
+in flight. `subagentStatusLine` receives the whole agent panel as
+`tasks[{id, type, status, startTime, tokenCount, …}]` with
+`status ∈ pending|running|completed|failed|killed|paused`; `failed` and
+`killed` are the two terminal child states no hook emits. Consequence:
+**roots are edge-triggered, children are level-triggered.** `Children.rows` is
+replaced wholesale on each refresh, so absence is a fact — which deletes the
+mandatory per-child expiry, the capacity bound, the LRU eviction and the
+30-minute stale cap from §4's child design. Hooks refine rows between
+refreshes but may never create or remove one. Both are Claude-only; Codex has
+no statusline, and its `legacy_notify` is superseded by hooks. Integration
+constraint: this machine already uses `statusLine` for `~/.claude/claude-status`,
+so the forwarder must **tee** (parse, forward, exec the wrapped script with the
+same stdin) and must survive a dead daemon socket, because it now sits on the
+render path.
+
+**Both "blind spots" turned out to be reachable (2026-09-11, measured).**
+Claude's interrupt-during-generation is recorded in the transcript as a
+positive line carrying **`interruptedMessageId`**, the exact `message.id` that
+was killed — 13 confirmed pure-generation interrupts in the corpus, out of 69
+total. Key on that top-level field, never on the marker text: the corpus has
+*two* marker strings (`[Request interrupted by user]` 63x and
+`[Request interrupted by user for tool use]` 6x), so a literal match silently
+misses one. `stop_reason: null` on the interrupted message corroborates. This
+is a latency problem, not an observability one — inotify on the transcript
+closes it to well under a second, and `total_api_duration_ms` demotes to
+corroboration. Codex's API-error turn death is typed directly in the
+app-server protocol: `turn/completed` carries
+`Turn{status: completed|interrupted|failed|inProgress, error: TurnError}` with
+a `CodexErrorInfo` taxonomy, and `account/rateLimits/updated` supplies the
+`Block` axis Codex otherwise lacks entirely. **But** a separately-spawned
+app-server reports the running TUI's threads as `notLoaded` and there is no
+`thread/subscribe` — subscription is a side effect of `thread/start`/`resume`/
+`fork`. So that data is available only for threads the daemon owns, which is a
+fork in the architecture (daemon-launched sessions vs. hook-path sessions vs.
+the unexamined `remoteControl` channel), recorded in
+`docs/03-types-and-transitions.md` §4.2.
+
+**Blind spots are asymmetric, not one each.** Claude's interrupt is
+observable with an exact id whenever a tool is open
+(`PostToolUseFailure{is_interrupt}`, verified in the bundle); only an
+interrupt during generation is blind, and whether `Stop` fires there is still
+unmeasured. Codex's `Interrupt` covers both interrupt cases but it has no
+`StopFailure`, so any API-error turn death leaves the machine in `Turn
+active` indefinitely, and no `PostToolUseFailure`, so a failed tool is
+indistinguishable from a successful one. Both are blind to process death, and
+children have no pidfd — hence §6 of the machine doc: a turn may be closed by
+staleness (no open tools ∧ transcript quiet ∧ no CPU delta on
+`/proc/<pid>/stat`, windows 90 s Claude / 5 min Codex), but **staleness may
+never clear a prompt or a block**, because a session parked on a permission
+prompt looks exactly like a dead turn.
+
+**Notification timings, verified:** `permission_prompt` on a hardcoded
+6 000 ms timer; `idle_prompt` at `messageIdleNotifThresholdMs`, default
+60 000 ms but **user-configurable** — never hardcode it. Both are delayed
+duplicates of `PermissionRequest` and `Stop`: confirmation of a missed edge,
+never a primary edge.
 
 Per-provider reducers are `fn step(root: &mut ClaudeRoot, ev: ProviderEvent, now) -> (Observation, Vec<Effect>)`.
 The transition tables in survey 03 §2.3–§2.8 are the spec; the Go tests named in
