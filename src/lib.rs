@@ -4,3 +4,5 @@
 pub fn run() {
     todo!()
 }
+
+pub mod model;
