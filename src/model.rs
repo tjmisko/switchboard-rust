@@ -1274,6 +1274,16 @@ impl Agent {
             .iter()
             .any(|p| p.owner == Ownership::Unknown)
     }
+
+    /// T08: the full check. It sees parked prompts, gates on calls, and gates
+    /// on subagents. Once it passes, make it the body of `has_unowned_gate`,
+    /// delete this stub, and move the check in `phase` above `Turn`.
+    ///
+    /// A separate stub because `phase` calls `has_unowned_gate` from T07 on,
+    /// and a `todo!()` there would fail every T07 test.
+    fn unowned_gate_anywhere(&self) -> bool {
+        todo!("T08")
+    }
 }
 
 // ---------------------------------------------------------------------------
