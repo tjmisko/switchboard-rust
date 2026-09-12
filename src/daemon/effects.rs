@@ -77,6 +77,13 @@ impl Watchers {
         }
     }
 
+    /// Abort every task still held.
+    pub fn abort_all(&mut self) {
+        for (_, task) in self.tasks.drain() {
+            task.abort();
+        }
+    }
+
     pub fn len(&self) -> usize {
         self.tasks.len()
     }
@@ -88,8 +95,6 @@ impl Watchers {
 
 impl Drop for Watchers {
     fn drop(&mut self) {
-        for (_, task) in self.tasks.drain() {
-            task.abort();
-        }
+        self.abort_all();
     }
 }

@@ -21,7 +21,7 @@ set difference on `BTreeSet` · Test: `cargo test --test t12_tasks`
 
 - `Watchers::start` aborts any watcher already registered for the process.
   `insert` returns the old value, so this is one `if let`.
-- `impl Drop for Watchers` aborts everything still running, so a runner that
+- `Watchers::abort_all` aborts everything still running, and `impl Drop for Watchers` calls it, so a runner that
   exits can't leak tasks.
 - `run` maps `WatchTranscript`, `Forget` and `AppendHistory` (with
   `try_send`: history is best-effort).
