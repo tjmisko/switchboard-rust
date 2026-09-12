@@ -1,0 +1,1 @@
+{"session_id":"e0b4b21f-aaf6-4ab0-a8d6-2d595aba4065","transcript_path":"/tmp/t.jsonl","cwd":"/home/u/Projects/switchboard","permission_mode":"default","hook_event_name":"PermissionRequest","tool_name":"Bash","tool_input":{"description":"check","command":"git status"},"permission_suggestions":[{"type":"addRules","rules":[{"toolName":"Bash","ruleContent":"git status"}]}]}

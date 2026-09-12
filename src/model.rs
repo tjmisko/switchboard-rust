@@ -101,8 +101,13 @@ id! {
     ToolName
 }
 
-/// sha256 of the canonical JSON form of a tool input, truncated. Joins a
+/// FNV-1a (64-bit) of the canonical JSON form of a tool input. Joins a
 /// permission prompt to the call it belongs to. Never forwarded raw.
+///
+/// Not sha256: the join compares a handful of in-flight calls, so collision
+/// resistance buys nothing, and FNV keeps the crate free of a crypto
+/// dependency. Both sides of the join are hashed by this crate, so the
+/// function only has to agree with itself. See `ingest::hash`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct InputHash(pub [u8; 8]);
 
@@ -188,9 +193,19 @@ pub struct Moment {
 #[derive(Debug, Clone)]
 pub struct Event {
     pub at: Moment,
+    /// The agent process, when the source knows it. Hook frames carry the
+    /// forwarder's pid, which the listener resolves to a tracked ancestor;
+    /// a transcript watcher is spawned for one process and always knows.
+    ///
+    /// Routing prefers this over `session`, because a `/clear` arrives
+    /// carrying a session id the board has never seen.
+    pub process: Option<ProcKey>,
     pub session: SessionId,
     pub actor: Actor,
     pub cause: Cause,
+    /// How far to trust this event if it raises the chip. Hooks are
+    /// `Confirmed`; a transcript replayed on discovery is `Inferred`.
+    pub confidence: Confidence,
     pub kind: EventKind,
 }
 
@@ -228,12 +243,16 @@ pub enum EventKind {
     SessionEnded {
         reason: Box<str>,
     },
+    /// `turn` is optional because `prompt_id` is optional on the hook base,
+    /// and assistant transcript lines do not carry it at all.
     TurnStarted {
-        turn: TurnKey,
+        turn: Option<TurnKey>,
         origin: Origin,
     },
+    /// Ends the open turn unless both sides carry a key and the keys differ,
+    /// which is the late close of an earlier turn.
     TurnEnded {
-        turn: TurnKey,
+        turn: Option<TurnKey>,
         outcome: TurnOutcome,
     },
     /// Claude `PreToolUse` (needs an unrestricted matcher to be useful),
@@ -249,11 +268,16 @@ pub enum EventKind {
     },
     /// `call` is None for Claude, whose `PermissionRequest` has no
     /// `tool_use_id`. See `Prompts`.
+    ///
+    /// `kind` is `Question` for a call that *is* the question
+    /// (`AskUserQuestion`, `ExitPlanMode`, an elicitation). Those arrive
+    /// with their call id and are their own dispatch.
     PermissionAsked {
         call: Option<ToolUseId>,
         tool: ToolName,
         hash: Option<InputHash>,
         owner: Ownership,
+        kind: GateKind,
     },
     PermissionSettled {
         call: Option<ToolUseId>,
@@ -440,6 +464,12 @@ pub enum SnapshotKind {
         session: SessionId,
         rows: Vec<SubagentRow>,
     },
+    /// `Stop.background_tasks[]` and `Stop.session_crons[]`: the whole set of
+    /// outstanding waits for one agent. The entire basis of `Phase::Waiting`.
+    Waits {
+        session: SessionId,
+        rows: Vec<WaitRow>,
+    },
     /// Discovery sweep of `/proc`.
     Processes(Vec<ProcessRow>),
     /// Window manager and multiplexer tables, already joined.
@@ -502,7 +532,9 @@ pub struct Board {
 
 impl Board {
     pub fn by_session(&self, session: &SessionId) -> Option<&Agent> {
-        self.agents.values().find(|a| &a.session == session)
+        self.agents
+            .values()
+            .find(|a| a.session.as_ref() == Some(session))
     }
 
     pub fn phase(&self, agent: &Agent) -> Phase {
@@ -598,7 +630,12 @@ pub struct Agent {
     pub life: Life,
 
     /// The current conversation. Rotates on `/clear`; the agent does not.
-    pub session: SessionId,
+    ///
+    /// Optional because an agent exists from the moment a sweep finds its
+    /// process, and a sweep can only name the session when
+    /// `~/.claude/sessions/<pid>.json` is present and agrees on `procStart`.
+    /// Otherwise the first hook fills it in.
+    pub session: Option<SessionId>,
     pub account: AccountId,
     pub title: Option<Box<str>>,
 
@@ -635,11 +672,15 @@ pub enum Life {
     Gone { at: Instant },
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProcessRow {
     pub key: ProcKey,
     pub provider: Provider,
     pub cwd: PathBuf,
+    /// From `~/.claude/sessions/<pid>.json`, only when its `procStart`
+    /// matches `key.start`. A stale file from a recycled pid names someone
+    /// else's conversation.
+    pub session: Option<SessionId>,
     pub tty: Option<u64>,
     pub cpu_ticks: u64,
 }
@@ -695,7 +736,7 @@ pub struct Tool {
 
 /// A permission gate is a state of the call that caused it. Keeping a separate
 /// `blocked: bool` on the agent invites the two to disagree.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Gate {
     Running,
     Blocked {
@@ -745,6 +786,7 @@ pub struct Unjoined {
     pub hash: Option<InputHash>,
     pub since: Instant,
     pub owner: Ownership,
+    pub kind: GateKind,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -773,6 +815,13 @@ pub enum WaitKind {
     BackgroundShell,
     Monitor,
     Cron,
+}
+
+/// One outstanding wait as a `Stop` payload reports it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WaitRow {
+    pub id: WaitId,
+    pub kind: WaitKind,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1096,6 +1145,10 @@ pub enum Reason {
     TurnFailed {
         class: ErrorClass,
     },
+    /// The operator stopped the last turn with work unfinished.
+    Interrupted {
+        since: Instant,
+    },
     RunningTools {
         count: usize,
     },
@@ -1152,6 +1205,7 @@ impl Agent {
             return Phase::Unknown;
         }
 
+        // T08: this check is in the wrong place for a gate held mid-turn.
         if self.has_unowned_gate() {
             return Phase::Unknown;
         }
@@ -1211,6 +1265,9 @@ impl Agent {
 
     /// A gate whose owner was never established. Codex hooks report a gate
     /// without saying who holds it.
+    ///
+    /// T08: this only sees parked prompts. A gate on a call, or on a
+    /// subagent, is invisible to it.
     fn has_unowned_gate(&self) -> bool {
         self.prompts
             .unjoined
@@ -1220,58 +1277,59 @@ impl Agent {
 }
 
 // ---------------------------------------------------------------------------
-// 8. The reducer
+// 8. Effects
 // ---------------------------------------------------------------------------
+//
+// The reducer itself lives in `crate::reduce`. It is pure and synchronous: all
+// I/O is in the returned effects, so a transition table can be tested without
+// a filesystem, a socket or a clock.
 
-/// Pure and synchronous. All I/O is in the returned effects, so a transition
-/// table can be tested without a filesystem, a socket or a clock.
-pub fn apply_event(_board: &mut Board, _event: Event) -> Vec<Effect> {
-    todo!("transition tables: docs/survey/03-providers-status.md §2.3-§2.8")
-}
-
-/// A separate entry point because the merge rule is the opposite one: a
-/// snapshot replaces its whole scope, and only where `AsOf::supersedes` says
-/// no later event has already spoken.
-pub fn apply_snapshot(_board: &mut Board, _snapshot: Snapshot) -> Vec<Effect> {
-    todo!("snapshot merge")
-}
-
-/// Time passing is an input too: graces expire, waits time out, a turn with no
-/// closing event goes stale.
-///
-/// Staleness may end a turn. It may never clear a gate or a limit: an agent
-/// parked on a permission prompt has no CPU and no transcript growth, and looks
-/// exactly like a dead turn.
-pub fn tick(_board: &mut Board, _now: Instant) -> Vec<Effect> {
-    todo!("expiry sweep")
-}
-
-#[derive(Debug, Clone)]
+/// Something the reducer wants done. Never touches the board; results that
+/// matter come back round as new inputs.
+#[derive(Debug, Clone, PartialEq)]
 pub enum Effect {
+    /// The visible board changed. Coalesced by the publisher.
     PublishState,
-    AppendHistory {
-        session: SessionId,
-        phase: Phase,
-    },
-    SignalWaybar {
-        slot: u8,
-    },
+    /// A displayed phase changed, or an agent came or went.
+    AppendHistory(HistoryEntry),
+    /// Start tailing an agent's transcript. The watcher first replays the
+    /// tail at `Confidence::Inferred`, which is what replaces
+    /// `Activity::Unobserved` with something we have grounds for: a blocked
+    /// agent emits no further events, so without it a daemon restart would
+    /// leave the chip grey indefinitely.
+    ///
+    /// Emitted again when `/clear` rotates the session; the runner replaces
+    /// any watcher it already holds for `process`.
+    ///
+    /// Carries the ingredients, not the path: where transcripts live is the
+    /// runner's business, and the reducer knows no directories.
     WatchTranscript {
+        process: ProcKey,
         session: SessionId,
-        path: PathBuf,
+        cwd: PathBuf,
     },
-    /// Read back an agent's transcript on discovery, to replace
-    /// `Activity::Unobserved` with something we have grounds for. A blocked
-    /// agent emits no further events, so without this a daemon restart leaves
-    /// it green indefinitely.
-    ReconstructFromTranscript {
+    /// The agent is gone. Stop everything held on its behalf.
+    Forget { process: ProcKey },
+}
+
+/// What the history appender records. Phase names, not the Go vocabulary.
+#[derive(Debug, Clone, PartialEq)]
+pub enum HistoryEntry {
+    AgentFound {
         process: ProcKey,
+        cwd: PathBuf,
     },
-    BindPidfd {
+    AgentGone {
         process: ProcKey,
+        session: Option<SessionId>,
     },
-    Forget {
+    /// `Shown` moved. `held` is how long the previous phase was on screen.
+    Shown {
         process: ProcKey,
+        session: Option<SessionId>,
+        from: Phase,
+        to: Phase,
+        held: Duration,
     },
 }
 
@@ -1525,7 +1583,7 @@ mod tests {
             process: ProcKey { pid, start: 900 },
             provider: Provider::Claude,
             life: Life::Alive,
-            session: SessionId(format!("sess-{pid}").into()),
+            session: Some(SessionId(format!("sess-{pid}").into())),
             account: AccountId("acct".into()),
             title: Some("switchboard".into()),
             cwd: PathBuf::from("/home/u/Projects/switchboard"),
