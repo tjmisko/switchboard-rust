@@ -81,7 +81,10 @@ fn should_reset_the_conversation_and_watch_the_new_transcript_when_the_session_r
     let t = Clock::new();
     let mut b = board_with(&[(100, "old")], t.at(0));
     apply(&mut b, hook(100, "old", t.at(1), turn_started("p")));
-    apply(&mut b, hook(100, "old", t.at(2), dispatched("c1", "Bash", &json!({}))));
+    apply(
+        &mut b,
+        hook(100, "old", t.at(2), dispatched("c1", "Bash", &json!({}))),
+    );
 
     let fx = apply(
         &mut b,
@@ -99,7 +102,9 @@ fn should_reset_the_conversation_and_watch_the_new_transcript_when_the_session_r
     assert_eq!(a.session.as_deref(), Some("new"));
     assert_eq!(a.title.as_deref(), Some("fresh"));
     assert!(matches!(a.activity, Activity::Idle { after: None, .. }));
-    assert!(fx.iter().any(|e| matches!(e, Effect::WatchTranscript { session, .. } if session.as_str() == "new")));
+    assert!(fx.iter().any(
+        |e| matches!(e, Effect::WatchTranscript { session, .. } if session.as_str() == "new")
+    ));
     assert_eq!(shown(&b, 100), Phase::Idle);
 }
 
@@ -174,7 +179,10 @@ fn should_keep_open_calls_when_a_new_prompt_starts_mid_turn() {
     let t = Clock::new();
     let mut b = board_with(&[(100, "s1")], t.at(0));
     apply(&mut b, hook(100, "s1", t.at(1), turn_started("p1")));
-    apply(&mut b, hook(100, "s1", t.at(2), dispatched("c1", "Bash", &json!({}))));
+    apply(
+        &mut b,
+        hook(100, "s1", t.at(2), dispatched("c1", "Bash", &json!({}))),
+    );
     apply(&mut b, hook(100, "s1", t.at(3), turn_started("p2")));
     assert_eq!(open_tools(&b, 100), ["c1"]);
     let Activity::Turn { key, .. } = &agent(&b, 100).activity else {
@@ -188,9 +196,23 @@ fn should_go_idle_and_abandon_open_calls_when_the_turn_ends() {
     let t = Clock::new();
     let mut b = board_with(&[(100, "s1")], t.at(0));
     apply(&mut b, hook(100, "s1", t.at(1), turn_started("p1")));
-    apply(&mut b, hook(100, "s1", t.at(2), dispatched("c1", "Bash", &json!({}))));
-    apply(&mut b, hook(100, "s1", t.at(3), dispatched("c2", "Read", &json!({}))));
-    let fx = apply(&mut b, hook(100, "s1", t.at(4), turn_ended(Some("p1"), TurnOutcome::Completed)));
+    apply(
+        &mut b,
+        hook(100, "s1", t.at(2), dispatched("c1", "Bash", &json!({}))),
+    );
+    apply(
+        &mut b,
+        hook(100, "s1", t.at(3), dispatched("c2", "Read", &json!({}))),
+    );
+    let fx = apply(
+        &mut b,
+        hook(
+            100,
+            "s1",
+            t.at(4),
+            turn_ended(Some("p1"), TurnOutcome::Completed),
+        ),
+    );
     assert!(open_tools(&b, 100).is_empty());
     assert_eq!(truth(&b, 100), Phase::Idle);
     assert_eq!(shown(&b, 100), Phase::Idle, "de-escalation is immediate");
@@ -202,7 +224,15 @@ fn should_ignore_a_turn_end_that_names_a_different_turn() {
     let t = Clock::new();
     let mut b = board_with(&[(100, "s1")], t.at(0));
     apply(&mut b, hook(100, "s1", t.at(1), turn_started("p2")));
-    let fx = apply(&mut b, hook(100, "s1", t.at(2), turn_ended(Some("p1"), TurnOutcome::Completed)));
+    let fx = apply(
+        &mut b,
+        hook(
+            100,
+            "s1",
+            t.at(2),
+            turn_ended(Some("p1"), TurnOutcome::Completed),
+        ),
+    );
     assert!(fx.is_empty());
     assert_eq!(truth(&b, 100), Phase::Working);
 }
@@ -280,7 +310,11 @@ fn should_hold_the_screen_while_an_inferred_turn_failure_serves_its_dwell() {
         ),
     );
     assert_eq!(truth(&b, 100), Phase::Blocked);
-    assert_eq!(shown(&b, 100), Phase::Working, "agent-caused and inferred: waits");
+    assert_eq!(
+        shown(&b, 100),
+        Phase::Working,
+        "agent-caused and inferred: waits"
+    );
     assert!(agent(&b, 100).shown.pending.is_some());
 }
 
@@ -310,7 +344,10 @@ fn should_show_blocked_at_once_when_the_turn_failure_is_confirmed() {
 fn should_start_a_turn_when_a_tool_is_dispatched_while_idle() {
     let t = Clock::new();
     let mut b = board_with(&[(100, "s1")], t.at(0));
-    apply(&mut b, hook(100, "s1", t.at(1), dispatched("c1", "Bash", &json!({}))));
+    apply(
+        &mut b,
+        hook(100, "s1", t.at(1), dispatched("c1", "Bash", &json!({}))),
+    );
     assert_eq!(truth(&b, 100), Phase::Working);
     assert_eq!(open_tools(&b, 100), ["c1"]);
     let Activity::Turn { key, .. } = &agent(&b, 100).activity else {
@@ -335,8 +372,24 @@ fn should_leave_unobserved_for_idle_when_a_replayed_turn_ends() {
 fn should_publish_nothing_when_the_same_call_is_dispatched_twice() {
     let t = Clock::new();
     let mut b = board_with(&[(100, "s1")], t.at(0));
-    apply(&mut b, hook(100, "s1", t.at(1), dispatched("c1", "Bash", &json!({"a": 1}))));
-    let fx = apply(&mut b, inferred(100, "s1", t.at(2), dispatched("c1", "Bash", &json!({"a": 1}))));
+    apply(
+        &mut b,
+        hook(
+            100,
+            "s1",
+            t.at(1),
+            dispatched("c1", "Bash", &json!({"a": 1})),
+        ),
+    );
+    let fx = apply(
+        &mut b,
+        inferred(
+            100,
+            "s1",
+            t.at(2),
+            dispatched("c1", "Bash", &json!({"a": 1})),
+        ),
+    );
     assert!(fx.is_empty(), "{fx:?}");
     assert_eq!(open_tools(&b, 100), ["c1"]);
 }
@@ -345,8 +398,14 @@ fn should_publish_nothing_when_the_same_call_is_dispatched_twice() {
 fn should_remove_only_the_settled_call_and_keep_working() {
     let t = Clock::new();
     let mut b = board_with(&[(100, "s1")], t.at(0));
-    apply(&mut b, hook(100, "s1", t.at(1), dispatched("c1", "Bash", &json!({}))));
-    apply(&mut b, hook(100, "s1", t.at(1), dispatched("c2", "Read", &json!({}))));
+    apply(
+        &mut b,
+        hook(100, "s1", t.at(1), dispatched("c1", "Bash", &json!({}))),
+    );
+    apply(
+        &mut b,
+        hook(100, "s1", t.at(1), dispatched("c2", "Read", &json!({}))),
+    );
     apply(&mut b, hook(100, "s1", t.at(2), settled("c1")));
     assert_eq!(open_tools(&b, 100), ["c2"]);
     assert_eq!(truth(&b, 100), Phase::Working);
@@ -356,7 +415,10 @@ fn should_remove_only_the_settled_call_and_keep_working() {
 fn should_publish_nothing_when_an_unknown_call_settles() {
     let t = Clock::new();
     let mut b = board_with(&[(100, "s1")], t.at(0));
-    apply(&mut b, hook(100, "s1", t.at(1), dispatched("c1", "Bash", &json!({}))));
+    apply(
+        &mut b,
+        hook(100, "s1", t.at(1), dispatched("c1", "Bash", &json!({}))),
+    );
     let fx = apply(&mut b, hook(100, "s1", t.at(2), settled("never-seen")));
     assert!(!publishes(&fx));
     assert_eq!(open_tools(&b, 100), ["c1"]);
@@ -366,7 +428,10 @@ fn should_publish_nothing_when_an_unknown_call_settles() {
 fn should_end_the_turn_as_interrupted_when_a_tool_fails_by_interrupt() {
     let t = Clock::new();
     let mut b = board_with(&[(100, "s1")], t.at(0));
-    apply(&mut b, hook(100, "s1", t.at(1), dispatched("c1", "Bash", &json!({}))));
+    apply(
+        &mut b,
+        hook(100, "s1", t.at(1), dispatched("c1", "Bash", &json!({}))),
+    );
     apply(
         &mut b,
         by_user(
@@ -386,7 +451,10 @@ fn should_end_the_turn_as_interrupted_when_a_tool_fails_by_interrupt() {
 fn should_keep_the_turn_when_a_tool_merely_fails() {
     let t = Clock::new();
     let mut b = board_with(&[(100, "s1")], t.at(0));
-    apply(&mut b, hook(100, "s1", t.at(1), dispatched("c1", "Bash", &json!({}))));
+    apply(
+        &mut b,
+        hook(100, "s1", t.at(1), dispatched("c1", "Bash", &json!({}))),
+    );
     apply(
         &mut b,
         hook(
@@ -430,11 +498,17 @@ fn should_follow_cwd_changes_and_rename_the_workspace() {
     let t = Clock::new();
     let mut b = board_with(&[(100, "s1")], t.at(0));
     let to = PathBuf::from("/home/u/Projects/other");
-    let fx = apply(&mut b, hook(100, "s1", t.at(1), EventKind::CwdChanged { to: to.clone() }));
+    let fx = apply(
+        &mut b,
+        hook(100, "s1", t.at(1), EventKind::CwdChanged { to: to.clone() }),
+    );
     assert!(publishes(&fx));
     assert_eq!(agent(&b, 100).cwd, to);
     assert_eq!(agent(&b, 100).workspace.as_deref(), Some("other"));
-    let again = apply(&mut b, hook(100, "s1", t.at(2), EventKind::CwdChanged { to }));
+    let again = apply(
+        &mut b,
+        hook(100, "s1", t.at(2), EventKind::CwdChanged { to }),
+    );
     assert!(again.is_empty());
 }
 
@@ -444,7 +518,14 @@ fn should_publish_nothing_for_session_end_because_it_is_not_liveness() {
     let mut b = board_with(&[(100, "s1")], t.at(0));
     let fx = apply(
         &mut b,
-        hook(100, "s1", t.at(1), EventKind::SessionEnded { reason: "clear".into() }),
+        hook(
+            100,
+            "s1",
+            t.at(1),
+            EventKind::SessionEnded {
+                reason: "clear".into(),
+            },
+        ),
     );
     assert!(fx.is_empty());
     assert!(b.agents.contains_key(&key(100)));

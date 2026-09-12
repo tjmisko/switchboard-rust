@@ -55,7 +55,10 @@ fn should_add_each_new_process_once_and_watch_those_with_a_session() {
 
     let again = reduce::apply_snapshot(
         &mut b,
-        snapshot(t.at(1), SnapshotKind::Processes(vec![row(1, Some("s1")), row(2, None)])),
+        snapshot(
+            t.at(1),
+            SnapshotKind::Processes(vec![row(1, Some("s1")), row(2, None)]),
+        ),
     );
     assert!(again.is_empty(), "{again:?}");
 }
@@ -66,10 +69,16 @@ fn should_adopt_a_session_a_later_sweep_discovers() {
     let mut b = board_unobserved(&[(2, None)], t.at(0));
     let fx = reduce::apply_snapshot(
         &mut b,
-        snapshot(t.at(1), SnapshotKind::Processes(vec![row(2, Some("found"))])),
+        snapshot(
+            t.at(1),
+            SnapshotKind::Processes(vec![row(2, Some("found"))]),
+        ),
     );
     assert_eq!(agent(&b, 2).session.as_deref(), Some("found"));
-    assert!(fx.iter().any(|e| matches!(e, Effect::WatchTranscript { .. })));
+    assert!(
+        fx.iter()
+            .any(|e| matches!(e, Effect::WatchTranscript { .. }))
+    );
 }
 
 #[test]
@@ -127,10 +136,21 @@ fn should_publish_nothing_when_limits_repeat_unchanged() {
 fn should_replace_the_subagent_table_wholesale_from_the_panel() {
     let t = Clock::new();
     let mut b = board_with(&[(1, "s")], t.at(0));
-    let panel = |rows| snapshot(t.at(1), SnapshotKind::Subagents { session: "s".into(), rows });
+    let panel = |rows| {
+        snapshot(
+            t.at(1),
+            SnapshotKind::Subagents {
+                session: "s".into(),
+                rows,
+            },
+        )
+    };
     reduce::apply_snapshot(
         &mut b,
-        panel(vec![sub_row("a", SubagentStatus::Running), sub_row("b", SubagentStatus::Failed)]),
+        panel(vec![
+            sub_row("a", SubagentStatus::Running),
+            sub_row("b", SubagentStatus::Failed),
+        ]),
     );
     assert_eq!(truth(&b, 1), Phase::Delegating);
     assert_eq!(agent(&b, 1).subagents.source, SubagentSource::Panel);
@@ -145,7 +165,12 @@ fn should_replace_the_subagent_table_wholesale_from_the_panel() {
             },
         ),
     );
-    let ids: Vec<&str> = agent(&b, 1).subagents.rows.keys().map(|k| k.as_str()).collect();
+    let ids: Vec<&str> = agent(&b, 1)
+        .subagents
+        .rows
+        .keys()
+        .map(|k| k.as_str())
+        .collect();
     assert_eq!(ids, ["b"], "absence from the newest panel is a fact");
     assert_eq!(truth(&b, 1), Phase::Idle);
 }
@@ -183,7 +208,10 @@ fn should_keep_a_gate_an_event_set_on_a_row_the_panel_still_shows() {
         )
     };
     reduce::apply_snapshot(&mut b, panel(1));
-    apply(&mut b, from_subagent(1, "s", "a", t.at(2), question("q", "AskUserQuestion")));
+    apply(
+        &mut b,
+        from_subagent(1, "s", "a", t.at(2), question("q", "AskUserQuestion")),
+    );
     reduce::apply_snapshot(&mut b, panel(3));
     assert_eq!(truth(&b, 1), Phase::Attention);
 }
@@ -203,7 +231,10 @@ fn should_wait_on_background_tasks_reported_by_stop_and_forget_them_when_expired
                 session: "s".into(),
                 rows: ids
                     .iter()
-                    .map(|id| WaitRow { id: WaitId((*id).into()), kind: WaitKind::BackgroundShell })
+                    .map(|id| WaitRow {
+                        id: WaitId((*id).into()),
+                        kind: WaitKind::BackgroundShell,
+                    })
                     .collect(),
             },
         )
@@ -226,10 +257,19 @@ fn should_wait_on_background_tasks_reported_by_stop_and_forget_them_when_expired
 fn should_clear_waits_when_stop_reports_none() {
     let t = Clock::new();
     let mut b = board_with(&[(1, "s")], t.at(0));
-    let kind = |rows| SnapshotKind::Waits { session: "s".into(), rows };
+    let kind = |rows| SnapshotKind::Waits {
+        session: "s".into(),
+        rows,
+    };
     reduce::apply_snapshot(
         &mut b,
-        snapshot(t.at(1), kind(vec![WaitRow { id: WaitId("c".into()), kind: WaitKind::Cron }])),
+        snapshot(
+            t.at(1),
+            kind(vec![WaitRow {
+                id: WaitId("c".into()),
+                kind: WaitKind::Cron,
+            }]),
+        ),
     );
     reduce::apply_snapshot(&mut b, snapshot(t.at(2), kind(vec![])));
     assert_eq!(truth(&b, 1), Phase::Idle);
@@ -243,7 +283,10 @@ fn should_clear_waits_when_stop_reports_none() {
 fn should_end_a_quiet_turn_after_the_stale_limit() {
     let t = Clock::new();
     let mut b = board_with(&[(1, "s")], t.at(0));
-    apply(&mut b, hook(1, "s", t.at(1), dispatched("c1", "Bash", &json!({}))));
+    apply(
+        &mut b,
+        hook(1, "s", t.at(1), dispatched("c1", "Bash", &json!({}))),
+    );
     assert!(tick(&mut b, t.at(1) + TURN_STALE - Duration::from_millis(1)).is_empty());
     let fx = tick(&mut b, t.at(1) + TURN_STALE);
     assert_eq!(truth(&b, 1), Phase::Idle);
@@ -254,7 +297,10 @@ fn should_end_a_quiet_turn_after_the_stale_limit() {
 fn should_never_end_a_turn_that_is_parked_on_a_gate() {
     let t = Clock::new();
     let mut b = board_with(&[(1, "s")], t.at(0));
-    apply(&mut b, hook(1, "s", t.at(1), dispatched("c1", "Bash", &json!({}))));
+    apply(
+        &mut b,
+        hook(1, "s", t.at(1), dispatched("c1", "Bash", &json!({}))),
+    );
     apply(&mut b, hook(1, "s", t.at(2), asked("Bash", &json!({}))));
     tick(&mut b, t.at(2) + TURN_STALE * 3);
     assert_eq!(truth(&b, 1), Phase::Attention);
@@ -267,7 +313,17 @@ fn should_promote_a_pending_escalation_on_the_tick_at_its_deadline() {
     apply(&mut b, hook(1, "s", t.at(1), turn_started("p")));
     apply(
         &mut b,
-        inferred(1, "s", t.at(2), turn_ended(None, TurnOutcome::Failed { class: ErrorClass::Other })),
+        inferred(
+            1,
+            "s",
+            t.at(2),
+            turn_ended(
+                None,
+                TurnOutcome::Failed {
+                    class: ErrorClass::Other,
+                },
+            ),
+        ),
     );
     let deadline = next_deadline(&b).expect("a dwell is pending");
     assert_eq!(deadline, t.at(2) + Shown::INFERRED_DWELL);
@@ -303,7 +359,10 @@ fn should_render_equal_views_for_an_unchanged_board() {
 fn should_explain_the_phase_in_the_tooltip() {
     let t = Clock::new();
     let mut b = board_with(&[(1, "s")], t.at(0));
-    apply(&mut b, hook(1, "s", t.at(1), dispatched("c1", "Bash", &json!({}))));
+    apply(
+        &mut b,
+        hook(1, "s", t.at(1), dispatched("c1", "Bash", &json!({}))),
+    );
     apply(&mut b, hook(1, "s", t.at(2), asked("Bash", &json!({}))));
     let text = describe(&reason(agent(&b, 1), None));
     assert_eq!(text, "wants approval to run Bash");

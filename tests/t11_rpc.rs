@@ -171,7 +171,8 @@ async fn should_serve_a_real_unix_socket_end_to_end() {
     let path = dir.join("t11.sock");
 
     let listener = switchboard::daemon::bind(&path).await.unwrap();
-    let mode = std::os::unix::fs::PermissionsExt::mode(&std::fs::metadata(&path).unwrap().permissions());
+    let mode =
+        std::os::unix::fs::PermissionsExt::mode(&std::fs::metadata(&path).unwrap().permissions());
     assert_eq!(mode & 0o777, 0o600);
 
     let (inbox_tx, mut inbox) = mpsc::channel(4);

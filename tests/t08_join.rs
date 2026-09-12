@@ -26,7 +26,10 @@ fn blocked_owner(g: Option<&Gate>) -> Option<Ownership> {
 fn should_gate_the_running_call_when_a_prompt_arrives_after_it() {
     let t = Clock::new();
     let mut b = board_with(&[(1, "s")], t.at(0));
-    apply(&mut b, hook(1, "s", t.at(1), dispatched("c1", "Bash", &ls())));
+    apply(
+        &mut b,
+        hook(1, "s", t.at(1), dispatched("c1", "Bash", &ls())),
+    );
     let fx = apply(&mut b, hook(1, "s", t.at(2), asked("Bash", &ls())));
 
     assert_eq!(blocked_owner(gate_of(&b, 1, "c1")), Some(Ownership::Human));
@@ -42,9 +45,16 @@ fn should_park_a_prompt_that_arrives_first_and_join_it_when_the_call_arrives() {
     apply(&mut b, hook(1, "s", t.at(1), turn_started("p")));
     apply(&mut b, hook(1, "s", t.at(2), asked("Bash", &ls())));
     assert_eq!(agent(&b, 1).prompts.unjoined.len(), 1);
-    assert_eq!(truth(&b, 1), Phase::Attention, "an unjoined human prompt already wants a person");
+    assert_eq!(
+        truth(&b, 1),
+        Phase::Attention,
+        "an unjoined human prompt already wants a person"
+    );
 
-    apply(&mut b, inferred(1, "s", t.at(3), dispatched("c1", "Bash", &ls())));
+    apply(
+        &mut b,
+        inferred(1, "s", t.at(3), dispatched("c1", "Bash", &ls())),
+    );
     assert!(agent(&b, 1).prompts.unjoined.is_empty());
     match gate_of(&b, 1, "c1") {
         Some(Gate::Blocked { since, kind, .. }) => {
@@ -59,7 +69,15 @@ fn should_park_a_prompt_that_arrives_first_and_join_it_when_the_call_arrives() {
 fn should_not_join_a_prompt_to_a_call_with_a_different_input() {
     let t = Clock::new();
     let mut b = board_with(&[(1, "s")], t.at(0));
-    apply(&mut b, hook(1, "s", t.at(1), dispatched("c1", "Bash", &json!({"command": "pwd"}))));
+    apply(
+        &mut b,
+        hook(
+            1,
+            "s",
+            t.at(1),
+            dispatched("c1", "Bash", &json!({"command": "pwd"})),
+        ),
+    );
     apply(&mut b, hook(1, "s", t.at(2), asked("Bash", &ls())));
     assert_eq!(gate_of(&b, 1, "c1"), Some(&Gate::Running));
     assert_eq!(agent(&b, 1).prompts.unjoined.len(), 1);
@@ -69,7 +87,10 @@ fn should_not_join_a_prompt_to_a_call_with_a_different_input() {
 fn should_not_join_a_prompt_to_a_call_of_a_different_tool() {
     let t = Clock::new();
     let mut b = board_with(&[(1, "s")], t.at(0));
-    apply(&mut b, hook(1, "s", t.at(1), dispatched("c1", "Read", &ls())));
+    apply(
+        &mut b,
+        hook(1, "s", t.at(1), dispatched("c1", "Read", &ls())),
+    );
     apply(&mut b, hook(1, "s", t.at(2), asked("Bash", &ls())));
     assert_eq!(gate_of(&b, 1, "c1"), Some(&Gate::Running));
 }
@@ -78,8 +99,14 @@ fn should_not_join_a_prompt_to_a_call_of_a_different_tool() {
 fn should_join_only_one_of_two_identical_parallel_calls() {
     let t = Clock::new();
     let mut b = board_with(&[(1, "s")], t.at(0));
-    apply(&mut b, hook(1, "s", t.at(1), dispatched("c1", "Bash", &ls())));
-    apply(&mut b, hook(1, "s", t.at(1), dispatched("c2", "Bash", &ls())));
+    apply(
+        &mut b,
+        hook(1, "s", t.at(1), dispatched("c1", "Bash", &ls())),
+    );
+    apply(
+        &mut b,
+        hook(1, "s", t.at(1), dispatched("c2", "Bash", &ls())),
+    );
     apply(&mut b, hook(1, "s", t.at(2), asked("Bash", &ls())));
     let gated = ["c1", "c2"]
         .iter()
@@ -102,7 +129,10 @@ fn should_publish_nothing_for_a_duplicate_parked_prompt() {
 fn should_match_a_hashless_prompt_on_tool_name_alone() {
     let t = Clock::new();
     let mut b = board_with(&[(1, "s")], t.at(0));
-    apply(&mut b, hook(1, "s", t.at(1), dispatched("c1", "Bash", &ls())));
+    apply(
+        &mut b,
+        hook(1, "s", t.at(1), dispatched("c1", "Bash", &ls())),
+    );
     let mut kind = asked("Bash", &ls());
     if let EventKind::PermissionAsked { hash, .. } = &mut kind {
         *hash = None;
@@ -119,7 +149,10 @@ fn should_match_a_hashless_prompt_on_tool_name_alone() {
 fn should_lift_attention_at_once_when_the_gated_call_settles() {
     let t = Clock::new();
     let mut b = board_with(&[(1, "s")], t.at(0));
-    apply(&mut b, hook(1, "s", t.at(1), dispatched("c1", "Bash", &ls())));
+    apply(
+        &mut b,
+        hook(1, "s", t.at(1), dispatched("c1", "Bash", &ls())),
+    );
     apply(&mut b, hook(1, "s", t.at(2), asked("Bash", &ls())));
     apply(&mut b, hook(1, "s", t.at(30), settled("c1")));
     assert_eq!(shown(&b, 1), Phase::Working);
@@ -142,7 +175,10 @@ fn should_keep_both_parked_prompts_when_an_unseen_call_settles_ambiguously() {
     let t = Clock::new();
     let mut b = board_with(&[(1, "s")], t.at(0));
     apply(&mut b, hook(1, "s", t.at(1), asked("Bash", &ls())));
-    apply(&mut b, hook(1, "s", t.at(1), asked("Write", &json!({"file_path": "x"}))));
+    apply(
+        &mut b,
+        hook(1, "s", t.at(1), asked("Write", &json!({"file_path": "x"}))),
+    );
     apply(&mut b, hook(1, "s", t.at(2), settled("c-unknown")));
     assert_eq!(agent(&b, 1).prompts.unjoined.len(), 2);
     assert_eq!(truth(&b, 1), Phase::Attention);
@@ -164,10 +200,24 @@ fn should_lift_every_agent_prompt_when_the_turn_ends_or_a_new_one_starts() {
 fn should_release_the_gate_when_the_prompt_is_allowed_and_drop_the_call_when_denied() {
     let t = Clock::new();
     let mut b = board_with(&[(1, "s")], t.at(0));
-    apply(&mut b, hook(1, "s", t.at(1), dispatched("c1", "Bash", &ls())));
-    apply(&mut b, hook(1, "s", t.at(1), dispatched("c2", "Bash", &json!({"command": "rm"}))));
+    apply(
+        &mut b,
+        hook(1, "s", t.at(1), dispatched("c1", "Bash", &ls())),
+    );
+    apply(
+        &mut b,
+        hook(
+            1,
+            "s",
+            t.at(1),
+            dispatched("c2", "Bash", &json!({"command": "rm"})),
+        ),
+    );
     apply(&mut b, hook(1, "s", t.at(2), asked("Bash", &ls())));
-    apply(&mut b, hook(1, "s", t.at(2), asked("Bash", &json!({"command": "rm"}))));
+    apply(
+        &mut b,
+        hook(1, "s", t.at(2), asked("Bash", &json!({"command": "rm"}))),
+    );
 
     apply(
         &mut b,
@@ -210,7 +260,10 @@ fn should_release_the_gate_when_the_prompt_is_allowed_and_drop_the_call_when_den
 fn should_create_a_blocked_call_when_a_question_tool_is_its_own_dispatch() {
     let t = Clock::new();
     let mut b = board_with(&[(1, "s")], t.at(0));
-    apply(&mut b, hook(1, "s", t.at(1), question("toolu_ask", "AskUserQuestion")));
+    apply(
+        &mut b,
+        hook(1, "s", t.at(1), question("toolu_ask", "AskUserQuestion")),
+    );
     match gate_of(&b, 1, "toolu_ask") {
         Some(Gate::Blocked { kind, owner, .. }) => {
             assert_eq!(*kind, GateKind::Question);
@@ -225,11 +278,25 @@ fn should_create_a_blocked_call_when_a_question_tool_is_its_own_dispatch() {
 fn should_gate_an_already_dispatched_call_when_its_id_arrives_with_the_ask() {
     let t = Clock::new();
     let mut b = board_with(&[(1, "s")], t.at(0));
-    apply(&mut b, inferred(1, "s", t.at(1), dispatched("toolu_ask", "AskUserQuestion", &json!({}))));
-    let fx = apply(&mut b, hook(1, "s", t.at(2), question("toolu_ask", "AskUserQuestion")));
+    apply(
+        &mut b,
+        inferred(
+            1,
+            "s",
+            t.at(1),
+            dispatched("toolu_ask", "AskUserQuestion", &json!({})),
+        ),
+    );
+    let fx = apply(
+        &mut b,
+        hook(1, "s", t.at(2), question("toolu_ask", "AskUserQuestion")),
+    );
     assert!(publishes(&fx));
     assert_eq!(open_tools(&b, 1), ["toolu_ask"]);
-    let again = apply(&mut b, hook(1, "s", t.at(3), question("toolu_ask", "AskUserQuestion")));
+    let again = apply(
+        &mut b,
+        hook(1, "s", t.at(3), question("toolu_ask", "AskUserQuestion")),
+    );
     assert!(again.is_empty(), "already blocked");
 }
 
@@ -238,7 +305,10 @@ fn should_render_an_unowned_gate_grey_never_red_even_mid_turn() {
     let t = Clock::new();
     let mut b = board_with(&[(1, "s")], t.at(0));
     apply(&mut b, hook(1, "s", t.at(1), turn_started("p")));
-    apply(&mut b, hook(1, "s", t.at(2), asked_unowned("call-1", "exec_command")));
+    apply(
+        &mut b,
+        hook(1, "s", t.at(2), asked_unowned("call-1", "exec_command")),
+    );
     assert_eq!(truth(&b, 1), Phase::Unknown);
     assert_eq!(shown(&b, 1).lamp(), Lamp::Grey);
 }
@@ -294,7 +364,16 @@ fn should_raise_attention_from_a_subagent_gate_and_keep_it_through_the_agents_st
     let t = Clock::new();
     let mut b = board_with(&[(1, "s")], t.at(0));
     start_sub(&mut b, &t, 1, "a1");
-    apply(&mut b, from_subagent(1, "s", "a1", t.at(2), question("toolu_q", "AskUserQuestion")));
+    apply(
+        &mut b,
+        from_subagent(
+            1,
+            "s",
+            "a1",
+            t.at(2),
+            question("toolu_q", "AskUserQuestion"),
+        ),
+    );
     assert_eq!(shown(&b, 1), Phase::Attention);
 
     // The agent's own Stop must never clear a subagent's gate.
@@ -302,7 +381,10 @@ fn should_raise_attention_from_a_subagent_gate_and_keep_it_through_the_agents_st
     assert_eq!(truth(&b, 1), Phase::Attention);
 
     // The subagent moving again lifts it.
-    apply(&mut b, from_subagent(1, "s", "a1", t.at(4), settled("toolu_q")));
+    apply(
+        &mut b,
+        from_subagent(1, "s", "a1", t.at(4), settled("toolu_q")),
+    );
     assert_eq!(shown(&b, 1), Phase::Delegating);
 }
 
@@ -310,10 +392,17 @@ fn should_raise_attention_from_a_subagent_gate_and_keep_it_through_the_agents_st
 fn should_park_a_prompt_from_an_unknown_subagent_and_lift_it_when_that_subagent_ends() {
     let t = Clock::new();
     let mut b = board_with(&[(1, "s")], t.at(0));
-    apply(&mut b, from_subagent(1, "s", "ghost", t.at(1), asked("Bash", &ls())));
+    apply(
+        &mut b,
+        from_subagent(1, "s", "ghost", t.at(1), asked("Bash", &ls())),
+    );
     assert_eq!(truth(&b, 1), Phase::Attention);
     apply(&mut b, hook(1, "s", t.at(2), stop()));
-    assert_eq!(truth(&b, 1), Phase::Attention, "not the agent's prompt to clear");
+    assert_eq!(
+        truth(&b, 1),
+        Phase::Attention,
+        "not the agent's prompt to clear"
+    );
     end_sub(&mut b, &t, 3, "ghost");
     assert_eq!(truth(&b, 1), Phase::Idle);
 }
