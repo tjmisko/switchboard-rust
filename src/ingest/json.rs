@@ -32,8 +32,7 @@ pub fn bool_at(v: &Value, key: &str) -> Option<bool> {
 /// Written as a fold over `Option<&Value>`: each step either descends or
 /// stays `None` for the rest of the walk.
 pub fn at<'a>(v: &'a Value, path: &[&str]) -> Option<&'a Value> {
-    path.iter()
-        .try_fold(v, |cur, key| cur.get(key))
+    path.iter().try_fold(v, |cur, key| cur.get(key))
 }
 
 /// `at(v, path)` as a string.

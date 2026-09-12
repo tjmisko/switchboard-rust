@@ -78,7 +78,10 @@ pub fn route(board: &Board, process: Option<ProcKey>, session: &SessionId) -> Op
 /// The limits an agent is subject to. Takes the accounts map rather than the
 /// board, so it can be called while an agent in the same board is mutably
 /// borrowed.
-pub fn limits_for<'a>(accounts: &'a BTreeMap<AccountId, Account>, agent: &Agent) -> Option<&'a Limits> {
+pub fn limits_for<'a>(
+    accounts: &'a BTreeMap<AccountId, Account>,
+    agent: &Agent,
+) -> Option<&'a Limits> {
     accounts
         .get(&agent.account)
         .and_then(|account| account.limits.as_ref())

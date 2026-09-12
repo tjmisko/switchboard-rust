@@ -11,6 +11,7 @@
 //! Leaves that every layer may use: `names` (identifier and vocabulary
 //! conversions), `paths`, `error`, `time`, `tail`, `history`, `proc`, `view`.
 
+pub mod client;
 pub mod daemon;
 pub mod error;
 pub mod history;

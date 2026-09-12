@@ -178,7 +178,8 @@ mod tests {
     #[test]
     fn should_restart_from_zero_when_the_file_shrinks() {
         let mut tail = Tail::new();
-        tail.poll(&mut Cursor::new(b"aaaa\nbbbb\n".to_vec())).unwrap();
+        tail.poll(&mut Cursor::new(b"aaaa\nbbbb\n".to_vec()))
+            .unwrap();
         let polled = tail.poll(&mut Cursor::new(b"c\n".to_vec())).unwrap();
         assert!(polled.truncated);
         assert_eq!(polled.lines, ["c"]);

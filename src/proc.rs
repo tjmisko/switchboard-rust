@@ -57,12 +57,8 @@ pub fn parse_stat(s: &str) -> Result<Stat, StatError> {
 
     let fields: Vec<&str> = s[close + 1..].split_whitespace().collect();
     // `fields[0]` is stat field 3, so field N is `fields[N - 3]`.
-    let field = |n: usize, name: &'static str| {
-        fields
-            .get(n - 3)
-            .copied()
-            .ok_or(StatError::Missing(name))
-    };
+    let field =
+        |n: usize, name: &'static str| fields.get(n - 3).copied().ok_or(StatError::Missing(name));
 
     let state = field(3, "state")?
         .chars()
@@ -111,10 +107,10 @@ pub fn classify<S: AsRef<str>>(comm: &str, exe: Option<&Path>, argv: &[S]) -> Op
     if comm != "claude" {
         return None;
     }
-    if let Some(exe) = exe {
-        if !exe.to_string_lossy().contains("/claude/") {
-            return None;
-        }
+    if let Some(exe) = exe
+        && !exe.to_string_lossy().contains("/claude/")
+    {
+        return None;
     }
     let mut args = argv.iter().map(AsRef::as_ref);
     let _program = args.next();
@@ -220,7 +216,13 @@ mod tests {
     #[test]
     fn should_read_start_time_from_field_twenty_two() {
         let s = parse_stat(REAL).unwrap();
-        assert_eq!(s.key(), ProcKey { pid: 6002, start: 12313 });
+        assert_eq!(
+            s.key(),
+            ProcKey {
+                pid: 6002,
+                start: 12313
+            }
+        );
         assert_eq!(s.ppid, 5890);
         assert_eq!(s.cpu_ticks, 43219 + 6390);
     }

@@ -8,9 +8,7 @@
 use std::time::Instant;
 
 use crate::model::{Activity, Agent, Board, Cause, Compaction, Confidence, Effect, Gate};
-use crate::reduce::{
-    COMPACTION_STALE, Effects, TURN_STALE, UNJOINED_EXPIRY, limits_for, settle,
-};
+use crate::reduce::{COMPACTION_STALE, Effects, TURN_STALE, UNJOINED_EXPIRY, limits_for, settle};
 
 pub fn tick(board: &mut Board, now: Instant) -> Vec<Effect> {
     let mut effects = Effects::new();
@@ -20,7 +18,13 @@ pub fn tick(board: &mut Board, now: Instant) -> Vec<Effect> {
         let changed = expire(agent, now);
         effects.publish_if(changed);
         let limits = limits_for(accounts, agent);
-        effects.history(settle(agent, limits, Cause::Agent, Confidence::Inferred, now));
+        effects.history(settle(
+            agent,
+            limits,
+            Cause::Agent,
+            Confidence::Inferred,
+            now,
+        ));
     }
     effects.finish()
 }
@@ -28,14 +32,14 @@ pub fn tick(board: &mut Board, now: Instant) -> Vec<Effect> {
 fn expire(agent: &mut Agent, now: Instant) -> bool {
     let mut changed = false;
 
-    if let Some(deadline) = stale_turn_deadline(agent) {
-        if now >= deadline {
-            agent.activity = Activity::Idle {
-                since: now,
-                after: None,
-            };
-            changed = true;
-        }
+    if let Some(deadline) = stale_turn_deadline(agent)
+        && now >= deadline
+    {
+        agent.activity = Activity::Idle {
+            since: now,
+            after: None,
+        };
+        changed = true;
     }
 
     let waits_before = agent.waits.len();
@@ -49,11 +53,11 @@ fn expire(agent: &mut Agent, now: Instant) -> bool {
         .retain(|u| u.since + UNJOINED_EXPIRY > now);
     changed |= agent.prompts.unjoined.len() != prompts_before;
 
-    if let Compaction::InProgress { since, .. } = agent.compaction {
-        if now >= since + COMPACTION_STALE {
-            agent.compaction = Compaction::None;
-            changed = true;
-        }
+    if let Compaction::InProgress { since, .. } = agent.compaction
+        && now >= since + COMPACTION_STALE
+    {
+        agent.compaction = Compaction::None;
+        changed = true;
     }
     changed
 }

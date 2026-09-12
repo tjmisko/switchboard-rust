@@ -32,20 +32,24 @@ pub struct Record {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum RecordKind {
-    SessionStart { cwd: PathBuf },
+    SessionStart {
+        cwd: PathBuf,
+    },
     SessionEnd,
-    Shown { from: Phase, to: Phase, held: Duration },
+    Shown {
+        from: Phase,
+        to: Phase,
+        held: Duration,
+    },
 }
 
 impl Record {
     /// Stamp a reducer `HistoryEntry` with the wall clock.
     pub fn from_entry(entry: &HistoryEntry, at: SystemTime) -> Record {
         let (process, session, kind): (&ProcKey, Option<&SessionId>, RecordKind) = match entry {
-            HistoryEntry::AgentFound { process, cwd } => (
-                process,
-                None,
-                RecordKind::SessionStart { cwd: cwd.clone() },
-            ),
+            HistoryEntry::AgentFound { process, cwd } => {
+                (process, None, RecordKind::SessionStart { cwd: cwd.clone() })
+            }
             HistoryEntry::AgentGone { process, session } => {
                 (process, session.as_ref(), RecordKind::SessionEnd)
             }

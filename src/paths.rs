@@ -58,6 +58,30 @@ pub fn home() -> Option<PathBuf> {
         .map(PathBuf::from)
 }
 
+/// The daemon socket: `$SWITCHBOARD_RUST_SOCKET`, else
+/// `$XDG_RUNTIME_DIR/switchboard-rust.sock`, else the same name in the
+/// system temporary directory. Shared by the daemon and the forwarder, which
+/// must agree without any other configuration.
+pub fn socket_path() -> PathBuf {
+    let nonempty = |var: &str| std::env::var_os(var).filter(|v| !v.is_empty());
+    nonempty("SWITCHBOARD_RUST_SOCKET")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| {
+            nonempty("XDG_RUNTIME_DIR")
+                .map(PathBuf::from)
+                .unwrap_or_else(std::env::temp_dir)
+                .join("switchboard-rust.sock")
+        })
+}
+
+/// `state.json` -> `state.json.tmp`, in the same directory so the final
+/// `rename` stays on one filesystem. `None` for a path with no file name.
+pub fn temp_sibling(path: &Path) -> Option<PathBuf> {
+    let mut name = path.file_name()?.to_os_string();
+    name.push(".tmp");
+    Some(path.with_file_name(name))
+}
+
 /// Every well-known location, resolved once at startup from the environment.
 #[derive(Debug, Clone)]
 pub struct Layout {
@@ -70,8 +94,7 @@ pub struct Layout {
 }
 
 impl Layout {
-    /// `None` when neither `$HOME` nor `$XDG_RUNTIME_DIR` can place the
-    /// socket.
+    /// `None` when `$HOME` is unset.
     pub fn from_env() -> Option<Layout> {
         let home = home()?;
         let xdg = |var: &str, fallback: &str| {
@@ -80,15 +103,11 @@ impl Layout {
                 .map(PathBuf::from)
                 .unwrap_or_else(|| home.join(fallback))
         };
-        let runtime = std::env::var_os("XDG_RUNTIME_DIR")
-            .filter(|v| !v.is_empty())
-            .map(PathBuf::from)
-            .unwrap_or_else(std::env::temp_dir);
         Some(Layout {
             proc_root: PathBuf::from("/proc"),
             claude_projects: home.join(".claude/projects"),
             claude_sessions: home.join(".claude/sessions"),
-            socket: runtime.join("switchboard-rust.sock"),
+            socket: socket_path(),
             state_file: xdg("XDG_CACHE_HOME", ".cache").join("switchboard-rust/state.json"),
             history_dir: xdg("XDG_STATE_HOME", ".local/state").join("switchboard-rust/history"),
         })
@@ -102,7 +121,9 @@ mod tests {
     #[test]
     fn should_replace_every_non_alphanumeric_byte_when_slugging_a_cwd() {
         assert_eq!(
-            cwd_slug(Path::new("/home/u/Projects/Arachne/.worktrees/feat/f90-drain")),
+            cwd_slug(Path::new(
+                "/home/u/Projects/Arachne/.worktrees/feat/f90-drain"
+            )),
             "-home-u-Projects-Arachne--worktrees-feat-f90-drain"
         );
     }

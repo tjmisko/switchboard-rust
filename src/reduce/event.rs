@@ -63,13 +63,9 @@ pub fn apply_event(board: &mut Board, event: Event) -> Vec<Effect> {
         agent.last_event = Some(now);
     }
     effects.publish_if(changed);
-    effects.history(settle(
-        agent,
-        limits_for(accounts, agent),
-        event.cause,
-        event.confidence,
-        now,
-    ));
+    // `limits` borrows `accounts`, not `agent`: see `limits_for`.
+    let limits = limits_for(accounts, agent);
+    effects.history(settle(agent, limits, event.cause, event.confidence, now));
     effects.finish()
 }
 
@@ -114,7 +110,9 @@ fn transition(
         EventKind::TurnStarted { turn, .. } => {
             clear_unjoined(&mut agent.prompts, &Actor::Agent);
             match &mut agent.activity {
-                Activity::Turn { key, last_event, .. } => {
+                Activity::Turn {
+                    key, last_event, ..
+                } => {
                     if turn.is_some() && key == turn {
                         return false;
                     }
@@ -151,12 +149,7 @@ fn transition(
             };
             // Escape during a tool ends the turn, and the operator knows.
             if let ToolOutcome::Failed { interrupt: true } = outcome {
-                let ended = end_turn(
-                    agent,
-                    None,
-                    &TurnOutcome::Interrupted { killed: None },
-                    now,
-                );
+                let ended = end_turn(agent, None, &TurnOutcome::Interrupted { killed: None }, now);
                 return changed || ended;
             }
             changed
@@ -168,7 +161,16 @@ fn transition(
             hash,
             owner,
             kind,
-        } => ask(agent, &event.actor, call.as_ref(), tool, *hash, *owner, *kind, now),
+        } => ask(
+            agent,
+            &event.actor,
+            call.as_ref(),
+            tool,
+            *hash,
+            *owner,
+            *kind,
+            now,
+        ),
 
         EventKind::PermissionSettled { call, outcome, .. } => match &event.actor {
             Actor::Subagent(id) => lift_subagent(agent, id),
@@ -280,10 +282,10 @@ fn end_turn(
     clear_unjoined(&mut agent.prompts, &Actor::Agent);
     match &agent.activity {
         Activity::Turn { key, .. } => {
-            if let (Some(open), Some(closing)) = (key, turn) {
-                if open != closing {
-                    return false;
-                }
+            if let (Some(open), Some(closing)) = (key, turn)
+                && open != closing
+            {
+                return false;
             }
             // Open calls are abandoned with the turn.
             agent.activity = idle(now, Some(outcome.clone()));

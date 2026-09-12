@@ -14,7 +14,7 @@ use std::ops::{Add, AddAssign};
 
 use serde_json::Value;
 
-use crate::ingest::json::{str_at, str_path, u64_at};
+use crate::ingest::json::{str_at, u64_at};
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct Usage {
@@ -147,7 +147,11 @@ pub fn parse_price(text: &str) -> Option<u64> {
     if whole.is_empty() || frac.len() > 6 {
         return None;
     }
-    if !whole.bytes().chain(frac.bytes()).all(|b| b.is_ascii_digit()) {
+    if !whole
+        .bytes()
+        .chain(frac.bytes())
+        .all(|b| b.is_ascii_digit())
+    {
         return None;
     }
     let whole: u64 = whole.parse().ok()?;
@@ -162,11 +166,9 @@ pub fn parse_price(text: &str) -> Option<u64> {
 /// Look a model up by exact id, then with a bracketed context suffix such as
 /// `[1m]` removed.
 pub fn rates_for<'t>(table: &'t BTreeMap<String, Rates>, model: &str) -> Option<&'t Rates> {
-    table.get(model).or_else(|| {
-        model
-            .split_once('[')
-            .and_then(|(base, _)| table.get(base))
-    })
+    table
+        .get(model)
+        .or_else(|| model.split_once('[').and_then(|(base, _)| table.get(base)))
 }
 
 /// The cost of a whole transcript, and the models it could not price.
@@ -176,13 +178,13 @@ where
 {
     let (priced, unpriced): (Vec<_>, Vec<_>) = usage_by_model(lines)
         .into_iter()
-        .map(|(model, usage)| (model, rates_for(table, model).map(|r| r.cost_micros(&usage))))
+        .map(|(model, usage)| {
+            (
+                model,
+                rates_for(table, model).map(|r| r.cost_micros(&usage)),
+            )
+        })
         .partition(|(_, cost)| cost.is_some());
     let total = priced.iter().filter_map(|(_, c)| *c).sum();
     (total, unpriced.into_iter().map(|(m, _)| m).collect())
-}
-
-/// Convenience for callers that only have a message path handy.
-pub fn model_of(line: &Value) -> Option<&str> {
-    str_path(line, &["message", "model"])
 }

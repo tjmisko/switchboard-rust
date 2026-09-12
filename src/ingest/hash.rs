@@ -17,9 +17,9 @@ const FNV_PRIME: u64 = 0x0000_0100_0000_01b3;
 
 /// FNV-1a over a byte slice.
 pub fn fnv1a(bytes: &[u8]) -> u64 {
-    bytes
-        .iter()
-        .fold(FNV_OFFSET, |h, &b| (h ^ u64::from(b)).wrapping_mul(FNV_PRIME))
+    bytes.iter().fold(FNV_OFFSET, |h, &b| {
+        (h ^ u64::from(b)).wrapping_mul(FNV_PRIME)
+    })
 }
 
 /// Hash of the canonical JSON form of a tool input.

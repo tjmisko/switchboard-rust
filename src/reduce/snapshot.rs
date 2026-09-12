@@ -9,8 +9,8 @@ use std::collections::BTreeMap;
 use std::time::Instant;
 
 use crate::model::{
-    Activity, Agent, AsOf, Board, Cause, Compaction, Confidence, Effect, HistoryEntry, Life,
-    Placement, ProcessRow, Prompts, Shown, Phase, Snapshot, SnapshotKind, Subagent, SubagentRow,
+    Activity, Agent, AsOf, Board, Cause, Compaction, Confidence, Effect, HistoryEntry, Life, Phase,
+    Placement, ProcessRow, Prompts, Shown, Snapshot, SnapshotKind, Subagent, SubagentRow,
     SubagentSource, Subagents, Wait, WaitRow,
 };
 use crate::paths::workspace_name;
@@ -43,7 +43,13 @@ pub fn apply_snapshot(board: &mut Board, snapshot: Snapshot) -> Vec<Effect> {
             let Board { agents, accounts } = board;
             for agent in agents.values_mut().filter(|a| a.account == account) {
                 let limits = limits_for(accounts, agent);
-                effects.history(settle(agent, limits, Cause::Agent, Confidence::Snapshot, taken));
+                effects.history(settle(
+                    agent,
+                    limits,
+                    Cause::Agent,
+                    Confidence::Snapshot,
+                    taken,
+                ));
             }
         }
 
@@ -84,7 +90,13 @@ pub fn apply_snapshot(board: &mut Board, snapshot: Snapshot) -> Vec<Effect> {
             agent.subagents = replace_panel(&agent.subagents, rows, taken);
             effects.publish_if(true);
             let limits = limits_for(accounts, agent);
-            effects.history(settle(agent, limits, Cause::Agent, Confidence::Snapshot, taken));
+            effects.history(settle(
+                agent,
+                limits,
+                Cause::Agent,
+                Confidence::Snapshot,
+                taken,
+            ));
         }
 
         SnapshotKind::Waits { session, rows } => {
@@ -101,16 +113,22 @@ pub fn apply_snapshot(board: &mut Board, snapshot: Snapshot) -> Vec<Effect> {
             agent.waits = replace_waits(old, rows, taken);
             effects.publish_if(true);
             let limits = limits_for(accounts, agent);
-            effects.history(settle(agent, limits, Cause::Agent, Confidence::Snapshot, taken));
+            effects.history(settle(
+                agent,
+                limits,
+                Cause::Agent,
+                Confidence::Snapshot,
+                taken,
+            ));
         }
 
         SnapshotKind::Placements(rows) => {
             for row in rows {
-                if let Some(agent) = board.agents.get_mut(&row.process) {
-                    if agent.placement != row.placement {
-                        agent.placement = row.placement;
-                        effects.publish_if(true);
-                    }
+                if let Some(agent) = board.agents.get_mut(&row.process)
+                    && agent.placement != row.placement
+                {
+                    agent.placement = row.placement;
+                    effects.publish_if(true);
                 }
             }
         }

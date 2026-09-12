@@ -45,8 +45,12 @@ pub struct LineCtx {
 
 /// Prefixes of string content that is a local slash command or its output,
 /// not a prompt to the agent.
-const LOCAL_COMMAND_PREFIXES: [&str; 4] =
-    ["<local-command", "<command-", "<bash-", "<user-memory-input"];
+const LOCAL_COMMAND_PREFIXES: [&str; 4] = [
+    "<local-command",
+    "<command-",
+    "<bash-",
+    "<user-memory-input",
+];
 
 /// Adapt one parsed transcript line.
 pub fn line(v: &Value, ctx: &LineCtx) -> Vec<Input> {
@@ -108,7 +112,8 @@ fn user_line(v: &Value, event: impl Fn(Cause, EventKind) -> Input) -> Vec<Input>
         return vec![event(cause, EventKind::TurnStarted { turn, origin })];
     }
 
-    let denial = str_at(v, "toolDenialKind").map(|k| k.parse::<Denier>().unwrap_or(Denier::PermissionRule));
+    let denial =
+        str_at(v, "toolDenialKind").map(|k| k.parse::<Denier>().unwrap_or(Denier::PermissionRule));
 
     let Some(message) = v.get("message") else {
         return Vec::new();
@@ -159,7 +164,10 @@ fn assistant_line(
             let call = ToolUseId::from(str_at(block, "id")?);
             let tool = ToolName::from(str_at(block, "name")?);
             let hash = input_hash(block.get("input").unwrap_or(&Value::Null));
-            Some(event(Cause::Agent, EventKind::ToolDispatched { call, tool, hash }))
+            Some(event(
+                Cause::Agent,
+                EventKind::ToolDispatched { call, tool, hash },
+            ))
         });
 
     let ended = (str_at(message, "stop_reason") == Some("end_turn")).then(|| {

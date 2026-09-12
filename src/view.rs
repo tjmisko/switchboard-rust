@@ -63,7 +63,10 @@ impl View {
     /// Serialise, converting `Instant`s to epoch milliseconds against one
     /// reading of each clock.
     pub fn to_json(&self, now: Instant, wall: SystemTime) -> Value {
-        let to_wall = |at: Instant| wall.checked_sub(now.saturating_duration_since(at)).unwrap_or(wall);
+        let to_wall = |at: Instant| {
+            wall.checked_sub(now.saturating_duration_since(at))
+                .unwrap_or(wall)
+        };
         let agents: Vec<Value> = self
             .agents
             .iter()
@@ -106,10 +109,10 @@ pub fn reason(agent: &Agent, limits: Option<&Limits>) -> Reason {
     if let Some(blocked) = human_gate(agent) {
         return blocked;
     }
-    if let Some(l) = limits.filter(|l| l.status == LimitStatus::Rejected) {
-        if let Some(at) = l.resets_at {
-            return Reason::LimitedUntil { at };
-        }
+    if let Some(l) = limits.filter(|l| l.status == LimitStatus::Rejected)
+        && let Some(at) = l.resets_at
+    {
+        return Reason::LimitedUntil { at };
     }
     match &agent.activity {
         Activity::Unobserved { since } => Reason::NeverObserved { since: *since },
@@ -179,7 +182,9 @@ fn human_gate(agent: &Agent) -> Option<Reason> {
 
 pub fn describe(reason: &Reason) -> String {
     match reason {
-        Reason::Blocked { kind, tool, actor, .. } => {
+        Reason::Blocked {
+            kind, tool, actor, ..
+        } => {
             let who = match actor {
                 Actor::Agent => String::new(),
                 Actor::Subagent(id) => format!(" (subagent {id})"),
@@ -190,7 +195,9 @@ pub fn describe(reason: &Reason) -> String {
             }
         }
         Reason::NeverObserved { .. } => "not heard from yet".into(),
-        Reason::LimitedUntil { at } => format!("usage limit until {}", crate::time::format_rfc3339(*at)),
+        Reason::LimitedUntil { at } => {
+            format!("usage limit until {}", crate::time::format_rfc3339(*at))
+        }
         Reason::TurnFailed { class } => format!("turn failed: {class:?}"),
         Reason::Interrupted { .. } => "stopped by you, work unfinished".into(),
         Reason::RunningTools { count: 0 } => "thinking".into(),

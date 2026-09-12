@@ -80,7 +80,8 @@ mod tests {
 
     #[test]
     fn should_replace_tool_input_with_its_hash_when_scrubbing() {
-        let raw = json!({"session_id": "s", "tool_input": {"command": "rm -rf /"}, "prompt": "secret"});
+        let raw =
+            json!({"session_id": "s", "tool_input": {"command": "rm -rf /"}, "prompt": "secret"});
         let out = scrub(raw, Some("PermissionRequest"), 7);
         assert!(out.get("tool_input").is_none());
         assert!(out.get("prompt").is_none());
