@@ -695,9 +695,14 @@ window.SB_TYPES = [
         "meaning": "No sufficient observation, or a gate with unknown owner."
       },
       {
-        "name": "Working / Delegating / Waiting / Idle",
+        "name": "Working / Delegating / Waiting",
         "type": "Phase → Green / Calm",
-        "meaning": "Distinct work states sharing a quiet colour."
+        "meaning": "Distinct active work states sharing green."
+      },
+      {
+        "name": "Idle",
+        "type": "Phase → Amber / Calm",
+        "meaning": "Amber in the explorer’s corrected palette. Golden Phase::lamp still returns Green here; its colour mapping is pending correction. Colour does not change the Calm severity or dwell rules."
       },
       {
         "name": "severity()",

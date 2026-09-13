@@ -29,6 +29,9 @@ synthetic. Scenarios are explanatory traces, not a Rust interpreter or a live
 monitor. Panel reconciliation is modeled in Rust but lacks a running panel source.
 The experiment harness and any real recordings are not used by the page.
 
+Idle is amber in the explorer. The current golden still returns `Lamp::Green` for
+Idle; this colour correction does not change the mirrored phase or dwell rules.
+
 The page supports keyboard operation, reduced motion, and narrow screens. On a
 phone, pan the system diagram horizontally. The build embeds absolute local source
 links to the golden checkout, so copying `index.html` to `~/Guides/` preserves them.

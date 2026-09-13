@@ -237,7 +237,8 @@
   function readAxes(){return{activity:$('#axis-activity').value,gate:$('#axis-gate').value,outcome:$('#axis-outcome').value,limit:$('#axis-limit').checked,children:$('#axis-children').checked,waits:$('#axis-waits').checked};}
   function renderLab(){
     const a=readAxes(),truth=phaseFor(a),cause=$('#lab-cause').value,confidence=$('#lab-confidence').value,elapsed=Number($('#lab-time').value),shown=settleFor(truth.phase,cause,confidence,elapsed);
-    $('#fold-rules').innerHTML=rules.map(([phase,rule],i)=>`<li class="${i===truth.rule?'winner':i>truth.rule?'after':''}"><div><strong class="phase-${phase}">${phase}</strong><small>${rule}</small></div>${i===truth.rule?'<span class="rule-check">✓</span>':''}</li>`).join('');
+    $('#fold-rules').innerHTML=rules.map(([phase,rule],i)=>`<li data-phase="${phase}" class="${i===truth.rule?'winner':i>truth.rule?'after':''}"><div><strong class="phase-${phase}">${phase}</strong><small>${rule}</small></div>${i===truth.rule?'<span class="rule-check">✓</span>':''}</li>`).join('');
+    $('.lab-phase').dataset.phase=truth.phase;
     setPhase($('#lab-truth'),truth.phase);setPhase($('#lab-shown'),shown.phase);$('#lab-time-label').textContent=`${elapsed} s`;
     $('#lab-explanation').textContent=shown.pending?`Pending ${truth.phase}: ${shown.dwell-elapsed} s of the ${shown.dwell} s dwell remain. The current display stays Working.`:shown.dwell?`The ${shown.dwell} s dwell has elapsed. Shown promotes to ${truth.phase}.`:`Immediate: ${cause==='User'?'a user-caused observation bypasses dwell':confidence==='Confirmed'?'confirmed evidence bypasses dwell':'this is not an escalation in severity'}.`;
     $('#lab-warning').hidden=!(truth.phase==='Attention'&&confidence!=='Confirmed');
@@ -266,9 +267,9 @@
   let watchVersion=0,watchRead=0,watchPaused=false,watchSkipped=0;
   const viewPhase=n=>['Unknown','Working','Attention','Working','Idle'][n%5];
   function renderWatch(message){
-    $('#watch-producer').innerHTML=`View #${watchVersion} <small>${viewPhase(watchVersion)}</small>`;
+    $('#watch-producer').innerHTML=`View #${watchVersion} <small class="phase-${viewPhase(watchVersion)}">${viewPhase(watchVersion)}</small>`;
     $('#watch-current').textContent=`Arc<View #${watchVersion}>`;
-    $('#watch-consumer').innerHTML=`View #${watchRead} <small>${viewPhase(watchRead)}</small>`;
+    $('#watch-consumer').innerHTML=`View #${watchRead} <small class="phase-${viewPhase(watchRead)}">${viewPhase(watchRead)}</small>`;
     $('#watch-pause').textContent=watchPaused?'Resume subscriber':'Pause subscriber';
     $('#watch-log').textContent=message;
   }
