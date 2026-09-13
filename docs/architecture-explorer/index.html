@@ -1,0 +1,1940 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="An interactive, source-grounded field guide to Switchboard's Rust architecture.">
+  <title>Switchboard · Architecture Explorer</title>
+  <style>:root{--bg:#0c1015;--rail:#0a0e12;--surface:#12181f;--raised:#18212a;--rule:#27313d;--ink:#e8eeed;--muted:#95a4b1;--faint:#627484;--teal:#7cdec7;--blue:#90bdf5;--amber:#f0bc72;--purple:#b6a3ee;--red:#f28d94;--green:#8ed4a5;--mono:'SFMono-Regular',Consolas,'Liberation Mono',monospace;--sans:Inter,'Segoe UI',Arial,sans-serif;--radius:12px}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.6}button,input,select{font:inherit}button,a,select,input{ -webkit-tap-highlight-color:transparent}button{cursor:pointer}button:disabled{cursor:default;opacity:.35}button{color:inherit}a{color:var(--teal);text-decoration:none}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--teal);outline-offset:4px}h1,h2,h3,p{margin-top:0}h2{font-size:20px;font-weight:580;letter-spacing:-.4px;line-height:1.3}h3{font-size:17px;font-weight:580;margin-bottom:10px}p{margin-bottom:14px}code,pre,.mono{font-family:var(--mono)}code{font-size:.88em}p code,td code,li code,label code{color:var(--blue)}pre{font-size:12px;line-height:1.75;margin:0;white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4}pre code{font-size:inherit}strong{font-weight:600}select{appearance:auto;background:var(--surface);color:var(--ink);border:1px solid var(--rule);border-radius:6px;padding:9px 11px;max-width:100%}input{accent-color:var(--teal)}input[type=checkbox]{appearance:none;width:17px;height:17px;border:1.5px solid var(--faint);border-radius:4px;background:transparent;flex-shrink:0;cursor:pointer;position:relative;margin:0}input[type=checkbox]:checked{border-color:var(--teal);background:var(--teal)}input[type=checkbox]:checked:after{content:'';position:absolute;left:5px;top:2px;width:4px;height:8px;border:solid #10221d;border-width:0 2px 2px 0;transform:rotate(45deg)}[hidden]{display:none!important}.muted{color:var(--muted)}.small{font-size:12px;line-height:1.6}.tiny-label{font-size:10px;font-family:var(--mono);letter-spacing:1.2px;color:var(--muted);font-weight:500}.eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:1.8px;color:var(--teal);margin-bottom:14px}.skip{position:fixed;left:230px;top:-80px;z-index:20;background:var(--teal);color:#10231e;padding:10px}.skip:focus{top:10px}
+.rail{position:fixed;inset:0 auto 0 0;width:222px;border-right:1px solid var(--rule);padding:29px 17px 22px;display:flex;flex-direction:column;background:var(--rail);z-index:5}.brand{display:flex;gap:11px;align-items:center;color:var(--ink);padding:0 8px;font-size:18px;font-weight:650;letter-spacing:-.5px}.brand small{display:block;font-size:7.6px;color:var(--muted);font-weight:500;letter-spacing:1.3px;margin-top:3px}.brand-icon{display:grid;place-items:center;background:var(--teal);color:#123329;width:35px;height:38px;border-radius:9px;font-family:Georgia,serif;font-size:34px;line-height:1;position:relative}.brand-icon span{position:absolute;right:2px;top:2px;font:11px var(--sans)}.rail-section{font:8px var(--mono);letter-spacing:1.3px;color:var(--faint);padding:47px 12px 14px}.nav-button{display:flex;align-items:center;gap:11px;border:1px solid transparent;border-radius:7px;background:none;width:100%;text-align:left;padding:12px 10px;margin-bottom:6px;color:var(--muted);font-size:12px;white-space:nowrap}.nav-button>span{font:10px var(--mono);color:var(--faint)}.nav-button i{font-style:normal;margin-left:auto;opacity:0}.nav-button:hover{color:var(--ink);background:var(--surface)}.nav-button.active{background:#182925;border-color:#29463c;color:var(--teal)}.nav-button.active>span{color:var(--teal)}.nav-button.active i{opacity:1}.rail-note{margin:32px 10px 0;padding-top:24px;border-top:1px solid var(--rule)}.rail-note p{color:var(--muted);font-size:11px;margin-top:10px;line-height:1.9}.text-button{border:0;background:none;text-align:left;padding:0;color:var(--teal);font-size:11px;line-height:1.7}.text-button span{margin-left:4px}.rail-bottom{margin-top:auto;padding:30px 10px 0;color:var(--muted);font-size:10px}.rail-bottom>div{margin-bottom:4px}.rail-bottom>code{font-size:10px;color:var(--faint);margin-left:14px}.rail-bottom p{color:var(--faint);line-height:1.8;margin-top:14px;font-size:10px}.status-dot{display:inline-block;width:6px;height:6px;background:var(--teal);border-radius:50%;box-shadow:0 0 12px #7cdec72a;margin-right:6px}.workspace{margin-left:222px}.topbar{height:65px;display:flex;align-items:center;justify-content:space-between;gap:15px;padding:0 36px;border-bottom:1px solid var(--rule)}.breadcrumb{display:flex;gap:13px;align-items:center;font-family:var(--mono);font-size:9px;letter-spacing:1px;color:var(--faint)}.breadcrumb b{color:var(--muted);font-weight:400}.breadcrumb>span{color:#384756}.topbar-right{display:flex;align-items:center;gap:16px}.outline-pill{border:1px solid var(--rule);padding:4px 9px;border-radius:4px;font:8px var(--mono);letter-spacing:1.2px;color:var(--muted)}.icon-button{background:transparent;border:1px solid var(--rule);border-radius:6px;width:34px;height:34px;display:inline-grid;place-items:center;font-size:16px;line-height:1}.icon-button:hover{background:var(--raised);border-color:var(--faint)}main{padding:36px;max-width:1760px;margin:auto;outline:none}.hero{display:flex;justify-content:space-between;align-items:center;gap:32px;margin-bottom:26px}.hero h1{font-size:clamp(30px,3vw,46px);font-weight:520;line-height:1.15;letter-spacing:-1.65px;margin-bottom:16px}.hero h1 em{font-family:Georgia,'Times New Roman',serif;font-weight:400;color:var(--teal);letter-spacing:-1px}.hero p{color:var(--muted);font-size:13px;max-width:760px;margin:0;line-height:1.8}.hero-aside{text-align:right;flex-shrink:0}.hero-aside p{font-size:10px;margin-top:10px;line-height:1.7}.live-badge{font:9px var(--mono);letter-spacing:.8px;color:var(--teal)}.page{display:none}.page.active{display:block;animation:page-enter .2s ease-out}.page-footer{border-top:1px solid var(--rule);margin-top:35px;padding-top:20px;display:flex;justify-content:space-between;gap:16px;font-size:10px;color:var(--faint)}.primary-button,.secondary-button{border:1px solid transparent;border-radius:6px;min-height:36px;padding:8px 15px;font-size:11px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:8px}.primary-button{background:var(--teal);color:#12352b}.primary-button:hover{background:#a4ead9}.secondary-button{border-color:var(--rule);background:var(--raised);color:var(--ink)}.secondary-button:hover{border-color:var(--faint)}.copy-button{border:1px solid var(--rule);border-radius:4px;background:transparent;color:var(--muted);font:9px var(--mono);padding:4px 8px}.copy-button:hover{color:var(--teal);border-color:var(--teal)}
+.scenario-toolbar{display:flex;justify-content:space-between;align-items:center;gap:22px;padding:17px 20px;background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius) var(--radius) 0 0}.scenario-select{display:flex;align-items:center;gap:18px;min-width:0}.scenario-select select{min-width:260px;font-size:12px;background:#10161c;border-color:#34424f}.transport{display:flex;gap:7px;align-items:center;flex-shrink:0}.transport select{font:10px var(--mono);padding:9px 6px;margin-left:4px;background:transparent}.map-card{border:1px solid var(--rule);border-top:0;border-radius:0 0 var(--radius) var(--radius);overflow:hidden;background:radial-gradient(ellipse at 58% 45%,#14211e40,transparent 50%),#0f151b}.map-heading{display:flex;justify-content:space-between;gap:15px;align-items:flex-start;padding:18px 22px 3px}.map-hint{display:block;font-size:10px;color:var(--faint);margin-top:3px}.legend{display:flex;gap:16px;font:9px var(--mono);padding-top:3px;flex-wrap:wrap}.legend span:before{content:'';display:inline-block;vertical-align:middle;width:12px;height:2px;background:currentColor;margin-right:5px}.event{color:var(--teal)}.snapshot{color:var(--blue)}.effect{color:var(--purple)}.view{color:var(--amber)}.map-scroll{overflow-x:auto;scrollbar-color:var(--rule) transparent}#system-map{width:100%;display:block;min-width:780px;max-height:500px;overflow:visible}.map-footer{border-top:1px solid #24313a80;display:flex;align-items:center;gap:20px;padding:11px 22px;font-size:9px;color:var(--faint)}.map-footer span:last-child{margin-left:auto}.pure-key,.task-key{display:inline-block;width:9px;height:9px;border:1px solid #43655b;border-radius:2px;margin-right:5px;vertical-align:middle}.pure-key{background:#182c26}.task-key{background:var(--surface);border-color:#3e5060}.node{cursor:pointer;outline:none}.node>rect.node-body{fill:#151e27;stroke:#344353;stroke-width:1;transition:fill .25s,stroke .25s;filter:url(#node-shadow)}.node.model>rect.node-body{fill:#182820;stroke:#3a5848}.node:hover>rect.node-body,.node:focus>rect.node-body{stroke:var(--teal);stroke-width:1.5}.node.active>rect.node-body{stroke:var(--teal);fill:#213e33;stroke-width:2;filter:url(#node-glow)}.node-title{font:600 14px var(--sans);fill:#e4ebe9}.node-subtitle{font:10px var(--mono);fill:#99abb8}.node-kind{font:8px var(--mono);letter-spacing:.8px;fill:#718796}.node-dot{fill:#678777}.node.active .node-dot{fill:var(--teal)}.node-corner{font:13px var(--sans);fill:#789182}.map-section-label{font:9px var(--mono);letter-spacing:2px;fill:#6d8493}.map-band{fill:#18302224;stroke:#416b503d;stroke-dasharray:5 6}.map-band-label{font:8px var(--mono);letter-spacing:1.3px;fill:#769b85}.edge{fill:none;stroke-width:1.25;stroke:#374453;opacity:.8}.edge.event{stroke:#456b60}.edge.snapshot{stroke:#465e7b}.edge.effect{stroke:#61516f}.edge.view{stroke:#735f42}.edge.active{stroke-width:2;opacity:1}.edge.event.active{stroke:var(--teal)}.edge.snapshot.active{stroke:var(--blue)}.edge.effect.active{stroke:var(--purple)}.edge.view.active{stroke:var(--amber)}.edge-label{font:9px var(--mono);fill:#8e9eab;paint-order:stroke;stroke:#10171d;stroke-width:5px;stroke-linejoin:round}.particle{fill:var(--teal);filter:url(#node-glow)}.step-track{display:flex;align-items:center;margin:16px 0;gap:6px}.step-dot{height:5px;flex:1;background:var(--rule);border:0;padding:0;border-radius:2px;min-width:14px;position:relative}.step-dot:before{content:'';position:absolute;inset:-7px 0}.step-dot.past{background:#467763}.step-dot.active{background:var(--teal)}.trace-grid{display:grid;grid-template-columns:1.03fr 1.13fr .84fr;gap:16px}.trace-story,.payload-card,.board-card,.panel{background:var(--surface);border:1px solid var(--rule);border-radius:var(--radius);padding:20px;min-width:0}.card-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}.card-top h2{margin:0}.card-top>code{font-size:10px;color:var(--muted)}.badge{font:8px var(--mono);letter-spacing:.4px;white-space:nowrap;border:1px solid #314940;color:var(--teal);padding:3px 6px;border-radius:3px}.badge.known-gap,.badge.known-bug{color:var(--amber);border-color:#57452d}.badge.proposed,.badge.planned,.badge.unwired,.badge.decision{color:var(--purple);border-color:#4b4161}.trace-story h2{font-size:19px;margin-bottom:12px}.trace-story p{font-size:12px;color:var(--muted);line-height:1.8}.note{font-size:11px;color:#b5c6ce;background:#1a242d;border-left:2px solid #527e7b;padding:10px 12px;border-radius:0 4px 4px 0;line-height:1.8}.note:empty{display:none}.note.warning{border-left-color:var(--amber);background:#30281c66;color:#d8bc93}.effect-chips{display:flex;gap:5px;flex-wrap:wrap;margin-top:12px}.effect-chip{font:9px var(--mono);color:var(--purple);background:#292334;padding:4px 6px;border-radius:3px;overflow-wrap:anywhere}.payload-card{background:#10161d;display:flex;flex-direction:column}.payload-card pre{color:#c1d2df;max-height:330px;overflow:auto;scrollbar-color:var(--rule) transparent;font-size:11px}.payload-caption{font:8px var(--mono);color:var(--faint);padding-top:13px;margin-top:auto}.phase-pair{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:0 0 17px}.phase-pair>div>span{display:block;font:8px var(--mono);letter-spacing:1px;color:var(--faint);margin-bottom:7px}.phase-pair strong{font-size:17px;display:flex;align-items:center;gap:7px}.phase-pair strong:before,.lab-phase strong:before{content:'';display:inline-block;width:7px;height:7px;border-radius:50%;background:currentColor}.board-card dl{display:grid;grid-template-columns:60px 1fr;gap:8px;border-top:1px solid var(--rule);padding-top:14px;font:10px var(--mono);margin-bottom:16px}.board-card dt{color:var(--faint)}.board-card dd{margin:0;color:#bdced3;overflow-wrap:anywhere}.source-strip{margin-top:16px;font:9px var(--mono);color:var(--faint);display:flex;gap:12px;flex-wrap:wrap}.source-link{color:var(--muted);border:0;padding:0;background:none;font:10px var(--mono);text-decoration:underline;text-decoration-color:#415356;text-underline-offset:3px;cursor:pointer;overflow-wrap:anywhere}.source-link:hover{color:var(--teal)}.phase-Attention{color:var(--red)}.phase-Blocked,.phase-Stopped{color:var(--amber)}.phase-Working,.phase-Idle,.phase-Delegating,.phase-Waiting{color:var(--green)}.phase-Unknown{color:#a3b2c2}
+.notice{padding:13px 17px;border:1px solid var(--rule);border-radius:7px;color:var(--muted);font-size:12px;margin-bottom:22px;background:#151e2380}.state-lab{display:grid;grid-template-columns:.86fr 1.14fr 1fr;gap:18px}.axis-panel label:not(.check-row),.display-panel label{display:block;font:10px var(--mono);color:var(--muted);margin:17px 0 0}.axis-panel label select,.display-panel label select{display:block;width:100%;margin-top:7px;font:11px var(--mono)}.axis-panel .small{margin-top:10px;font-size:10px}.check-row{display:flex;align-items:center;gap:10px;margin-top:20px;color:#c3d0d5;font-size:11px;cursor:pointer}.axis-panel>.secondary-button{margin-top:25px}.fold-rules{list-style:none;padding:0;counter-reset:fold;margin:22px 0}.fold-rules li{counter-increment:fold;display:flex;gap:12px;align-items:center;padding:11px 12px;border:1px solid var(--rule);border-radius:6px;margin-bottom:6px;background:#11171d;transition:opacity .2s,border-color .2s,background .2s}.fold-rules li:before{content:counter(fold,decimal-leading-zero);font:10px var(--mono);color:var(--faint)}.fold-rules li strong{display:block;font:11px var(--mono);margin-bottom:2px}.fold-rules li small{display:block;color:var(--muted);font-size:10px}.fold-rules li.winner{background:#1d332a;border-color:#54846b;box-shadow:0 0 20px #7cdec709}.fold-rules li.after{opacity:.45}.fold-rules li .rule-check{margin-left:auto;color:var(--teal)}.lab-phase{display:flex;flex-direction:column;align-items:center;padding:20px 0;border-bottom:1px solid var(--rule);margin-bottom:20px;background:radial-gradient(ellipse,#26473838,transparent 75%)}.lab-phase strong{font-size:30px;letter-spacing:-1px;display:flex;align-items:center;gap:10px;margin:3px 0}.lab-phase .flow-down{font:10px var(--mono);color:var(--faint);margin:14px 0}.two-controls{display:grid;grid-template-columns:1fr 1fr;gap:10px}.display-panel .two-controls label{margin-top:0}.range-label output{float:right;color:var(--teal)}input[type=range]{width:100%;margin:12px 0 18px;cursor:pointer}.display-panel .note{margin-top:10px}.three-up{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}.principles{margin-top:20px}.principles .number{color:var(--teal);font:11px var(--mono);display:block;margin-bottom:14px}.principles p{font-size:12px;color:var(--muted);line-height:1.8;margin:0}.type-layout{display:grid;grid-template-columns:265px minmax(0,1fr);gap:20px;align-items:start}.type-sidebar{padding:14px;position:sticky;top:20px;max-height:calc(100vh - 40px);overflow:auto;scrollbar-color:var(--rule) transparent}.search{display:flex;align-items:center;border:1px solid var(--rule);border-radius:6px;background:var(--bg);padding:8px 10px;margin-bottom:14px;gap:7px}.search input{background:none;border:0;outline:none;color:var(--ink);width:100%;font-size:11px}.search span{color:var(--muted);font-size:19px}.type-group{font:8px var(--mono);color:var(--faint);letter-spacing:1px;text-transform:uppercase;margin:18px 8px 7px}.type-item{display:block;width:100%;text-align:left;background:none;border:1px solid transparent;border-radius:5px;padding:8px 9px;color:var(--muted);font:10px var(--mono);line-height:1.6;margin-bottom:3px}.type-item.active{background:#1c3028;color:var(--teal);border-color:#345040}.type-item:hover{color:var(--ink)}.type-detail{padding:28px}.type-detail h2{font-size:29px;font-family:var(--mono);letter-spacing:-.8px;margin:5px 0 14px}.type-detail>p{font-size:13px;color:var(--muted);line-height:1.9;max-width:900px}.type-code{background:#0c1218;border:1px solid #2a3741;border-radius:8px;padding:19px;margin:22px 0}.type-code pre{font-size:12px;max-height:540px;overflow:auto;scrollbar-color:var(--rule) transparent}.syntax-key{color:var(--purple)}.syntax-type{color:var(--teal)}.syntax-string{color:var(--amber)}.syntax-comment{color:var(--faint)}.table-scroll{overflow-x:auto}table{border-collapse:collapse;width:100%;text-align:left;font-size:12px}th{font:9px var(--mono);letter-spacing:1px;color:var(--faint);text-transform:uppercase;padding:12px;border-bottom:1px solid var(--rule)}td{padding:13px 12px;border-bottom:1px solid #27313d85;vertical-align:top;color:var(--muted);line-height:1.8}td:first-child{color:var(--ink)}td code{overflow-wrap:anywhere;font-size:11px}.used-by{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}.used-by span{padding:4px 8px;border-radius:4px;background:var(--raised);font:10px var(--mono);color:var(--muted)}.type-detail h3{margin-top:23px}
+.runtime-summary{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--rule);border-radius:var(--radius);background:var(--surface);margin-bottom:22px}.runtime-summary article{padding:22px;border-right:1px solid var(--rule)}.runtime-summary article:last-child{border:0}.runtime-summary strong{display:block;font-size:26px;letter-spacing:-1px;color:var(--teal);font-weight:500;margin:8px 0}.runtime-summary p{font-size:10px;color:var(--muted);margin:0}.watch-lab{padding:25px;margin-bottom:22px}.watch-lab .eyebrow{font-size:8px;display:block;margin-bottom:9px}.watch-lab h2{margin-bottom:8px}.watch-lab p{font-size:12px;margin-bottom:0}.watch-demo{display:grid;grid-template-columns:1fr 1.15fr 1fr;align-items:start;gap:42px;margin:25px 0}.watch-demo>div{text-align:center}.view-tile{border:1px solid #3c5a51;border-radius:8px;background:#192a23;font:17px var(--mono);padding:20px 10px;color:var(--teal);margin:12px 0 16px;min-height:84px;display:flex;flex-direction:column;justify-content:center}.view-tile small{font-size:10px;color:var(--muted);margin-top:6px}.watch-slot{position:relative}.watch-slot:before,.watch-slot:after{position:absolute;content:'→';color:var(--faint);font-size:25px;top:50px}.watch-slot:before{left:-30px}.watch-slot:after{right:-30px}.watch-log{padding:12px 15px;border-radius:6px;background:#0d151b;color:var(--muted);font:11px var(--mono);line-height:1.8}.watch-demo .flash{animation:flash .45s ease-out}.two-up{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:22px}.table-panel{padding:24px}.boundary h3{font-size:17px}.boundary p{color:var(--muted);font-size:12px;line-height:1.9}.boundary pre{padding:13px;background:#0b1218;border-radius:6px;font-size:10px;color:var(--blue);margin:16px 0}.output-panel{display:grid;grid-template-columns:1fr 1.1fr;gap:28px;margin-top:22px;padding:26px}.output-panel>div>p{font-size:12px;color:var(--muted);line-height:1.9}.output-panel .payload-card pre{max-height:none}.extension-map{display:grid;grid-template-columns:1fr 70px 1fr 70px 1fr;align-items:center;padding:26px 20px;margin-top:25px;gap:10px}.extension-sources{display:grid;gap:16px}.extension-sources article,.extension-core{padding:18px;border:1px dashed #4b465f;border-radius:7px;background:#221d2e33}.extension-sources strong{font-size:13px;display:block;margin:10px 0;color:#c8bcea}.extension-sources p,.extension-core p{font-size:11px;color:var(--muted);line-height:1.8;margin:0}.extension-arrow{font:8px var(--mono);color:var(--faint);text-align:center}.extension-arrow span{display:block;font-size:30px}.extension-core{border:1px solid #426252;background:#1e362640;text-align:center;padding:30px 15px}.extension-core strong{font:28px var(--mono);display:block;color:var(--teal);margin:16px 0}.extension-core code{font-size:9px;color:var(--teal);display:block;margin-top:20px}.section-intro{margin:32px 0 0}.section-intro p{color:var(--muted);font-size:12px;margin:0}.gap-card h3{margin:0}.gap-card .card-top{align-items:flex-start}.gap-card .gap-label{font:8px var(--mono);letter-spacing:1px;color:var(--faint);display:block;margin-bottom:7px}.gap-card p{font-size:12px;color:var(--muted);line-height:1.9}.gap-card .proposal{border-top:1px solid var(--rule);padding-top:15px}.interview{margin-top:24px;padding:30px}.interview ol{padding-left:22px;color:var(--muted);line-height:2.2;font-size:13px}.interview li{padding-left:6px}.interview li::marker{color:var(--teal);font-family:var(--mono)}
+.inspector{position:fixed;inset:0 0 0 auto;margin:0;width:min(540px,100vw);height:100%;max-height:100%;max-width:100%;background:#121a22;border:0;border-left:1px solid #405347;color:var(--ink);padding:25px;overflow:auto;box-shadow:-20px 0 90px #0005}.inspector::backdrop{background:#03080da6;backdrop-filter:blur(3px)}.inspector-top{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--rule);padding-bottom:18px;margin-bottom:25px}.inspector h2{font-size:29px;letter-spacing:-.8px;margin-top:10px}.inspector p{color:var(--muted);font-size:13px;line-height:1.9}.inspector ul{color:var(--muted);font-size:12px;padding-left:18px;line-height:1.9}.inspector li{margin-bottom:13px}.inspector .type-code pre{font-size:11px;max-height:none}.inspector .type-jump{border:1px solid #3b4c54;border-radius:5px;background:#18252b;color:var(--teal);padding:5px 8px;font:10px var(--mono);margin:4px}.toast{position:fixed;bottom:25px;left:50%;transform:translate(-50%,20px);opacity:0;pointer-events:none;border:1px solid #4b7060;border-radius:7px;background:#1a3028;color:var(--teal);font-size:12px;padding:11px 22px;z-index:15;transition:opacity .2s,transform .2s}.toast.visible{opacity:1;transform:translate(-50%,0)}body.reduced-motion *,body.reduced-motion *:before,body.reduced-motion *:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+@keyframes page-enter{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}@keyframes flash{0%{background:#426e55;box-shadow:0 0 25px #7cdec744}100%{background:#192a23;box-shadow:none}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{animation:none!important;transition:none!important}}
+@media(min-width:1800px){main{padding:44px 50px}.topbar{padding:0 50px}.hero h1{font-size:49px}.map-card{padding:0 10px}.trace-story,.payload-card,.board-card{padding:24px}.trace-grid pre{font-size:12px}}
+@media(max-width:1250px){.rail{width:195px;padding-left:12px;padding-right:12px}.brand{font-size:16px}.brand small{font-size:6.8px}.brand-icon{width:30px}.nav-button{font-size:11px;gap:8px}.workspace{margin-left:195px}main{padding:28px 24px}.topbar{padding:0 24px}.scenario-select{display:block}.scenario-select>.tiny-label{display:block;margin-bottom:5px}.scenario-select select{min-width:230px}.map-heading{padding:17px 18px}.map-footer{gap:13px}.map-footer span:last-child{display:none}.trace-grid{grid-template-columns:1fr 1fr}.board-card{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;column-gap:25px}.board-card .card-top{grid-column:1/-1}.board-card dl{border:0;padding:0;margin:0;grid-row:2/4;grid-column:2}.board-card>.small{margin:0}.state-lab{grid-template-columns:1fr 1.1fr}.display-panel{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:0 25px}.display-panel .card-top{grid-column:1/-1}.display-panel .lab-phase{grid-row:2/6;border-bottom:0;border-right:1px solid var(--rule);margin:0}.runtime-summary article{padding:18px}.runtime-summary strong{font-size:22px}.extension-map{grid-template-columns:1fr 40px 1fr 40px 1fr;padding:17px 12px;gap:5px}.extension-sources article{padding:13px}.extension-core{padding:22px 10px}}
+@media(max-width:900px){.rail{position:static;width:100%;height:auto;border-right:0;border-bottom:1px solid var(--rule);padding:17px 22px}.brand{padding:0}.rail-section,.rail-note,.rail-bottom{display:none}.rail nav{display:flex;overflow-x:auto;gap:6px;margin-top:19px}.nav-button{width:auto;flex-shrink:0;padding:8px 10px;margin:0}.nav-button i{display:none}.workspace{margin-left:0}.topbar{height:48px}.topbar-right>.outline-pill{display:none}.hero-aside{display:none}.hero h1{font-size:36px}.hero p{max-width:650px}.map-heading{align-items:center}.map-hint{display:none}.runtime-summary strong{font-size:23px}.type-layout{grid-template-columns:210px 1fr}.type-detail{padding:20px}.type-detail h2{font-size:25px}.watch-demo{gap:30px}.watch-demo .primary-button{font-size:10px;padding:8px}.watch-slot:before{left:-22px}.watch-slot:after{right:-22px}.extension-map{grid-template-columns:1fr;gap:14px}.extension-sources{grid-template-columns:1fr 1fr}.extension-arrow span{transform:rotate(90deg);font-size:20px}.extension-arrow{display:flex;align-items:center;justify-content:center;gap:10px}.extension-core{padding:20px}.extension-core strong{margin:8px 0}.extension-core code{margin-top:10px}}
+@media(max-width:620px){main{padding:25px 16px}.topbar{padding:0 17px}.breadcrumb{font-size:7px;gap:8px}.hero h1{font-size:32px;letter-spacing:-1px}.hero .eyebrow{font-size:8px}.hero p{font-size:12px}.scenario-toolbar{display:block;padding:14px}.scenario-select select{width:100%;min-width:0;font-size:11px}.scenario-select{width:100%}.scenario-select>.tiny-label{font-size:9px}.transport{margin-top:13px;justify-content:center}.map-heading{display:block;padding:16px}.legend{margin-top:12px;gap:16px}.map-footer{font-size:8px;padding:11px 14px}.trace-grid{grid-template-columns:1fr}.board-card{grid-column:auto;display:block}.board-card dl{border-top:1px solid var(--rule);padding-top:14px}.trace-story,.payload-card,.board-card,.panel{padding:18px}.state-lab{grid-template-columns:1fr}.display-panel{grid-column:auto;display:block}.display-panel .lab-phase{border-right:0;border-bottom:1px solid var(--rule);margin-bottom:20px}.three-up,.two-up{grid-template-columns:1fr}.type-layout{grid-template-columns:1fr}.type-sidebar{position:static;max-height:300px}.type-detail{padding:17px}.type-detail h2{font-size:23px}.type-code{padding:13px}.type-code pre{font-size:10px}.type-detail td{padding:10px 7px;font-size:10px}.type-detail td code{font-size:10px}.runtime-summary{grid-template-columns:1fr 1fr}.runtime-summary article:nth-child(2){border-right:0}.runtime-summary article:nth-child(-n+2){border-bottom:1px solid var(--rule)}.runtime-summary article{padding:16px}.runtime-summary strong{font-size:23px}.watch-lab .card-top{align-items:flex-start}.watch-demo{grid-template-columns:1fr;gap:20px}.watch-slot:before,.watch-slot:after{display:none}.watch-demo>div{width:100%}.view-tile{padding:14px;min-height:70px}.output-panel{grid-template-columns:1fr}.extension-sources{grid-template-columns:1fr}.page-footer{display:block;font-size:9px}.page-footer span{display:block;margin-bottom:7px}.inspector{padding:19px}.gap-card .card-top{flex-wrap:wrap}.interview ol{font-size:12px;line-height:1.9}.interview li{margin-bottom:13px}}
+
+.map-card.expanded #system-map{max-height:760px}.map-actions{display:flex;align-items:center;gap:16px}.map-size{font:14px var(--sans);width:29px;height:29px;flex-shrink:0}.brand small{white-space:nowrap;font-size:6.8px;letter-spacing:.8px}.brand{gap:9px}
+
+.scenario-toolbar{position:sticky;top:0;z-index:3;box-shadow:0 5px 15px #080d1218}@media(max-width:620px){.scenario-toolbar{position:static}}
+</style>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to explorer</a>
+  <aside class="rail">
+    <a class="brand" href="#flow"><span class="brand-icon" aria-hidden="true">s<span>↗</span></span><span>switchboard<small>ARCHITECTURE EXPLORER</small></span></a>
+    <div class="rail-section">THE SYSTEM, UNPACKED</div>
+    <nav aria-label="Architecture sections">
+      <button data-tab="flow" class="nav-button active"><span>01</span> Follow a signal <i>↗</i></button>
+      <button data-tab="state" class="nav-button"><span>02</span> Inside an agent <i>↗</i></button>
+      <button data-tab="types" class="nav-button"><span>03</span> The Rust types <i>↗</i></button>
+      <button data-tab="runtime" class="nav-button"><span>04</span> Tasks & channels <i>↗</i></button>
+      <button data-tab="evolution" class="nav-button"><span>05</span> The wider design <i>↗</i></button>
+    </nav>
+    <div class="rail-note"><span class="tiny-label">THE TEN-MINUTE TOUR</span><p>Follow one signal. Open its data. Change the agent’s facts. Then look at what runs concurrently.</p><button id="start-tour" class="text-button">Start with a permission request <span>→</span></button></div>
+    <div class="rail-bottom"><div><span class="status-dot"></span> Golden source, inspected</div><code>17ff0c9</code><p>Illustrative simulation.<br>No connection to your agents.</p><button id="motion-toggle" class="text-button">Reduce motion</button></div>
+  </aside>
+  <div class="workspace">
+    <header class="topbar"><div class="breadcrumb">SWITCHBOARD <span>/</span> RUST REFACTOR <span>/</span> <b id="crumb">DATA FLOW</b></div><div class="topbar-right"><span class="outline-pill">LOCAL FIELD GUIDE</span><button id="help-button" class="icon-button" aria-label="How to use this explorer">?</button></div></header>
+    <main id="main" tabindex="-1">
+      <section id="page-flow" class="page active" aria-label="Follow a signal">
+        <div class="hero"><div><div class="eyebrow">01 / FOLLOW A SIGNAL</div><h1>Many signals. <em>One board.</em></h1><p>Watch bytes become facts, facts become state, and state become something you can see.</p></div><div class="hero-aside"><span class="live-badge"><span class="status-dot"></span> CURRENT GOLDEN</span><p>Claude + Linux wired today.<br>Broader design in section 05.</p></div></div>
+        <div class="scenario-toolbar"><label class="scenario-select"><span class="tiny-label">TRACE A SCENARIO</span><select id="scenario-select" aria-label="Choose data flow scenario"></select></label><div class="transport"><button id="reset" class="icon-button" aria-label="Reset scenario">↺</button><button id="previous" class="icon-button" aria-label="Previous step">←</button><button id="play" class="primary-button"><span aria-hidden="true">▶</span> Play flow</button><button id="next" class="icon-button" aria-label="Next step">→</button><select id="speed" aria-label="Animation playback speed"><option value="3400">0.5×</option><option value="2100" selected>1×</option><option value="1100">2×</option></select></div></div>
+        <div class="map-card"><div class="map-heading"><div><span class="tiny-label">THE RUNNING PIPELINE</span><span class="map-hint">Click any node to open its role, code, and types</span></div><div class="map-actions"><div class="legend"><span class="event">Event</span><span class="snapshot">Snapshot</span><span class="effect">Effect</span><span class="view">View</span></div><button id="map-size" class="icon-button map-size" aria-label="Expand diagram" aria-pressed="false" title="Expand diagram">⤢</button></div></div><div class="map-scroll"><svg id="system-map" viewBox="0 0 1180 595" role="group" aria-label="Interactive diagram of the golden daemon’s data flow"></svg></div><div class="map-footer"><span><span class="pure-key"></span> Pure state & derivation</span><span><span class="task-key"></span> I/O task or external process</span><span>Arrows show data or calls; boxes are not all tasks.</span></div></div>
+        <div class="step-track" id="step-track" aria-label="Scenario steps"></div>
+        <div class="trace-grid"><article class="trace-story"><div class="card-top"><span id="step-counter" class="tiny-label"></span><span id="scenario-status" class="badge"></span></div><h2 id="step-title"></h2><p id="step-explanation"></p><div id="step-note" class="note"></div><div id="step-effects" class="effect-chips"></div></article><article class="payload-card"><div class="card-top"><span id="payload-label" class="tiny-label">DATA AT THIS HOP</span><button class="copy-button" data-copy="payload-code">Copy</button></div><pre><code id="payload-code"></code></pre><span class="payload-caption">Illustrative values · source-grounded shapes</span></article><article class="board-card"><div class="card-top"><span class="tiny-label">AGENT STATE AT THIS STEP</span><span class="mono muted">ProcKey</span></div><div class="phase-pair"><div><span>TRUTH</span><strong id="truth-phase"></strong></div><div><span>DISPLAYED</span><strong id="shown-phase"></strong></div></div><dl id="step-state"></dl><p class="small muted">A scenario may start with a tracked agent. This is an explanation of selected transitions, not a Rust runtime.</p></article></div>
+        <div class="source-strip" id="scenario-sources"></div>
+      </section>
+      <section id="page-state" class="page" aria-label="Inside an agent">
+        <div class="hero"><div><div class="eyebrow">02 / INDEPENDENT FACTS → ONE PHASE</div><h1>A state machine. <em>Several axes.</em></h1><p>Change the facts independently. The first matching rule determines the truth; display timing is a separate decision.</p></div></div>
+        <div class="notice">This lab mirrors <code>Agent::phase</code> and <code>Shown::settle</code> in the current golden. It is a small JavaScript model, with Rust parity checks—not the Rust daemon running in your browser.</div>
+        <div class="state-lab"><article class="panel axis-panel"><div class="card-top"><h2>The facts</h2><span class="tiny-label">Agent + account</span></div><label>activity<select id="axis-activity"><option value="turn">Activity::Turn</option><option value="idle">Activity::Idle</option><option value="unobserved">Activity::Unobserved</option></select></label><label>gate ownership<select id="axis-gate"><option value="human">Ownership::Human</option><option value="none">No gate</option><option value="unknown">Ownership::Unknown</option><option value="machine">Ownership::Machine</option></select></label><p class="small muted">The lab places this gate in <code>prompts.unjoined</code>, so it can exist independently of activity.</p><label>last idle outcome<select id="axis-outcome"><option value="completed">Completed / none</option><option value="interrupted">Interrupted</option><option value="failed">Failed</option></select></label><label class="check-row"><input type="checkbox" id="axis-limit"><span>Account limit rejected</span></label><label class="check-row"><input type="checkbox" id="axis-children"><span>A subagent is running</span></label><label class="check-row"><input type="checkbox" id="axis-waits"><span>A background wait is open</span></label><button id="axis-reset" class="secondary-button">Reset facts</button></article><article class="panel fold-panel"><div class="card-top"><h2>The fold</h2><code>Agent::phase(limits)</code></div><p class="small muted">Priority order from the source. Facts lower in the list stay stored even when another fact wins.</p><ol id="fold-rules" class="fold-rules"></ol><div class="note">Compaction affects stale-turn expiry, but the current fold has no separate compaction branch.</div></article><article class="panel display-panel"><div class="card-top"><h2>The display</h2><code>Shown::settle</code></div><div class="lab-phase"><span class="tiny-label">TRUTH NOW</span><strong id="lab-truth"></strong><span class="flow-down">↓ settle from Working</span><span class="tiny-label">WHAT THE CHIP SHOWS</span><strong id="lab-shown"></strong></div><div class="two-controls"><label>cause<select id="lab-cause"><option>Agent</option><option>User</option></select></label><label>confidence<select id="lab-confidence"><option>Confirmed</option><option>Inferred</option><option>Snapshot</option></select></label></div><label class="range-label">Time since first observation <output id="lab-time-label">0 s</output><input id="lab-time" type="range" min="0" max="12" step="0.5" value="0"></label><div id="lab-explanation" class="note"></div><div id="lab-warning" class="note warning" hidden></div></article></div>
+        <div class="three-up principles"><article class="panel"><span class="number">01</span><h3>Store independent facts</h3><p><code>activity</code>, <code>prompts</code>, <code>subagents</code>, <code>waits</code>, and account limits can each be corrected by a later observation.</p></article><article class="panel"><span class="number">02</span><h3>Derive the truth</h3><p><code>Phase</code> is computed, not a mutable status field on <code>Agent</code>. One priority order combines the facts.</p></article><article class="panel"><span class="number">03</span><h3>Remember the display</h3><p><code>Shown</code> stores a phase, its start time, and an optional pending escalation. Lower urgency and user actions land immediately.</p></article></div>
+      </section>
+      <section id="page-types" class="page" aria-label="Rust type atlas">
+        <div class="hero"><div><div class="eyebrow">03 / THE DATA YOU PASS AROUND</div><h1>Open the envelope. <em>See the Rust.</em></h1><p>Inspect real declarations, their fields, and where they fit. Examples intentionally expose golden reference types.</p></div></div>
+        <div class="type-layout"><aside class="panel type-sidebar"><label class="search"><span aria-hidden="true">⌕</span><input id="type-search" type="search" placeholder="Find a type or field…" aria-label="Search types"></label><div id="type-list"></div></aside><article id="type-detail" class="panel type-detail"></article></div>
+      </section>
+      <section id="page-runtime" class="page" aria-label="Tasks and channels">
+        <div class="hero"><div><div class="eyebrow">04 / WHAT CAN WAIT, AND WHAT MUST KEEP MOVING</div><h1>One owner. <em>Independent tasks.</em></h1><p>The core owns the board. Producers, I/O workers, and consumers communicate through channels with different delivery rules.</p></div></div>
+        <div class="runtime-summary"><article><span class="tiny-label">INPUT QUEUE</span><strong>4,096</strong><p>bounded · mixed producer policies</p></article><article><span class="tiny-label">EFFECT QUEUE</span><strong>unbounded</strong><p>core never awaits the runner</p></article><article><span class="tiny-label">LATEST VIEW</span><strong>1 snapshot</strong><p><code>watch&lt;Arc&lt;View&gt;&gt;</code></p></article><article><span class="tiny-label">HISTORY QUEUE</span><strong>512</strong><p>bounded · best effort</p></article></div>
+        <div class="watch-lab panel"><div class="card-top"><div><span class="eyebrow">TRY THE CHANNEL SEMANTICS</span><h2>A slow subscriber sees the latest view.</h2><p class="muted">Pause the reader, publish a few changes, then resume. Intermediate snapshots do not form a backlog.</p></div><button id="watch-reset" class="secondary-button">Reset</button></div><div class="watch-demo"><div><span class="tiny-label">CORE PUBLISHES</span><div class="view-tile" id="watch-producer">View #0 <small>Unknown</small></div><button id="watch-publish" class="primary-button">Publish a changed view →</button></div><div class="watch-slot"><span class="tiny-label">watch CHANNEL · ONE SLOT</span><div id="watch-current" class="view-tile">Arc&lt;View #0&gt;</div><span class="small muted">The slot is replaced, not appended to.</span></div><div><span class="tiny-label">SUBSCRIBER LAST READ</span><div class="view-tile" id="watch-consumer">View #0 <small>Unknown</small></div><button id="watch-pause" class="secondary-button">Pause subscriber</button></div></div><div id="watch-log" class="watch-log" role="status">Subscriber is reading. Publish a changed view to start.</div></div>
+        <div class="panel table-panel"><h2>Each channel has a contract</h2><div class="table-scroll"><table><thead><tr><th>Boundary</th><th>Payload</th><th>When the receiver is slow</th></tr></thead><tbody><tr><td>RPC → core</td><td><code>Input</code></td><td><code>try_send</code> drops on a full inbox. An OK reply does not guarantee application. Lost approval events are an audit gap.</td></tr><tr><td>Scanner / watcher → core</td><td><code>Input</code></td><td><code>send().await</code> waits for space. The producer slows; the board owner keeps processing.</td></tr><tr><td>Core → effect runner</td><td><code>Effect</code></td><td>Unbounded send returns immediately. A slow runner can grow this queue.</td></tr><tr><td>Core → publisher / subscribers</td><td><code>Arc&lt;View&gt;</code></td><td>Only the latest value is retained. Each receiver tracks its own last read.</td></tr><tr><td>Effect runner → history</td><td><code>HistoryEntry</code></td><td><code>try_send</code> drops when the 512-entry queue is full and logs a warning.</td></tr></tbody></table></div></div>
+        <div id="runtime-boundaries" class="two-up"></div>
+        <div class="panel output-panel"><div><span class="eyebrow">ON THE WIRE</span><h2>A full view, eagerly rendered.</h2><p>The golden’s <code>list</code> reads once. <code>subscribe</code> sends an initial snapshot and the latest changed view it observes, wrapped in <code>{ "snapshot": … }</code>. The reason text is already computed; there is no lazy tooltip endpoint.</p><p>The disk publisher writes the unwrapped document after a 250 ms coalescing window. This is separate from subscription delivery.</p><p class="small muted">The existing Go bar is a different consumer path. This explorer describes Rust’s output and does not claim the Go UI is connected.</p></div><div class="payload-card"><div class="card-top"><span class="tiny-label">SUBSCRIBE RESPONSE · ILLUSTRATIVE</span><button class="copy-button" data-copy="output-json">Copy</button></div><pre><code id="output-json"></code></pre></div></div>
+      </section>
+      <section id="page-evolution" class="page" aria-label="The wider design">
+        <div class="hero"><div><div class="eyebrow">05 / THE GOLDEN IS A STARTING POINT</div><h1>A portable system. <em>Open boundaries.</em></h1><p>Your target is an extensible daemon with Claude and Codex implemented, independent models, and platform-specific I/O at the edges.</p></div></div>
+        <div class="notice">Design intent is drawn separately below. A declared type does not mean a live source produces it; earlier architectural proposals remain proposals until decided.</div>
+        <div class="extension-map panel"><div class="extension-sources"><article><span class="tiny-label">PROVIDER SOURCES</span><strong>Claude · Codex · future agents</strong><p>Hooks, transcripts, status feeds, app-server notifications</p></article><article><span class="tiny-label">PLATFORM & SURFACE SOURCES</span><strong>Operating system · terminal · desktop</strong><p>Existence, death, process identity, placement, focus</p></article></div><div class="extension-arrow">normalize facts <span>→</span></div><article class="extension-core"><span class="tiny-label">HOST-LOCAL MODEL</span><strong>Board</strong><p>Provider-agnostic agent state machines.<br>One owner. Events + snapshots.</p><code>Input → reduce → Effect / View</code></article><div class="extension-arrow">derive & publish <span>→</span></div><div class="extension-sources"><article><span class="tiny-label">SEPARATE MODELS</span><strong>Fleet · history</strong><p>Remote host views stay outside the local board. History supports downstream analysis.</p></article><article><span class="tiny-label">CONSUMERS</span><strong>Bar · TUI · dashboard · navigation</strong><p>Presentation and actions consume a stable contract.</p></article></div></div>
+        <div class="section-intro"><h2>Where implementation meets intent</h2><p>These are integration gaps, known defects, or open choices—not an instruction to reproduce every Go behavior.</p></div><div id="gap-grid" class="two-up"></div>
+        <div class="panel interview"><span class="eyebrow">EXPLAIN IT IN TEN MINUTES</span><h2>Six sentences to hold the system in your head.</h2><ol><li>Sources observe the world; adapters translate observations into a shared vocabulary.</li><li>Events describe edges, snapshots describe a scope at a time, and merge rules preserve fresher evidence.</li><li>One task owns the board and applies the reducer sequentially.</li><li>An agent stores independent facts; a fold computes its phase and display rules control what you see.</li><li>Effects request I/O outside the reducer; new observations return through the inbox.</li><li>Consumers receive derived views, while provider quirks and OS details stay at the edges of the intended design.</li></ol></div>
+      </section>
+      <footer class="page-footer"><span>Built from the golden worktree · <code>17ff0c9</code></span><span>Actual types. Illustrative values. Explicit gaps.</span></footer>
+    </main>
+  </div>
+  <dialog id="inspector" class="inspector"><div class="inspector-top"><span class="tiny-label">SOURCE INSPECTOR</span><button id="close-inspector" class="icon-button" aria-label="Close inspector">×</button></div><div id="inspector-content"></div></dialog>
+  <div id="toast" class="toast" role="status"></div>
+  <script>/* Source-backed architecture facts. This file is data, not a Rust emulator. */
+window.SB_SYSTEM = {
+  revision: '17ff0c9',
+  nodes: [
+    {
+      id: 'hook', title: 'Hook forwarder', subtitle: 'one short-lived process per hook', layer: 'source', status: 'implemented',
+      summary: 'The agent hands JSON to switchboard-hook on stdin. The forwarder hashes tool input, removes seven known content fields, and sends a JSON line.',
+      details: ['Claude hook and statusline modes exist. This binary does not yet select a provider.', 'The forwarded pid is the parent of the forwarder, so RPC must resolve its ancestry.', 'Read/write socket timeouts are 500 ms each. Connect and stdin reading are not bounded by that timeout; this is a known gap.', 'The hook path removes named fields; it is not a complete allowlist of every possible future payload field.'],
+      code: 'let pid = std::os::unix::process::parent_id();\nlet frame = scrub(payload, event, pid);\nclient::send(&socket_path(), &frame, TIMEOUT)',
+      source: {path: 'src/bin/switchboard-hook.rs', line: 24}, types: ['HookFrame', 'InputHash']
+    },
+    {
+      id: 'socket', title: 'RPC listener', subtitle: 'Unix socket · JSON lines', layer: 'runtime', status: 'implemented',
+      summary: 'Decode the request, resolve the tracked ancestor, call the Claude adapter, and offer its inputs to the inbox.',
+      details: ['One Tokio task per accepted connection; the socket is mode 0600.', 'Commands are hook, statusline, list and subscribe. HookFrame has no provider field.', 'Hook and statusline delivery use try_send. The reply is still ok if the inbox dropped an input.', 'The current connection has a 1 MiB total read cap, but no read deadline. Accept errors retry immediately.'],
+      code: 'let process = resolve(&proc_root, frame.pid, &view).await;\nlet ctx = Ctx { now: now(), process };\noffer(&inbox, claude::hook(&frame, &ctx));\nok_reply()',
+      source: {path: 'src/daemon/rpc.rs', line: 74}, types: ['Request', 'HookFrame', 'StatuslineFrame', 'Ctx']
+    },
+    {
+      id: 'scanner', title: 'Process scanner', subtitle: 'every 1 second', layer: 'source', status: 'implemented',
+      summary: 'Read Linux process facts and Claude session files, then send a process snapshot followed by Died events for missing keys.',
+      details: ['Blocking filesystem work runs through spawn_blocking.', 'ProcKey is (pid, start). Reusing a pid produces a different identity.', 'The scanner sends with send().await, so a full inbox slows scanning rather than dropping its results.', 'The current classifier recognizes interactive Claude. Codex and portable process backends remain unwired.', 'A failed sweep currently looks like an empty successful sweep; the resulting false deaths are an audited bug.'],
+      code: 'let (inputs, seen) = sweep_inputs(&known, rows, at);\nfor input in inputs {\n    inbox.send(input).await?;\n}\nknown = seen; // shortened error handling',
+      source: {path: 'src/daemon/scanner.rs', line: 26}, types: ['ProcKey', 'ProcessRow', 'Snapshot', 'EventKind']
+    },
+    {
+      id: 'watcher', title: 'Transcript watcher', subtitle: 'one per process · 200 ms poll', layer: 'source', status: 'implemented',
+      summary: 'Own a file and Tail cursor, decode complete JSON lines, and run the Claude transcript adapter.',
+      details: ['First opening replays at most the last 128 KiB, starting on a whole-line boundary.', 'The first successful poll uses Inferred confidence; subsequent polls use Confirmed.', 'The cursor and file move into spawn_blocking and back. No shared lock is needed.', 'Inputs use send().await. A busy inbox pauses delivery while retaining the already-read batch.', 'A session rotation replaces this task; process death aborts it. Replay currently travels as ordinary inputs and can write old transitions into history.'],
+      code: 'let ctx = LineCtx { process, session, account, now, confidence };\nlet inputs = polled.lines.iter()\n    .filter_map(|text| serde_json::from_str::<Value>(text).ok())\n    .flat_map(|v| line(&v, &ctx));',
+      source: {path: 'src/daemon/watcher.rs', line: 70}, types: ['WatchSpec', 'Tail', 'Polled', 'LineCtx', 'Confidence']
+    },
+    {
+      id: 'adapters', title: 'Pure adapters', subtitle: 'source facts → shared vocabulary', layer: 'adapter', status: 'implemented',
+      summary: 'Interpret raw fields as events and snapshots. Adapters say what happened and who caused it; they never choose a chip color.',
+      details: ['hook, transcript and statusline adapters are present under ingest/claude.', 'Each returns Vec<Input>: one Stop can produce both TurnEnded and a Waits snapshot.', 'Ctx supplies receipt time and process identity; LineCtx also carries the known session, account and replay confidence.', 'Unsupported hook names yield no inputs. Tolerance is intentional; unknown enum handling is not yet uniform.', 'Codex hooks/app-server and surface/remote adapters belong in the extension plan. They are not active paths in this golden.'],
+      code: 'pub enum Input {\n    Event(Event),\n    Snapshot(Snapshot),\n}\n// Example entry point:\npub fn hook(frame: &HookFrame, ctx: &Ctx) -> Vec<Input>',
+      source: {path: 'src/ingest/mod.rs', line: 23}, types: ['Input', 'Event', 'Snapshot', 'Cause', 'Confidence']
+    },
+    {
+      id: 'inbox', title: 'Input inbox', subtitle: 'mpsc<Input> · capacity 4096', layer: 'runtime', status: 'implemented',
+      summary: 'Many producers transfer owned inputs to one consumer. This is the point where concurrent observations become a single sequence of reducer calls.',
+      details: ['RPC offers with try_send: full means drop and log.', 'Scanner and transcript watchers use send().await: full means backpressure.', 'Channel order is arrival order, not universal event-time order. Sources can race; identities and scoped freshness checks still matter.', 'PermissionRequest is not recoverable from a transcript, so shedding every hook indiscriminately is not a safe general contract.'],
+      code: 'let (inbox_tx, inbox_rx) =\n    mpsc::channel(settings.inbox_capacity);\n// default: 4096 Input values',
+      source: {path: 'src/daemon/mod.rs', line: 75}, types: ['Input']
+    },
+    {
+      id: 'core', title: 'Core task', subtitle: 'the only owner of Board', layer: 'runtime', status: 'implemented',
+      summary: 'Wait for the next input or the earliest board deadline. Apply the reducer synchronously, then dispatch its effects.',
+      details: ['Board is moved into this task. No other task gets a mutable reference to it.', 'No periodic core tick: next_deadline is recomputed on each loop. With no deadline, only an input wakes it.', 'apply and tick perform no filesystem, socket or clock reads. The runtime supplies time.', 'PublishState stays in the core; all other effects enter the unbounded effect channel.', 'The core does not await publishers, disk writes, or an effect runner.'],
+      code: 'let produced = tokio::select! {\n    input = inbox.recv() => reduce::apply(&mut board, input),\n    () = wake => reduce::tick(&mut board, now()),\n};\ndispatch(&board, produced, &view, &effects);\n// shortened Option/shutdown handling',
+      source: {path: 'src/daemon/core.rs', line: 22}, types: ['Board', 'Input', 'Effect']
+    },
+    {
+      id: 'board', title: 'Board + Agent', subtitle: 'independent facts, one local host', layer: 'model', status: 'implemented',
+      summary: 'The board stores agents by process identity and shared limits by account. Each agent holds several independently updateable pieces of state.',
+      details: ['Activity contains Unobserved, Idle, or Turn; Turn owns a BTreeMap<ToolUseId, Tool>.', 'Prompts, subagents, waits and compaction are separate axes. A tool gate belongs to its call.', 'Account limits are looked up through Agent.account, so one limit can affect several agents.', 'A session can rotate while ProcKey remains stable. A hook naming an unknown agent does not create one.', 'The separate Fleet type is only a model sketch: remote rows must not enter local discovery or liveness.'],
+      code: 'pub struct Board {\n    pub agents: BTreeMap<ProcKey, Agent>,\n    pub accounts: BTreeMap<AccountId, Account>,\n}\n// Agent owns activity, prompts, subagents, waits,\n// compaction, placement, beat and Shown.',
+      source: {path: 'src/model.rs', line: 528}, types: ['Board', 'Agent', 'Activity', 'Tool', 'Gate', 'Prompts', 'Subagents', 'Account']
+    },
+    {
+      id: 'fold', title: 'Phase → Shown', subtitle: 'derive truth, then settle display', layer: 'model', status: 'implemented',
+      summary: 'Agent::phase combines the facts by precedence. Shown::settle is the single rule for changing the displayed phase.',
+      details: ['Precedence: human gate → rejected limit or failure → interrupted turn → unowned gate → active turn → unobserved → active child → wait → idle.', 'Attention is red; Blocked and Stopped are amber; Unknown is grey; all remaining phases are green.', 'De-escalations, same-severity moves, user-caused changes and Confirmed evidence are immediate.', 'Only a louder agent-caused change waits: 10 seconds for Inferred, 6 seconds for Snapshot.', 'Current cause/confidence come from the triggering input. An unrelated confirmed event can incorrectly skip a pending dwell; the audit calls for evidence tied to the derived result.'],
+      code: 'let truth = agent.phase(limits);\nagent.shown.settle(truth, cause, confidence, now);\n\n// Shown stores the display state, not a second truth.\npub struct Shown {\n    pub phase: Phase, pub since: Instant,\n    pub pending: Option<Escalation>,\n}',
+      source: {path: 'src/model.rs', line: 1181}, types: ['Phase', 'Severity', 'Lamp', 'Shown', 'Escalation', 'Confidence']
+    },
+    {
+      id: 'view', title: 'Published View', subtitle: 'watch<Arc<View>> · latest value', layer: 'output', status: 'implemented',
+      summary: 'Render a small read-only view and replace the watch value only when it differs. Consumers never borrow Board.',
+      details: ['View contains Vec<AgentView>, including shown, truth, reason and since.', 'since stays an Instant internally. Serialization computes epoch time later, so wall-clock timestamps do not force needless watch updates.', 'Reasons are built eagerly for every agent in View::render; no separate tooltip/detail fetch exists.', 'watch retains the latest value, not a queue of every transition. A slow subscriber can miss intermediate views.', 'Truth and reason changes can publish even while shown remains unchanged. Reasons currently explain truth and may differ from the displayed lamp during a dwell.'],
+      code: 'let next = View::render(board);\nview.send_if_modified(|current| {\n    if **current == next { return false; }\n    *current = Arc::new(next);\n    true\n});',
+      source: {path: 'src/daemon/core.rs', line: 80}, types: ['View', 'AgentView', 'Phase', 'Reason']
+    },
+    {
+      id: 'effects', title: 'Effect runner', subtitle: 'unbounded mpsc<Effect>', layer: 'runtime', status: 'implemented',
+      summary: 'Turn requests for work into watcher ownership changes and best-effort history delivery. It never changes Board.',
+      details: ['WatchTranscript replaces the task stored under ProcKey; Forget aborts it.', 'A Watchers map owns JoinHandle values and aborts all remaining tasks on drop.', 'The runner currently constructs a Claude transcript path from cwd and session, and assigns the default account.', 'AppendHistory is offered to a separate bounded channel of 512 records; full means drop and log.', 'The incoming effect lane is unbounded. It protects the core from waiting, but does not guarantee bounded memory under sustained overload.'],
+      code: 'match effect {\n    WatchTranscript { process, session, cwd } => { /* start/replace */ }\n    Forget { process } => watchers.stop(&process),\n    AppendHistory(entry) => { history.try_send(entry); }\n    PublishState => {} // handled in core\n}',
+      source: {path: 'src/daemon/effects.rs', line: 19}, types: ['Effect', 'WatchSpec', 'Watchers', 'HistoryEntry']
+    },
+    {
+      id: 'publisher', title: 'state.json', subtitle: '250 ms coalesce · atomic rename', layer: 'output', status: 'implemented',
+      summary: 'After a view change, wait 250 ms, serialize the newest view, and replace the state file atomically.',
+      details: ['This is a fixed coalescing window from the first change, not a debounce extended by every later change.', 'Writes are sequential. Readers see either the old file or the complete new file.', 'The schema is switchboard-rust/1 with updated_ms and agents. Each agent has 11 serialized fields.', 'No periodic file write is needed solely to advance a displayed age; clients can compute age from since_ms.', 'No Rust bar, renderer, navigation endpoint or shared-memory frame is wired here.'],
+      code: 'view.changed().await?;\nsleep(coalesce).await;\nlet latest = Arc::clone(&view.borrow_and_update());\nlet body = latest.to_json(now(), SystemTime::now());\nwrite_atomic(&path, body.to_string().as_bytes()).await?;\n// shortened error handling',
+      source: {path: 'src/daemon/publish.rs', line: 17}, types: ['View', 'AgentView']
+    },
+    {
+      id: 'subscriber', title: 'RPC clients', subtitle: 'list once · subscribe on change', layer: 'output', status: 'implemented',
+      summary: 'A list request returns the full current snapshot. Subscribe sends it immediately, then sends the newest full snapshot after each observed change.',
+      details: ['RPC frames wrap the same document schema as state.json in {"snapshot": …}.', 'There is no delta protocol and no lazy detail endpoint. reason and the other agent fields travel in each frame.', 'Subscribers bypass the disk publisher’s 250 ms window.', 'A slow socket write stalls only that connection; watch coalesces intervening views.', 'This channel carries rendered state, not raw inputs or history records.'],
+      code: 'loop {\n    let line = snapshot_line(&view.borrow_and_update());\n    write_line(&mut write, &line).await?;\n    view.changed().await?;\n}\n// shortened error handling',
+      source: {path: 'src/daemon/rpc.rs', line: 96}, types: ['Request', 'View', 'AgentView']
+    },
+    {
+      id: 'history', title: 'History appender', subtitle: 'bounded 512 · JSONL by UTC day', layer: 'output', status: 'implemented',
+      summary: 'Append agent-found, agent-gone and displayed-phase changes. History is downstream evidence, not the authoritative live board.',
+      details: ['HistoryEntry::Shown stores from, to and held: the duration the previous phase was displayed.', 'The appender adds SystemTime when consuming the record, then performs its append through spawn_blocking.', 'The queue is deliberately best effort: full means a lost history record, not a stalled core.', 'Golden history does not contain every input, tool call, usage sample or UI detail.', 'The guide’s annealing, normalized geometry and dashboard delta stream are future work.'],
+      code: 'pub enum HistoryEntry {\n    AgentFound { process: ProcKey, cwd: PathBuf },\n    AgentGone { process: ProcKey, session: Option<SessionId> },\n    Shown { process: ProcKey, session: Option<SessionId>,\n            from: Phase, to: Phase, held: Duration },\n}',
+      source: {path: 'src/model.rs', line: 1335}, types: ['HistoryEntry', 'Record', 'HistoryWriter']
+    }
+  ],
+  edges: [
+    {from: 'hook', to: 'socket', label: 'one JSON line', kind: 'event'},
+    {from: 'socket', to: 'adapters', label: 'HookFrame / StatuslineFrame + Ctx', kind: 'event'},
+    {from: 'scanner', to: 'inbox', label: 'Processes + Died · send().await', kind: 'snapshot'},
+    {from: 'watcher', to: 'adapters', label: 'JSON line + LineCtx', kind: 'event'},
+    {from: 'adapters', to: 'inbox', label: 'Vec<Input>', kind: 'event'},
+    {from: 'inbox', to: 'core', label: 'one Input', kind: 'event'},
+    {from: 'core', to: 'board', label: 'apply / tick mutate facts', kind: 'event'},
+    {from: 'board', to: 'fold', label: 'Agent + account Limits', kind: 'view'},
+    {from: 'fold', to: 'view', label: 'facts + Shown → View::render', kind: 'view'},
+    {from: 'core', to: 'effects', label: 'Effect · unbounded', kind: 'effect'},
+    {from: 'effects', to: 'watcher', label: 'WatchTranscript / Forget', kind: 'effect'},
+    {from: 'effects', to: 'history', label: 'AppendHistory · try_send', kind: 'effect'},
+    {from: 'view', to: 'publisher', label: 'latest view · 250 ms window', kind: 'view'},
+    {from: 'view', to: 'subscriber', label: 'latest view · on change', kind: 'view'}
+  ],
+  boundaries: [
+    {title: 'Raw bytes stop at adapters', summary: 'The forwarder strips known content fields; pure source adapters translate facts into shared Input values. Provider vocabulary belongs at this edge, not in the phase fold.', code: 'fn hook(frame: &HookFrame, ctx: &Ctx) -> Vec<Input>', source: {path: 'src/ingest/claude/hook.rs', line: 47}},
+    {title: 'Events and snapshots merge differently', summary: 'An Event describes an edge with actor, cause and confidence. A Snapshot describes a scope at taken. Scoped freshness protects newer event facts; this is implemented for subagent snapshots, not universally enforced for process discovery.', code: 'AsOf { value, as_of }.supersedes(last_event)\n// true only if as_of > last_event', source: {path: 'src/model.rs', line: 486}},
+    {title: 'One task owns mutable live state', summary: 'Only core owns Board. Every input moves through mpsc; all readers get Arc<View>. This removes the need for a lock around the board without implying that channels use no synchronization internally.', source: {path: 'src/daemon/core.rs', line: 22}},
+    {title: 'Facts, truth and display are distinct', summary: 'Activity/gates/waits store facts. Agent::phase derives truth. Shown stores the display and a pending escalation. A display change does not rewrite the facts that caused it.', code: 'facts → phase(limits) → shown.settle(…) → View', source: {path: 'src/model.rs', line: 1004}},
+    {title: 'Effects ask; runtime performs', summary: 'The reducer returns data describing I/O work. Starting a watcher or appending history happens outside it. Anything learned comes back as a fresh Input.', code: 'fn apply(board: &mut Board, input: Input) -> Vec<Effect>', source: {path: 'src/reduce/mod.rs', line: 53}},
+    {title: 'Backpressure is a per-channel policy', summary: 'Inbox: 4096, mixed wait/drop producers. Effects: unbounded. History: 512, drop on full. View: one latest value. These are four different tradeoffs, not one global queue rule.', source: {path: 'src/daemon/mod.rs', line: 75}},
+    {title: 'Data rate is separate from animation rate', summary: 'The current daemon publishes when View changes, not at 60 Hz. Consumers can animate locally from phase and since_ms. A shared-memory bar frame is a guide proposal; golden currently serves JSON only.', source: {path: 'src/view.rs', line: 65}},
+    {title: 'Local Board, remote Fleet, history', summary: 'The guide separates actionable local agents, read-only remote snapshots, and retrospective history. Fleet types exist but have no runtime producer. History append exists; annealing and dashboard geometry do not.', code: 'pub struct Fleet {\n    pub local: Board,\n    pub remote: BTreeMap<Host, AsOf<Vec<Row>>>,\n}', source: {path: 'src/model.rs', line: 1803}},
+    {title: 'The core vocabulary is the extension seam', summary: 'The intended architecture is provider agnostic and cross-platform. Source selection, runtime capabilities and dispatch still need design work. A static provider table, traits and generics are options discussed, not a settled implementation choice.', source: {path: 'src/ingest/mod.rs', line: 1}}
+  ],
+  gaps: [
+    {title: 'Provider and platform extensibility', status: 'decision', current: 'Provider has Claude/Codex variants, but discovery, hooks, transcript following and Unix transport are hardwired to Claude/Linux paths.', proposal: 'Support Claude and Codex in an open source architecture; choose provider dispatch and platform boundaries from maintenance needs. The user explicitly rejected a closed provider scope.', source: {path: 'src/proc.rs', line: 106}},
+    {title: 'Rolling source capabilities', status: 'decision', current: 'Adapters tolerate some unknown fields, but unknown enum defaults can imply a false known meaning. There is no capability discovery or doctor report.', proposal: 'Detect emitted and subscribed signals, retain weaker fallbacks, and test captured shapes. Whether capabilities live in model data or only source wiring remains a decision.', source: {path: 'src/ingest/claude/hook.rs', line: 47}},
+    {title: 'Clock, limits and current evidence', status: 'known-bug', current: 'Rejected limits do not expire at resets_at. tick receives only Instant. The statusline adapter expects an older limits shape, and Beat is stored without correcting activity.', proposal: 'Handle foreign wall-clock deadlines and sleep/restart reconciliation. Validate newer Claude live-status and limits payloads with the capture harness before giving them authority.', source: {path: 'src/reduce/tick.rs', line: 13}},
+    {title: 'Identity and death', status: 'known-bug', current: 'An unreadable sweep can kill all agents; an old process snapshot can resurrect one. Nested headless Claude hooks can resolve to the wrong tracked ancestor.', proposal: 'Distinguish observation failure from confirmed absence, stop ancestry at a recognized agent boundary, and enforce process/session freshness. Tombstones are one candidate, not an accepted design.', source: {path: 'src/daemon/rpc.rs', line: 143}},
+    {title: 'Delivery under load', status: 'known-bug', current: 'RPC drops every kind of input when the inbox fills. A permission request has no transcript backstop. Connect has no deadline and accept errors can spin.', proposal: 'Choose a delivery policy for irreplaceable edges, bound client operations, and back off on accept errors while preserving the agent’s responsiveness.', source: {path: 'src/daemon/rpc.rs', line: 130}},
+    {title: 'Evidence and explanation disagree', status: 'known-bug', current: 'phase(), settle() and view::reason derive related answers separately. A confirmed unrelated event can bypass a dwell; some tooltips do not match their truth phase.', proposal: 'Explore a single derived verdict carrying phase, reason and supporting evidence. This is a redesign proposal, not an existing Rust type.', source: {path: 'src/view.rs', line: 108}},
+    {title: 'Restart reconstruction and unowned gates', status: 'decision', current: 'Discovery begins Unknown, then replays transcript lines as ordinary inferred inputs. Replay can flood history and cannot establish that an old prompt is still open. Unknown-owned gates currently yield grey immediately.', proposal: 'Decide how to request fresh evidence after restart and handle approvals whose human/machine owner is unknown. Batch replay and live-status reconciliation are candidates; no red-after-grace policy has been accepted.', source: {path: 'src/daemon/watcher.rs', line: 45}},
+    {title: 'Subagent lifecycle and per-call gates', status: 'known-bug', current: 'Each Subagent has one optional gate. Settling any call can clear it. Panel replacement logic exists, but no panel producer is wired.', proposal: 'Use captures to establish authoritative child snapshots and expiry rules; fix call-level gate ownership without assuming all providers expose identical child signals.', source: {path: 'src/model.rs', line: 878}},
+    {title: 'Surfaces, navigation and federation', status: 'planned', current: 'Placement, Row, Reach and Fleet types exist. No WM locator, navigation RPC or remote task feeds them. focused normally remains false.', proposal: 'Keep desktop adapters and remote observations independent of provider state machines. Remote snapshots belong to Fleet and never become locally owned processes.', source: {path: 'src/model.rs', line: 1742}},
+    {title: 'Output and retrospective models', status: 'decision', current: 'Golden exposes switchboard-rust/1 JSON and best-effort history. It has no renderer, Go-v3 shim, shared-memory bar frame or dashboard materializer.', proposal: 'Choose output fields for actual consumers. The guide’s downstream plan separates live chips, local animation, and annealed history/geometry; compatibility and detail-fetch design remain open.', source: {path: 'src/view.rs', line: 65}}
+  ]
+};
+</script>
+  <script>// Current golden declarations. Code excerpts omit documentation comments only.
+window.SB_TYPES = [
+  {
+    "id": "frame",
+    "name": "Request · HookFrame",
+    "group": "Boundary",
+    "summary": "A socket line is decoded into a request before becoming a model input. HookFrame keeps the scrubbed JSON payload for the Claude adapter; there is no provider field on this wire format yet.",
+    "code": "pub enum Request {\n    Hook(HookFrame),\n    Statusline(StatuslineFrame),\n    List,\n    Subscribe,\n}\n\npub struct HookFrame {\n    pub event: Box<str>,\n    pub pid: Option<u32>,\n    pub session: SessionId,\n    pub payload: Value,\n}\n\npub struct StatuslineFrame {\n    pub pid: Option<u32>,\n    pub session: SessionId,\n    pub payload: Value,\n}",
+    "fields": [
+      {
+        "name": "Request",
+        "type": "enum",
+        "meaning": "Hook and Statusline submit observations; List and Subscribe read the published View."
+      },
+      {
+        "name": "event",
+        "type": "Box<str>",
+        "meaning": "Provider hook name, such as PermissionRequest."
+      },
+      {
+        "name": "pid",
+        "type": "Option<u32>",
+        "meaning": "Process id supplied by the forwarder; RPC resolves it to a tracked ancestor."
+      },
+      {
+        "name": "session",
+        "type": "SessionId",
+        "meaning": "Conversation identity extracted during frame decoding."
+      },
+      {
+        "name": "payload",
+        "type": "serde_json::Value",
+        "meaning": "Event-specific JSON. The forwarder replaces tool_input with its hash."
+      }
+    ],
+    "usedBy": [
+      "ingest::frame::decode_request",
+      "daemon::rpc::handle",
+      "ingest::claude::hook"
+    ],
+    "source": {
+      "path": "src/ingest/frame.rs",
+      "line": 26
+    },
+    "status": "implemented"
+  },
+  {
+    "id": "input",
+    "name": "Input · Ctx",
+    "group": "Input",
+    "summary": "All observation producers meet at this two-variant enum. The bounded mpsc channel carries Input into the one task that owns Board. Timeouts call tick directly; there is no Tick or Replay variant in this golden.",
+    "code": "pub enum Input {\n    Event(Event),\n    Snapshot(Snapshot),\n}\n\npub struct Ctx {\n    pub now: Instant,\n    pub process: Option<ProcKey>,\n}",
+    "fields": [
+      {
+        "name": "Event",
+        "type": "Event",
+        "meaning": "An observed edge: a turn began, a tool settled, or a process died."
+      },
+      {
+        "name": "Snapshot",
+        "type": "Snapshot",
+        "meaning": "An observation of a whole named scope, interpreted using scope-specific rules."
+      },
+      {
+        "name": "Ctx.now",
+        "type": "Instant",
+        "meaning": "Receipt time supplied to the pure adapter."
+      },
+      {
+        "name": "Ctx.process",
+        "type": "Option<ProcKey>",
+        "meaning": "Resolved process when the driver can identify it."
+      }
+    ],
+    "usedBy": [
+      "ingest::claude",
+      "daemon::scanner",
+      "daemon::watcher",
+      "daemon::core",
+      "reduce::apply"
+    ],
+    "source": {
+      "path": "src/ingest/mod.rs",
+      "line": 23
+    },
+    "status": "implemented"
+  },
+  {
+    "id": "identity",
+    "name": "ProcKey · Actor · Provider",
+    "group": "Input",
+    "summary": "A process survives conversation changes, so pid plus kernel start time identifies an agent and SessionId identifies its current conversation. Actor routes work within that agent. Provider remains a closed enum in current code; an open provider identifier is a redesign proposal.",
+    "code": "pub struct ProcKey {\n    pub pid: u32,\n    pub start: u64,\n}\n\npub enum Actor {\n    Agent,\n    Subagent(SubagentId),\n}\n\npub enum Provider {\n    Claude,\n    Codex,\n}",
+    "fields": [
+      {
+        "name": "pid",
+        "type": "u32",
+        "meaning": "Operating-system process id."
+      },
+      {
+        "name": "start",
+        "type": "u64",
+        "meaning": "Linux /proc start ticks distinguish reused pids."
+      },
+      {
+        "name": "Actor::Agent",
+        "type": "variant",
+        "meaning": "Work performed by the tracked main agent."
+      },
+      {
+        "name": "Actor::Subagent",
+        "type": "SubagentId",
+        "meaning": "Work attributed to one child row."
+      },
+      {
+        "name": "Provider",
+        "type": "Claude | Codex",
+        "meaning": "Both variants exist; only Claude has a wired ingestion path."
+      }
+    ],
+    "usedBy": [
+      "Board.agents",
+      "Event.process",
+      "ProcessRow.key",
+      "Event.actor",
+      "Agent.provider"
+    ],
+    "source": {
+      "path": "src/model.rs",
+      "line": 124
+    },
+    "status": "implemented"
+  },
+  {
+    "id": "event",
+    "name": "Event · Moment",
+    "group": "Input",
+    "summary": "An event carries routing, observation time, cause, confidence, and a provider-neutral fact. The reducer prefers a tracked process key, then searches by session. Intended duplicate handling is by domain identifiers, not a global event-id log.",
+    "code": "pub struct Event {\n    pub at: Moment,\n    pub process: Option<ProcKey>,\n    pub session: SessionId,\n    pub actor: Actor,\n    pub cause: Cause,\n    pub confidence: Confidence,\n    pub kind: EventKind,\n}\n\npub struct Moment {\n    pub local: Instant,\n    pub claimed: Option<SystemTime>,\n}\n\npub enum Cause {\n    User,\n    Agent,\n}\n\npub enum Confidence {\n    Confirmed,\n    Inferred,\n    Snapshot,\n}",
+    "fields": [
+      {
+        "name": "at",
+        "type": "Moment",
+        "meaning": "local is monotonic receipt time; claimed is optional source wall time."
+      },
+      {
+        "name": "process",
+        "type": "Option<ProcKey>",
+        "meaning": "Preferred routing identity, when tracked."
+      },
+      {
+        "name": "session",
+        "type": "SessionId",
+        "meaning": "Conversation identity; rejects late events after a session rotation."
+      },
+      {
+        "name": "actor",
+        "type": "Actor",
+        "meaning": "Main agent or a particular subagent."
+      },
+      {
+        "name": "cause",
+        "type": "Cause",
+        "meaning": "User-caused changes can update the display immediately."
+      },
+      {
+        "name": "confidence",
+        "type": "Confidence",
+        "meaning": "Confirmed, Inferred, or Snapshot determines escalation dwell."
+      },
+      {
+        "name": "kind",
+        "type": "EventKind",
+        "meaning": "The fact that the reducer applies."
+      }
+    ],
+    "usedBy": [
+      "ingest::claude::hook",
+      "ingest::claude::line",
+      "reduce::route",
+      "reduce::apply_event"
+    ],
+    "source": {
+      "path": "src/model.rs",
+      "line": 194
+    },
+    "status": "implemented"
+  },
+  {
+    "id": "event-kind",
+    "name": "EventKind",
+    "group": "Input",
+    "summary": "The reducer speaks turns, calls, gates, children, directories, and liveness. Provider hook names are translated into this vocabulary at ingestion. These are the actual variants; proposed ownership-change and unsupported-event variants are absent.",
+    "code": "pub enum EventKind {\n    SessionStarted {\n        source: StartSource,\n        title: Option<Box<str>>,\n    },\n    SessionEnded {\n        reason: Box<str>,\n    },\n    TurnStarted {\n        turn: Option<TurnKey>,\n        origin: Origin,\n    },\n    TurnEnded {\n        turn: Option<TurnKey>,\n        outcome: TurnOutcome,\n    },\n    ToolDispatched {\n        call: ToolUseId,\n        tool: ToolName,\n        hash: InputHash,\n    },\n    ToolSettled {\n        call: ToolUseId,\n        outcome: ToolOutcome,\n    },\n    PermissionAsked {\n        call: Option<ToolUseId>,\n        tool: ToolName,\n        hash: Option<InputHash>,\n        owner: Ownership,\n        kind: GateKind,\n    },\n    PermissionSettled {\n        call: Option<ToolUseId>,\n        req: Option<RequestId>,\n        outcome: Decision,\n    },\n    SubagentStarted {\n        subagent: SubagentId,\n        kind: SubagentKind,\n    },\n    SubagentEnded {\n        subagent: SubagentId,\n        outcome: SubagentOutcome,\n    },\n    CompactionStarted {\n        trigger: Trigger,\n    },\n    CompactionEnded,\n    CwdChanged {\n        to: PathBuf,\n    },\n    Died,\n}",
+    "fields": [
+      {
+        "name": "SessionStarted / SessionEnded",
+        "type": "variants",
+        "meaning": "Conversation lifecycle; SessionEnded is deliberately not proof of process death."
+      },
+      {
+        "name": "TurnStarted / TurnEnded",
+        "type": "variants",
+        "meaning": "Work starts or ends, optionally fenced by TurnKey."
+      },
+      {
+        "name": "ToolDispatched / ToolSettled",
+        "type": "variants",
+        "meaning": "Calls keyed by ToolUseId; dispatch carries the pre-approval input hash."
+      },
+      {
+        "name": "PermissionAsked / PermissionSettled",
+        "type": "variants",
+        "meaning": "Gate creation and release, optionally keyed by call or request."
+      },
+      {
+        "name": "SubagentStarted / SubagentEnded",
+        "type": "variants",
+        "meaning": "Child lifecycle observations."
+      },
+      {
+        "name": "CompactionStarted / CompactionEnded",
+        "type": "variants",
+        "meaning": "Independent compaction state."
+      },
+      {
+        "name": "CwdChanged",
+        "type": "variant",
+        "meaning": "A new working directory."
+      },
+      {
+        "name": "Died",
+        "type": "variant",
+        "meaning": "Removes a process from Board. The running scanner derives it from sweep differences."
+      }
+    ],
+    "usedBy": [
+      "ingest::claude::hook",
+      "ingest::claude::line",
+      "reduce::event::transition"
+    ],
+    "source": {
+      "path": "src/model.rs",
+      "line": 237
+    },
+    "status": "implemented"
+  },
+  {
+    "id": "snapshot",
+    "name": "Snapshot · SnapshotKind",
+    "group": "Input",
+    "summary": "Snapshots carry a receipt-time anchor and one named scope. Merge rules differ: a child panel or waits list replaces that table; Processes discovers and refreshes rows, while the scanner sends separate Died events for disappearance. Placements and Subagents have reducer support but no running source.",
+    "code": "pub struct Snapshot {\n    pub taken: Instant,\n    pub kind: SnapshotKind,\n}\n\npub enum SnapshotKind {\n    Limits { account: AccountId, value: Limits },\n    Beat { session: SessionId, value: Beat },\n    Subagents {\n        session: SessionId,\n        rows: Vec<SubagentRow>,\n    },\n    Waits {\n        session: SessionId,\n        rows: Vec<WaitRow>,\n    },\n    Processes(Vec<ProcessRow>),\n    Placements(Vec<PlacementRow>),\n}",
+    "fields": [
+      {
+        "name": "taken",
+        "type": "Instant",
+        "meaning": "Local time associated with the observation."
+      },
+      {
+        "name": "Limits",
+        "type": "{ account, value }",
+        "meaning": "Shared account information can change several agents at once."
+      },
+      {
+        "name": "Beat",
+        "type": "{ session, value }",
+        "meaning": "Session heartbeat fields such as API duration."
+      },
+      {
+        "name": "Subagents",
+        "type": "{ session, rows }",
+        "meaning": "Whole child table; stale snapshots can be rejected using last_event."
+      },
+      {
+        "name": "Waits",
+        "type": "{ session, rows }",
+        "meaning": "Outstanding background tasks, replaced as a set."
+      },
+      {
+        "name": "Processes",
+        "type": "Vec<ProcessRow>",
+        "meaning": "Discovery/update observations; absence here alone does not remove an agent."
+      },
+      {
+        "name": "Placements",
+        "type": "Vec<PlacementRow>",
+        "meaning": "Already-resolved window and pane information; reducer-only support today."
+      }
+    ],
+    "usedBy": [
+      "daemon::scanner",
+      "ingest::claude::statusline",
+      "ingest::claude::hook",
+      "reduce::apply_snapshot"
+    ],
+    "source": {
+      "path": "src/model.rs",
+      "line": 450
+    },
+    "status": "implemented"
+  },
+  {
+    "id": "as-of",
+    "name": "AsOf<T>",
+    "group": "Input",
+    "summary": "A generic snapshot value plus its observation time. supersedes accepts a snapshot only when its timestamp is strictly newer than a supplied last-event time. It is a helper used by particular scopes, not a global guarantee that every snapshot branch enforces.",
+    "code": "pub struct AsOf<T> {\n    pub value: T,\n    pub as_of: Instant,\n}",
+    "fields": [
+      {
+        "name": "value",
+        "type": "T",
+        "meaning": "The observed value: Limits, Beat, or a remote row collection."
+      },
+      {
+        "name": "as_of",
+        "type": "Instant",
+        "meaning": "When the driver took the snapshot in local monotonic time."
+      }
+    ],
+    "usedBy": [
+      "Account.limits",
+      "Agent.beat",
+      "reduce::snapshot::apply_snapshot",
+      "Fleet.remote"
+    ],
+    "source": {
+      "path": "src/model.rs",
+      "line": 486
+    },
+    "status": "implemented"
+  },
+  {
+    "id": "board",
+    "name": "Board · Account",
+    "group": "State",
+    "summary": "The live local model is two ordered maps. One core task owns this value, so producers never lock or mutate it. Accounts share usage limits across agents. There is no dead-process tombstone set or session index in the current declaration.",
+    "code": "pub struct Board {\n    pub agents: BTreeMap<ProcKey, Agent>,\n    pub accounts: BTreeMap<AccountId, Account>,\n}\n\npub struct Account {\n    pub limits: Option<AsOf<Limits>>,\n}",
+    "fields": [
+      {
+        "name": "agents",
+        "type": "BTreeMap<ProcKey, Agent>",
+        "meaning": "Stable process identities to independent agent machines; ordered iteration gives stable views."
+      },
+      {
+        "name": "accounts",
+        "type": "BTreeMap<AccountId, Account>",
+        "meaning": "Shared account facts."
+      },
+      {
+        "name": "Account.limits",
+        "type": "Option<AsOf<Limits>>",
+        "meaning": "Most recent stored limits for the account."
+      }
+    ],
+    "usedBy": [
+      "daemon::core::run_until_closed",
+      "reduce::apply",
+      "reduce::tick",
+      "View::render"
+    ],
+    "source": {
+      "path": "src/model.rs",
+      "line": 528
+    },
+    "status": "implemented"
+  },
+  {
+    "id": "agent",
+    "name": "Agent",
+    "group": "State",
+    "summary": "An Agent stores independent facts rather than a single mutable status flag: activity, prompts, children, waits, compaction, and placement. phase() combines those facts; shown remembers what has reached the screen. Several fields anticipate sources the daemon does not yet run.",
+    "code": "pub struct Agent {\n    pub process: ProcKey,\n    pub provider: Provider,\n    pub life: Life,\n\n    pub session: Option<SessionId>,\n    pub account: AccountId,\n    pub title: Option<Box<str>>,\n\n    pub cwd: PathBuf,\n    pub workspace: Option<Box<str>>,\n    pub placement: Placement,\n    pub cpu_ticks: u64,\n\n    pub activity: Activity,\n    pub prompts: Prompts,\n    pub compaction: Compaction,\n    pub waits: BTreeMap<WaitId, Wait>,\n    pub subagents: Subagents,\n    pub beat: Option<AsOf<Beat>>,\n\n    pub shown: Shown,\n\n    pub last_event: Option<Instant>,\n}",
+    "fields": [
+      {
+        "name": "process / provider / life",
+        "type": "ProcKey / Provider / Life",
+        "meaning": "Identity and lifecycle metadata. Died currently removes the map entry."
+      },
+      {
+        "name": "session / account / title",
+        "type": "Option<SessionId> / AccountId / Option<Box<str>>",
+        "meaning": "Current conversation, shared limit owner, and optional display title."
+      },
+      {
+        "name": "cwd / workspace / placement",
+        "type": "PathBuf / Option<Box<str>> / Placement",
+        "meaning": "Location facts kept separate from attention."
+      },
+      {
+        "name": "cpu_ticks",
+        "type": "u64",
+        "meaning": "Process CPU accumulator refreshed by discovery sweeps."
+      },
+      {
+        "name": "activity",
+        "type": "Activity",
+        "meaning": "Unobserved, idle, or an active turn with calls."
+      },
+      {
+        "name": "prompts",
+        "type": "Prompts",
+        "meaning": "Requests that have not joined a call yet."
+      },
+      {
+        "name": "compaction / waits / subagents",
+        "type": "Compaction / BTreeMap<WaitId, Wait> / Subagents",
+        "meaning": "Independent pieces of ongoing work."
+      },
+      {
+        "name": "beat",
+        "type": "Option<AsOf<Beat>>",
+        "meaning": "Latest session heartbeat, when one is supplied."
+      },
+      {
+        "name": "shown",
+        "type": "Shown",
+        "meaning": "Displayed phase plus any pending escalation."
+      },
+      {
+        "name": "last_event",
+        "type": "Option<Instant>",
+        "meaning": "Timestamp used by some snapshot freshness checks."
+      }
+    ],
+    "usedBy": [
+      "Board.agents",
+      "reduce::event::transition",
+      "reduce::tick",
+      "Agent::phase",
+      "View::render"
+    ],
+    "source": {
+      "path": "src/model.rs",
+      "line": 627
+    },
+    "status": "implemented"
+  },
+  {
+    "id": "activity",
+    "name": "Activity · TurnKey",
+    "group": "State",
+    "summary": "There is no standalone Turn struct. An active turn is the Activity::Turn variant, with a keyed map for parallel calls. Thinking is a turn with an empty tools map; an interrupted idle state retains its unfinished-work outcome.",
+    "code": "pub enum Activity {\n    Unobserved { since: Instant },\n    Idle {\n        since: Instant,\n        after: Option<TurnOutcome>,\n    },\n    Turn {\n        key: Option<TurnKey>,\n        started: Instant,\n        tools: BTreeMap<ToolUseId, Tool>,\n        last_event: Instant,\n    },\n}\n\npub enum TurnKey {\n    Prompt(PromptId),\n    Turn(TurnId),\n}\n\npub enum TurnOutcome {\n    Completed,\n    Interrupted {\n        killed: Option<MessageId>,\n    },\n    Failed {\n        class: ErrorClass,\n    },\n}",
+    "fields": [
+      {
+        "name": "Unobserved.since",
+        "type": "Instant",
+        "meaning": "Discovered without enough evidence to claim idle or working."
+      },
+      {
+        "name": "Idle.after",
+        "type": "Option<TurnOutcome>",
+        "meaning": "Remembers completed, interrupted, or failed work until a later start."
+      },
+      {
+        "name": "Turn.key",
+        "type": "Option<TurnKey>",
+        "meaning": "Optional identifier used to reject a late close for another turn."
+      },
+      {
+        "name": "Turn.started / last_event",
+        "type": "Instant",
+        "meaning": "Turn age and staleness anchor."
+      },
+      {
+        "name": "Turn.tools",
+        "type": "BTreeMap<ToolUseId, Tool>",
+        "meaning": "Concurrent outstanding calls, with each call carrying its gate."
+      }
+    ],
+    "usedBy": [
+      "Agent.activity",
+      "reduce::event::transition",
+      "reduce::tick",
+      "Agent::phase"
+    ],
+    "source": {
+      "path": "src/model.rs",
+      "line": 694
+    },
+    "status": "implemented"
+  },
+  {
+    "id": "tool-gate",
+    "name": "Tool · Gate · Ownership",
+    "group": "State",
+    "summary": "A gate belongs to the call it blocks. Human ownership can raise Attention; unknown ownership yields Unknown when no stronger rule applies. Machine-owned gates do not ask the person to act. This prevents a separate blocked flag drifting away from its call.",
+    "code": "pub struct Tool {\n    pub name: ToolName,\n    pub hash: InputHash,\n    pub since: Instant,\n    pub gate: Gate,\n}\n\npub enum Gate {\n    Running,\n    Blocked {\n        kind: GateKind,\n        since: Instant,\n        owner: Ownership,\n        req: Option<RequestId>,\n    },\n}\n\npub enum GateKind {\n    Approval,\n    Question,\n}\n\npub enum Ownership {\n    Human,\n    Machine,\n    Unknown,\n}",
+    "fields": [
+      {
+        "name": "Tool.name / hash",
+        "type": "ToolName / InputHash",
+        "meaning": "Tool identity and canonical pre-approval input hash for fallback joining."
+      },
+      {
+        "name": "Tool.since",
+        "type": "Instant",
+        "meaning": "Local dispatch time."
+      },
+      {
+        "name": "Tool.gate",
+        "type": "Gate",
+        "meaning": "Running or Blocked."
+      },
+      {
+        "name": "Blocked.kind",
+        "type": "GateKind",
+        "meaning": "Approval asks permission; Question asks for an answer."
+      },
+      {
+        "name": "Blocked.owner",
+        "type": "Ownership",
+        "meaning": "Human, Machine, or Unknown."
+      },
+      {
+        "name": "Blocked.req",
+        "type": "Option<RequestId>",
+        "meaning": "Server approval request identifier, if available."
+      }
+    ],
+    "usedBy": [
+      "Activity::Turn.tools",
+      "reduce::event",
+      "Agent::wants_a_human",
+      "Agent::has_unowned_gate"
+    ],
+    "source": {
+      "path": "src/model.rs",
+      "line": 730
+    },
+    "status": "implemented"
+  },
+  {
+    "id": "prompts",
+    "name": "Prompts · Unjoined",
+    "group": "State",
+    "summary": "Hooks run as separate processes, so a request can reach the daemon before its call. The join works in both directions: keep the request here until a dispatch with matching actor, tool, and input hash arrives. These unmatched requests can themselves affect the phase.",
+    "code": "pub struct Prompts {\n    pub unjoined: Vec<Unjoined>,\n}\n\npub struct Unjoined {\n    pub actor: Actor,\n    pub tool: ToolName,\n    pub hash: Option<InputHash>,\n    pub since: Instant,\n    pub owner: Ownership,\n    pub kind: GateKind,\n}",
+    "fields": [
+      {
+        "name": "unjoined",
+        "type": "Vec<Unjoined>",
+        "meaning": "Requests waiting for a matching call, with a 30-minute leak-bound expiry."
+      },
+      {
+        "name": "actor / tool",
+        "type": "Actor / ToolName",
+        "meaning": "Restricts the request to the entity and tool that caused it."
+      },
+      {
+        "name": "hash",
+        "type": "Option<InputHash>",
+        "meaning": "Pre-approval input fingerprint when supplied."
+      },
+      {
+        "name": "since",
+        "type": "Instant",
+        "meaning": "Arrival time and expiry anchor."
+      },
+      {
+        "name": "owner / kind",
+        "type": "Ownership / GateKind",
+        "meaning": "Who must respond and whether this is approval or a question."
+      }
+    ],
+    "usedBy": [
+      "Agent.prompts",
+      "reduce::event",
+      "reduce::tick",
+      "Agent::phase"
+    ],
+    "source": {
+      "path": "src/model.rs",
+      "line": 778
+    },
+    "status": "implemented"
+  },
+  {
+    "id": "subagents",
+    "name": "Subagents · Subagent",
+    "group": "State",
+    "summary": "A flat child table lives under each main agent. Hook-created rows are implemented; whole-panel and directory source modes exist without runtime producers. Each child currently has one optional gate, which is the audited flaw behind the proposed per-call child map.",
+    "code": "pub struct Subagents {\n    pub rows: BTreeMap<SubagentId, Subagent>,\n    pub as_of: Option<Instant>,\n    pub source: SubagentSource,\n}\n\npub struct Subagent {\n    pub kind: SubagentKind,\n    pub status: SubagentStatus,\n    pub parent: Option<SubagentId>,\n    pub started: SystemTime,\n    pub label: Box<str>,\n    pub tokens: u64,\n    pub gate: Option<Gate>,\n    pub last_seen: Instant,\n}\n\npub enum SubagentSource {\n    Panel,\n    DirScan,\n    #[default]\n    EventsOnly,\n}\n\npub enum SubagentStatus {\n    Pending,\n    Running,\n    Completed,\n    Failed,\n    Killed,\n    Paused,\n}",
+    "fields": [
+      {
+        "name": "rows",
+        "type": "BTreeMap<SubagentId, Subagent>",
+        "meaning": "Child identities to child facts; parent carries depth without recursive Agent values."
+      },
+      {
+        "name": "as_of",
+        "type": "Option<Instant>",
+        "meaning": "Most recent whole-table observation time."
+      },
+      {
+        "name": "source",
+        "type": "SubagentSource",
+        "meaning": "Panel, DirScan, or EventsOnly; daemon discovery starts EventsOnly."
+      },
+      {
+        "name": "status",
+        "type": "SubagentStatus",
+        "meaning": "Running and Pending contribute Delegating when the main turn is idle."
+      },
+      {
+        "name": "parent / label / tokens",
+        "type": "Option<SubagentId> / Box<str> / u64",
+        "meaning": "Relationship and panel metadata."
+      },
+      {
+        "name": "gate",
+        "type": "Option<Gate>",
+        "meaning": "One gate per child today; human gates propagate attention to the main chip."
+      },
+      {
+        "name": "last_seen",
+        "type": "Instant",
+        "meaning": "Last child observation; the desired stale-cap policy is incomplete."
+      }
+    ],
+    "usedBy": [
+      "Agent.subagents",
+      "reduce::event",
+      "reduce::snapshot::replace_panel",
+      "Agent::phase"
+    ],
+    "source": {
+      "path": "src/model.rs",
+      "line": 852
+    },
+    "status": "implemented"
+  },
+  {
+    "id": "limits",
+    "name": "Limits · LimitStatus",
+    "group": "State",
+    "summary": "Usage status is stored once per account and consulted during each agent phase calculation. Rejected causes Blocked. resets_at exists as a wall-clock deadline, but current tick does not expire it; that is a confirmed audit bug, not a completed timer feature.",
+    "code": "pub struct Limits {\n    pub status: LimitStatus,\n    pub resets_at: Option<SystemTime>,\n    pub window: Option<LimitWindow>,\n    pub used_percent: Option<u8>,\n}\n\npub enum LimitStatus {\n    Allowed,\n    Warning,\n    Rejected,\n}\n\npub enum LimitWindow {\n    FiveHour,\n    SevenDay,\n    Overage,\n}",
+    "fields": [
+      {
+        "name": "status",
+        "type": "LimitStatus",
+        "meaning": "Allowed, Warning, or Rejected; only Rejected blocks."
+      },
+      {
+        "name": "resets_at",
+        "type": "Option<SystemTime>",
+        "meaning": "Provider wall-clock reset deadline; currently used for a reason string rather than expiry."
+      },
+      {
+        "name": "window",
+        "type": "Option<LimitWindow>",
+        "meaning": "Which usage window the observation describes."
+      },
+      {
+        "name": "used_percent",
+        "type": "Option<u8>",
+        "meaning": "Optional utilization percentage."
+      }
+    ],
+    "usedBy": [
+      "SnapshotKind::Limits",
+      "Account.limits",
+      "reduce::limits_for",
+      "Agent::phase",
+      "view::reason"
+    ],
+    "source": {
+      "path": "src/model.rs",
+      "line": 558
+    },
+    "status": "implemented"
+  },
+  {
+    "id": "phase",
+    "name": "Phase · Severity · Lamp",
+    "group": "Derivation",
+    "summary": "The truth is derived by Agent::phase in a fixed order: human gate, rejected account or failed turn, interrupted turn, unowned gate, active turn, unobserved, running child, outstanding wait, idle. Colour and interruption severity are separate axes.",
+    "code": "pub enum Phase {\n    Attention,\n    Blocked,\n    Stopped,\n    Unknown,\n    Working,\n    Delegating,\n    Waiting,\n    Idle,\n}\n\npub enum Severity {\n    Calm,\n    Notice,\n    Alert,\n}\n\npub enum Lamp {\n    Grey,\n    Green,\n    Amber,\n    Red,\n}",
+    "fields": [
+      {
+        "name": "Attention",
+        "type": "Phase → Red / Alert",
+        "meaning": "A human must answer a gate."
+      },
+      {
+        "name": "Blocked / Stopped",
+        "type": "Phase → Amber / Notice",
+        "meaning": "External failure or unfinished work after interruption."
+      },
+      {
+        "name": "Unknown",
+        "type": "Phase → Grey / Calm",
+        "meaning": "No sufficient observation, or a gate with unknown owner."
+      },
+      {
+        "name": "Working / Delegating / Waiting / Idle",
+        "type": "Phase → Green / Calm",
+        "meaning": "Distinct work states sharing a quiet colour."
+      },
+      {
+        "name": "severity()",
+        "type": "Severity",
+        "meaning": "Orders escalation for the display dwell rules."
+      },
+      {
+        "name": "lamp()",
+        "type": "Lamp",
+        "meaning": "Chooses the visible colour, without changing model facts."
+      }
+    ],
+    "usedBy": [
+      "Agent::phase",
+      "Shown::settle",
+      "View::render",
+      "view::lamp_name"
+    ],
+    "source": {
+      "path": "src/model.rs",
+      "line": 924
+    },
+    "status": "implemented"
+  },
+  {
+    "id": "shown",
+    "name": "Shown · Escalation",
+    "group": "Derivation",
+    "summary": "The display has memory even though truth is recomputed. Quieter changes, user-caused changes, and confirmed evidence show immediately. Agent-caused escalation waits 10 seconds for inferred evidence or 6 seconds for snapshots. Evidence is taken from the arriving event today; Verdict is a proposed fix.",
+    "code": "pub struct Shown {\n    pub phase: Phase,\n    pub since: Instant,\n    pub pending: Option<Escalation>,\n}\n\npub struct Escalation {\n    pub to: Phase,\n    pub first_seen: Instant,\n    pub promote_at: Instant,\n}",
+    "fields": [
+      {
+        "name": "phase",
+        "type": "Phase",
+        "meaning": "What the chip currently displays."
+      },
+      {
+        "name": "since",
+        "type": "Instant",
+        "meaning": "When the displayed phase last changed."
+      },
+      {
+        "name": "pending",
+        "type": "Option<Escalation>",
+        "meaning": "A louder candidate that has not served its dwell yet."
+      },
+      {
+        "name": "Escalation.to",
+        "type": "Phase",
+        "meaning": "Target displayed phase."
+      },
+      {
+        "name": "first_seen / promote_at",
+        "type": "Instant",
+        "meaning": "Candidate arrival and promotion deadline; next_deadline schedules the core wakeup."
+      }
+    ],
+    "usedBy": [
+      "Agent.shown",
+      "reduce::settle",
+      "reduce::next_deadline",
+      "reduce::tick",
+      "AgentView.shown"
+    ],
+    "source": {
+      "path": "src/model.rs",
+      "line": 1004
+    },
+    "status": "implemented"
+  },
+  {
+    "id": "effect",
+    "name": "Effect",
+    "group": "Output",
+    "summary": "The synchronous reducer returns requests for external work. The core handles PublishState itself; an unbounded channel carries the other effects to the runner. A watcher can learn new facts and send them back as Input, completing the feedback loop.",
+    "code": "pub enum Effect {\n    PublishState,\n    AppendHistory(HistoryEntry),\n    WatchTranscript {\n        process: ProcKey,\n        session: SessionId,\n        cwd: PathBuf,\n    },\n    Forget { process: ProcKey },\n}",
+    "fields": [
+      {
+        "name": "PublishState",
+        "type": "variant",
+        "meaning": "Render and compare a View; update the watch channel only if unequal."
+      },
+      {
+        "name": "AppendHistory",
+        "type": "HistoryEntry",
+        "meaning": "Send a lifecycle or displayed-phase edge to the history appender."
+      },
+      {
+        "name": "WatchTranscript",
+        "type": "{ process, session, cwd }",
+        "meaning": "Replace the process watcher; the runner still derives a Claude transcript path from cwd/session."
+      },
+      {
+        "name": "Forget",
+        "type": "{ process }",
+        "meaning": "Abort and remove the process watcher after death."
+      }
+    ],
+    "usedBy": [
+      "reduce::Effects",
+      "daemon::core::dispatch",
+      "daemon::effects::run",
+      "daemon::watcher"
+    ],
+    "source": {
+      "path": "src/model.rs",
+      "line": 1308
+    },
+    "status": "implemented"
+  },
+  {
+    "id": "view",
+    "name": "View · AgentView",
+    "group": "Output",
+    "summary": "The read model is an immutable Arc<View> on a latest-value watch channel. Whole views are compared before subscribers wake. Both state.json and socket responses serialize the same schema, switchboard-rust/1. The reason is eagerly computed and separately derived from the truth.",
+    "code": "pub struct View {\n    pub agents: Vec<AgentView>,\n}\n\npub struct AgentView {\n    pub process: ProcKey,\n    pub session: Option<SessionId>,\n    pub name: String,\n    pub cwd: PathBuf,\n    pub shown: Phase,\n    pub since: Instant,\n    pub truth: Phase,\n    pub reason: String,\n    pub focused: bool,\n}",
+    "fields": [
+      {
+        "name": "agents",
+        "type": "Vec<AgentView>",
+        "meaning": "Stable ordered projection of the current local agents."
+      },
+      {
+        "name": "process / session",
+        "type": "ProcKey / Option<SessionId>",
+        "meaning": "Identity becomes pid, start, and session_id in JSON."
+      },
+      {
+        "name": "name / cwd",
+        "type": "String / PathBuf",
+        "meaning": "Already-derived display label and working directory."
+      },
+      {
+        "name": "shown / truth",
+        "type": "Phase / Phase",
+        "meaning": "Displayed phase may lag the current derived phase."
+      },
+      {
+        "name": "since",
+        "type": "Instant",
+        "meaning": "Converted to epoch since_ms when serializing."
+      },
+      {
+        "name": "reason",
+        "type": "String",
+        "meaning": "Eager tooltip text; current independent reason logic has audited inconsistencies."
+      },
+      {
+        "name": "focused",
+        "type": "bool",
+        "meaning": "From placement; no live placement producer is wired today."
+      }
+    ],
+    "usedBy": [
+      "View::render",
+      "daemon::core::publish",
+      "daemon::publish::run",
+      "daemon::rpc",
+      "client::subscribe"
+    ],
+    "source": {
+      "path": "src/view.rs",
+      "line": 21
+    },
+    "status": "implemented"
+  },
+  {
+    "id": "history",
+    "name": "HistoryEntry · Record",
+    "group": "Output",
+    "summary": "History records lifecycle and displayed-phase edges, not every raw input or complete board. The appender adds wall time and writes daily JSON lines. History is best effort: its bounded queue can drop entries when full.",
+    "code": "pub enum HistoryEntry {\n    AgentFound {\n        process: ProcKey,\n        cwd: PathBuf,\n    },\n    AgentGone {\n        process: ProcKey,\n        session: Option<SessionId>,\n    },\n    Shown {\n        process: ProcKey,\n        session: Option<SessionId>,\n        from: Phase,\n        to: Phase,\n        held: Duration,\n    },\n}\n\npub struct Record {\n    pub at: SystemTime,\n    pub pid: u32,\n    pub session: Option<SessionId>,\n    pub kind: RecordKind,\n}\n\npub enum RecordKind {\n    SessionStart {\n        cwd: PathBuf,\n    },\n    SessionEnd,\n    Shown {\n        from: Phase,\n        to: Phase,\n        held: Duration,\n    },\n}",
+    "fields": [
+      {
+        "name": "AgentFound / AgentGone",
+        "type": "HistoryEntry variants",
+        "meaning": "Local process discovery and removal, serialized as session_start/session_end records."
+      },
+      {
+        "name": "Shown",
+        "type": "{ process, session, from, to, held }",
+        "meaning": "The displayed phase changed; held measures how long the previous display lasted."
+      },
+      {
+        "name": "Record.at",
+        "type": "SystemTime",
+        "meaning": "Appended wall-clock timestamp."
+      },
+      {
+        "name": "Record.pid / session",
+        "type": "u32 / Option<SessionId>",
+        "meaning": "History identity; the serialized record does not retain ProcKey.start."
+      },
+      {
+        "name": "Record.kind",
+        "type": "RecordKind",
+        "meaning": "The compact disk vocabulary."
+      }
+    ],
+    "usedBy": [
+      "reduce::settle",
+      "Effect::AppendHistory",
+      "daemon::history::run",
+      "Record::from_entry",
+      "HistoryWriter"
+    ],
+    "source": {
+      "path": "src/model.rs",
+      "line": 1335
+    },
+    "status": "implemented"
+  },
+  {
+    "id": "fleet",
+    "name": "Fleet · Row · Reach",
+    "group": "Extension",
+    "summary": "These real declarations describe a separate merged local/remote view, but no daemon task currently feeds or publishes a Fleet. Remote rows carry viewer-relative reachability and freshness; a stale source paints grey. This is an extension sketch, not an active network path.",
+    "code": "pub struct Fleet {\n    pub local: Board,\n    pub remote: BTreeMap<Host, AsOf<Vec<Row>>>,\n}\n\npub struct Row {\n    pub key: RowKey,\n    pub provider: Provider,\n    pub phase: Phase,\n    pub reach: Reach,\n    pub freshness: Freshness,\n    pub workspace: Option<Box<str>>,\n    pub title: Option<Box<str>>,\n}\n\npub struct RowKey {\n    pub host: Host,\n    pub pid: u32,\n    pub started_at: SystemTime,\n}\n\npub enum Reach {\n    Here { placement: Placement },\n    ViaHost { host: Host, local: Option<PaneKey> },\n    Unreachable,\n}\n\npub enum Freshness {\n    Live,\n    Unconfirmed { since: Instant },\n}",
+    "fields": [
+      {
+        "name": "local",
+        "type": "Board",
+        "meaning": "The local live model; only this side owns process discovery."
+      },
+      {
+        "name": "remote",
+        "type": "BTreeMap<Host, AsOf<Vec<Row>>>",
+        "meaning": "A whole row snapshot per remote host."
+      },
+      {
+        "name": "Row.key",
+        "type": "RowKey",
+        "meaning": "Host, pid, and discovery wall time; not the same guarantee as ProcKey."
+      },
+      {
+        "name": "Row.phase",
+        "type": "Phase",
+        "meaning": "The remote source’s reported phase."
+      },
+      {
+        "name": "Row.reach",
+        "type": "Reach",
+        "meaning": "Act here, through a local connection to a host, or unreachable."
+      },
+      {
+        "name": "Row.freshness",
+        "type": "Freshness",
+        "meaning": "Unconfirmed rows render grey without inventing a new remote phase."
+      }
+    ],
+    "usedBy": [
+      "model declarations",
+      "Row::lamp",
+      "No daemon producer or publisher"
+    ],
+    "source": {
+      "path": "src/model.rs",
+      "line": 1803
+    },
+    "status": "unwired"
+  }
+];
+</script>
+  <script>/* Curated traces of the checked-in golden implementation, not a Rust emulator.
+ * Identifiers, timestamps, snippets and JSON values are illustrative. Rust snippets
+ * show real type/variant names; `..` means omitted fields, not executable code.
+ * Source locations refer to the golden worktree. No live hooks or daemon are run.
+ */
+(() => {
+  const state = (phase, rest = {}) => ({
+    phase, shown: phase, turn: "Idle", tools: "0", gates: "0", children: "0", ...rest
+  });
+  const step = (title, node, route, explanation, label, code, current, effects = [], note) => ({
+    title, node, route, explanation, wire: { label, code }, state: current, effects,
+    ...(note ? { note } : {})
+  });
+  const refs = (...pairs) => pairs.map(([path, line]) => ({ path, line }));
+
+  window.SB_SCENARIOS = [
+    {
+      id: "permission", title: "A tool needs your approval", subtitle: "Hook → typed event → joined gate → red → green",
+      status: "implemented",
+      summary: "Follow one Claude tool call through the real gate model. The example begins with an already discovered agent in session s1. Confirmed permission evidence goes red immediately; this case has no dwell.",
+      source: refs(["src/ingest/claude/hook.rs", 47], ["src/reduce/event.rs", 315], ["src/reduce/event.rs", 368], ["src/model.rs", 1054], ["src/view.rs", 41]),
+      steps: [
+        step("Claude dispatches a tool", "hook", ["hook", "socket"],
+          "The forwarder sends one scrubbed JSON object plus a newline. The process and session identify the agent; the tool call ID identifies this call. Values here are illustrative.",
+          "Illustrative wire frame", `{"cmd":"hook","event":"PreToolUse","pid":4036,
+ "session_id":"s1","tool_use_id":"call-7","tool_name":"Bash",
+ "tool_input_hash":"0123456789abcdef"}`, state("Idle")),
+        step("The edge produces a typed event", "adapters", ["socket", "adapters", "inbox"],
+          "decode_request builds a HookFrame. resolve looks up the tracked ancestor. claude::hook translates the frame into the shared vocabulary and assigns cause and confidence.",
+          "Rust · abbreviated Event", `Input::Event(Event {
+    process: Some(ProcKey { pid: 4036, start: 91000 }),
+    session: "s1".into(), actor: Actor::Agent,
+    cause: Cause::Agent, confidence: Confidence::Confirmed,
+    kind: EventKind::ToolDispatched {
+        call: "call-7".into(), tool: "Bash".into(), hash,
+    }, ..
+})`, state("Idle"), [],
+          "RPC uses try_send: an accepted socket frame is not a guarantee that a full inbox retained the input."),
+        step("The core opens the call", "board", ["inbox", "core", "board", "fold"],
+          "Only the core mutates Board. dispatch creates Activity::Turn if needed, then inserts a Tool keyed by ToolUseId. A running call makes the derived phase Working.",
+          "Rust · model fragment", `Activity::Turn {
+    tools: { "call-7" => Tool {
+        name: "Bash".into(), hash, since: now,
+        gate: Gate::Running,
+    } }, ..
+}`, state("Working", { turn: "Turn · key None", tools: "1 · call-7" }),
+          ["AppendHistory(Shown { Idle → Working })", "PublishState"]),
+        step("A permission prompt arrives", "socket", ["hook", "socket", "adapters", "inbox"],
+          "This example uses a prompt payload without tool_use_id. The optional hash lets the reducer join the prompt to the matching tool. Current code also accepts a call ID when supplied.",
+          "Illustrative wire frame", `{"cmd":"hook","event":"PermissionRequest","pid":4036,
+ "session_id":"s1","tool_name":"Bash",
+ "tool_input_hash":"0123456789abcdef"}`, state("Working", { turn: "Turn", tools: "1 · call-7" })),
+        step("Join evidence onto the tool", "board", ["inbox", "core", "board"],
+          "ask first uses an exact call ID when present. Without one it looks for a running call with the same tool and compatible hash. A prompt with no matching call is kept in Prompts::unjoined instead.",
+          "Rust · gate now stored on Tool", `Gate::Blocked {
+    kind: GateKind::Approval,
+    since: now,
+    owner: Ownership::Human,
+    req: None,
+}`, state("Attention", { shown: "Working", turn: "Turn", tools: "1 · call-7", gates: "1 · Human / Approval" }), [],
+          "This is an explanatory pause inside one synchronous reducer call. The core cannot accept another input between mutation and settle."),
+        step("Truth and shown turn red together", "fold", ["board", "fold", "view"],
+          "Agent::phase checks human gates first. Shown::settle receives Confidence::Confirmed, so an escalation to Attention is immediate. The 10-second inferred dwell does not apply to this hook.",
+          "Rust · the display decision", `let truth = agent.phase(limits); // Attention
+agent.shown.settle(
+    truth, Cause::Agent, Confidence::Confirmed, now,
+); // shown = Attention, pending = None`,
+          state("Attention", { turn: "Turn", tools: "1 · call-7", gates: "1 · Human / Approval" }),
+          ["AppendHistory(Shown { Working → Attention })", "PublishState"]),
+        step("Readers see a compact projection", "subscriber", ["view", "subscriber"],
+          "View is a projection, not the whole Board. The subscriber receives a full snapshot on each observed change. The reason text is currently derived separately from Agent::phase.",
+          "JSON · selected actual output fields", `{"phase":"attention","lamp":"red","truth":"attention",
+ "reason":"wants approval to run Bash","focused":false}`, state("Attention", { turn: "Turn", tools: "1 · call-7", gates: "1 · Human / Approval" }), [],
+          "The snippet selects fields from an agent object; the full document also carries identity, times, schema and the agents array."),
+        step("A settled call removes its gate", "board", ["hook", "socket", "adapters", "inbox", "core", "board", "fold", "view"],
+          "After the tool completes, PostToolUse becomes ToolSettled. settle_call removes call-7 from the map, including its gate. The turn is still open, so the phase returns to Working immediately.",
+          "Rust · normalized event kind", `EventKind::ToolSettled {
+    call: "call-7".into(),
+    outcome: ToolOutcome::Ok { ms: None },
+}`, state("Working", { turn: "Turn", tools: "0 · thinking" }),
+          ["AppendHistory(Shown { Attention → Working })", "PublishState"]),
+        step("Stop closes the turn", "fold", ["hook", "socket", "adapters", "inbox", "core", "board", "fold", "view"],
+          "A Stop hook becomes TurnEnded with TurnOutcome::Completed. With no children, waits or account limit, the agent becomes Idle. The tools map belongs to the turn and goes away with it.",
+          "Rust · stored activity", `Activity::Idle {
+    since: now,
+    after: Some(TurnOutcome::Completed),
+}`, state("Idle"), ["AppendHistory(Shown { Working → Idle })", "PublishState"])
+      ]
+    },
+    {
+      id: "dwell", title: "Truth can lead the display", subtitle: "Inferred failure → pending escalation → timer promotion",
+      status: "implemented",
+      summary: "This trace isolates the current Shown hysteresis rule: an inferred, agent-caused failure waits ten seconds before amber. Assume no other event arrives during the dwell. Live transcript polling uses Confirmed after its initial read.",
+      source: refs(["src/model.rs", 1004], ["src/model.rs", 1054], ["src/reduce/mod.rs", 93], ["src/reduce/tick.rs", 83], ["src/daemon/core.rs", 22], ["docs/audit/repro/adv_bugs.rs", 411]),
+      steps: [
+        step("Read failure evidence during replay", "watcher", ["watcher", "adapters"],
+          "The initial transcript read uses Confidence::Inferred. An API error line becomes a failed turn. This example has no quotaLimits field, keeping account limits out of the trace.",
+          "Illustrative transcript line", `{"type":"assistant","isApiErrorMessage":true,
+ "error":"rate_limit","message":{"content":[]}}`, state("Working", { turn: "Turn" })),
+        step("Deliver cause and confidence as data", "inbox", ["adapters", "inbox", "core"],
+          "The adapter does not decide the chip colour. It reports what happened, who caused it, and how this observation should be trusted.",
+          "Rust · abbreviated Event", `Event {
+    cause: Cause::Agent,
+    confidence: Confidence::Inferred,
+    kind: EventKind::TurnEnded {
+        turn: None,
+        outcome: TurnOutcome::Failed { class: ErrorClass::RateLimit },
+    }, ..
+}`, state("Working", { turn: "Turn" })),
+        step("Store failure; arm the dwell", "fold", ["core", "board", "fold", "view"],
+          "The model is immediately Idle after Failed; its derived truth is Blocked. Shown remains Working and remembers a pending escalation. View includes both shown and truth, so this can still publish a changed view before the lamp moves.",
+          "Rust · displayed state", `Shown {
+    phase: Phase::Working, since: previous_change,
+    pending: Some(Escalation {
+        to: Phase::Blocked,
+        first_seen: t0,
+        promote_at: t0 + Duration::from_secs(10),
+    }),
+}`, state("Blocked", { shown: "Working", turn: "Idle · after Failed" }), ["PublishState"]),
+        step("Sleep until the earliest deadline", "core", ["fold", "core"],
+          "next_deadline includes Shown::pending.promote_at. The core selects between a new input and sleep_until; it does not poll the whole Board on a fixed tick.",
+          "Rust · core scheduling fragment", `tokio::select! {
+    input = inbox.recv() => reduce::apply(&mut board, input),
+    () = wake => reduce::tick(&mut board, now()),
+}`, state("Blocked", { shown: "Working", turn: "Idle · after Failed" }), [],
+          "The snippet abbreviates Option handling. Any arriving input causes the next deadline to be recomputed."),
+        step("Ten seconds later, promote", "fold", ["core", "board", "fold", "view"],
+          "tick re-evaluates the same Blocked truth. The existing pending deadline has elapsed, so Shown moves to Blocked and clears pending. No file or socket operation occurs inside this decision.",
+          "Rust · deadline reached", `reduce::tick(&mut board, t0 + Duration::from_secs(10));
+// shown.phase = Phase::Blocked
+// shown.pending = None`, state("Blocked", { turn: "Idle · after Failed" }),
+          ["AppendHistory(Shown { Working → Blocked })", "PublishState"]),
+        step("A new user prompt starts work", "board", ["hook", "socket", "adapters", "inbox", "core", "board", "fold", "view"],
+          "TurnStarted replaces Idle::after(Failed) with a new turn. With no account limit, truth is Working. De-escalation is immediate regardless of confidence.",
+          "Rust · normalized event kind", `EventKind::TurnStarted {
+    turn: Some(TurnKey::Prompt("p2".into())),
+    origin: Origin::Human,
+}`, state("Working", { turn: "Turn · p2" }), ["AppendHistory(Shown { Blocked → Working })", "PublishState"],
+          "Known adjacent bug: an unrelated Confirmed hook during the dwell can promote the old inferred failure early, because settle receives the latest event's confidence. Audit repro: adv_bugs.rs:418.")
+      ]
+    },
+    {
+      id: "discovery", title: "Find an agent, then follow it", subtitle: "Process identity → session identity → owned watcher",
+      status: "implemented",
+      summary: "Processes establish existence; hooks and transcripts establish activity. This trace also shows /clear replacing the watcher and rejecting late events from the old session. Today these I/O paths are wired to Linux and Claude.",
+      source: refs(["src/proc.rs", 144], ["src/daemon/scanner.rs", 54], ["src/reduce/snapshot.rs", 141], ["src/reduce/event.rs", 45], ["src/daemon/effects.rs", 19], ["src/daemon/watcher.rs", 39]),
+      steps: [
+        step("A sweep finds a process", "scanner", ["scanner", "inbox"],
+          "Every second the scanner reads process facts on the blocking pool. ProcKey combines PID with process start time; a recycled PID is a different identity. Here the session file is not available yet.",
+          "Rust · illustrative ProcessRow", `ProcessRow {
+    key: ProcKey { pid: 4036, start: 91000 },
+    provider: Provider::Claude,
+    cwd: "/work/demo".into(), session: None,
+    tty: None, cpu_ticks: 120,
+}`, state("Unknown", { turn: "Not discovered" })),
+        step("Discovery creates an unobserved agent", "board", ["inbox", "core", "board", "fold", "view"],
+          "SnapshotKind::Processes adds the row to Board.agents. It does not infer work from CPU or process existence. The displayed chip starts Unknown, and no watcher is started without a session.",
+          "Rust · initialization", `Agent {
+    activity: Activity::Unobserved { since: now },
+    shown: Shown::new(Phase::Unknown, now),
+    session: None, account: default_account(), ..
+}`, state("Unknown", { turn: "Unobserved" }), ["AppendHistory(AgentFound)", "PublishState"]),
+        step("SessionStart supplies the conversation", "hook", ["hook", "socket", "adapters", "inbox", "core", "board"],
+          "A SessionStart hook identifies s1. Routing resolves the process first and falls back to a tracked session. The agent stores the session and resets conversation-local activity to Idle.",
+          "Illustrative wire frame", `{"cmd":"hook","event":"SessionStart","pid":4036,
+ "session_id":"s1","source":"startup"}`, state("Idle"),
+          ["WatchTranscript { process, session: s1, cwd }", "AppendHistory(Shown { Unknown → Idle })", "PublishState"]),
+        step("An effect creates an owned task", "effects", ["core", "effects", "watcher"],
+          "The reducer requests a watcher; the effect runner performs the I/O. Its HashMap<ProcKey, JoinHandle<()>> has at most one stored watcher per process. A new entry aborts the previous handle.",
+          "Rust · watcher configuration", `WatchSpec {
+    path: transcript_path(&layout.claude_projects, &cwd, &session),
+    process, session, account: default_account(),
+    poll: Duration::from_millis(200),
+    replay_bytes: 128 * 1024,
+}`, state("Idle"), [],
+          "The current path is derived from Claude's projects directory, cwd and session. Taking the explicit transcript path from the source is a proposed redesign."),
+        step("Tail bytes become inputs", "watcher", ["watcher", "adapters", "inbox", "core", "board", "fold", "view"],
+          "Tail retains its byte cursor and incomplete line. Parsed JSON lines enter claude::line, which returns zero or more Inputs. The first successful poll is inferred; subsequent polls are confirmed.",
+          "Illustrative transcript line", `{"type":"user","promptId":"p1",
+ "message":{"content":"Explain this module"}}`, state("Working", { turn: "Turn · p1" }),
+          ["AppendHistory(Shown { Idle → Working })", "PublishState"]),
+        step("/clear changes session identity", "board", ["hook", "socket", "adapters", "inbox", "core", "board", "fold", "view"],
+          "SessionStarted for s2 is allowed to rotate the conversation. It clears activity, prompts, subagents, waits and compaction, then requests the new transcript. ProcKey remains unchanged.",
+          "Rust · normalized event kind", `EventKind::SessionStarted {
+    source: StartSource::Clear,
+    title: None,
+}
+// Event.session = "s2"`, state("Idle"), ["WatchTranscript { process, session: s2, cwd }", "AppendHistory(Shown { Working → Idle })", "PublishState"]),
+        step("Swap watchers; reject a late old event", "effects", ["core", "effects", "watcher", "adapters", "inbox", "core", "board"],
+          "The runner aborts s1's watcher and starts s2's. If an s1 event was already queued, the reducer's current-session check rejects it. Cancellation alone is not the correctness boundary.",
+          "Rust · session guard", `Some(current) if *current != event.session && !starting
+    => return effects.finish(),`, state("Idle"), [],
+          "Known gap: if the /clear hook is lost, current discovery only fills a missing session; it does not repair an already populated, stale session from a later sweep.")
+      ]
+    },
+    {
+      id: "snapshots", title: "A late snapshot must not undo an event", subtitle: "AsOf → freshness check → whole-scope replacement",
+      status: "implemented",
+      summary: "An executable reducer capability demonstrated with injected Subagents snapshots. The golden has the model and tests for a panel, but no live subagent-panel adapter/driver. This is a model trace, not a currently connected data source.",
+      source: refs(["src/model.rs", 486], ["src/reduce/snapshot.rs", 73], ["src/reduce/snapshot.rs", 197], ["src/reduce/event.rs", 180], ["tests/t09_snapshot_tick.rs", 179]),
+      steps: [
+        step("An event creates a child row", "board", ["hook", "socket", "adapters", "inbox", "core", "board", "fold"],
+          "At t3, SubagentStarted creates child a1 in EventsOnly mode. The parent is Idle itself, but a running child derives Delegating. Child rows are separate from the parent's tools map.",
+          "Rust · event at t3", `EventKind::SubagentStarted {
+    subagent: "a1".into(), kind: SubagentKind::Task,
+}`, state("Delegating", { children: "1 · a1 Running" }), ["AppendHistory(Shown { Idle → Delegating })", "PublishState"]),
+        step("A panel snapshot is taken, then delayed", "adapters", ["adapters", "inbox"],
+          "At t4, an illustrative panel reports a1 as Running. The snapshot's taken time describes when the observation was made, not when the core eventually receives it.",
+          "Rust · injected snapshot", `Snapshot {
+    taken: t4,
+    kind: SnapshotKind::Subagents {
+        session: "s1".into(),
+        rows: vec![SubagentRow {
+            subagent: "a1".into(),
+            status: SubagentStatus::Running, ..
+        }],
+    },
+}`, state("Delegating", { children: "1 · a1 Running" }), [], "No current daemon task produces this panel snapshot. Tests can inject it directly."),
+        step("A newer event closes the child first", "board", ["hook", "socket", "adapters", "inbox", "core", "board", "fold", "view"],
+          "At t5, SubagentEnded arrives before the delayed panel. EventsOnly mode removes the row. agent.last_event is now t5 and the parent returns to Idle.",
+          "Rust · event at t5", `EventKind::SubagentEnded {
+    subagent: "a1".into(),
+    outcome: SubagentOutcome::Completed,
+}`, state("Idle"), ["AppendHistory(Shown { Delegating → Idle })", "PublishState"]),
+        step("Reject the stale panel", "core", ["inbox", "core", "board"],
+          "When the t4 snapshot arrives, AsOf::supersedes(t5) is false. Nothing is replaced, so the snapshot cannot bring a1 back. Equal timestamps also fail the strict freshness check.",
+          "Rust · actual freshness rule", `match last_event {
+    Some(e) => self.as_of > e,
+    None => true,
+}
+// t4 > t5 is false`, state("Idle"), [],
+          "This check uses the agent-wide last_event, not a separate clock for each child. It is not applied uniformly to every SnapshotKind."),
+        step("A fresh panel takes ownership of the table", "board", ["adapters", "inbox", "core", "board", "fold", "view"],
+          "At t7, a newer panel containing child b1 is accepted. It replaces the child table wholesale and changes SubagentSource to Panel. Existing gates survive only on rows still present.",
+          "Rust · replacement result", `Subagents {
+    rows: { "b1" => Subagent { status: Running, .. } },
+    as_of: Some(t7),
+    source: SubagentSource::Panel,
+}`, state("Delegating", { children: "1 · b1 Running" }), ["AppendHistory(Shown { Idle → Delegating })", "PublishState"]),
+        step("Events refine a panel-owned row", "board", ["hook", "socket", "adapters", "inbox", "core", "board", "fold", "view"],
+          "At t8, SubagentEnded marks b1 Completed and clears its gate. In Panel mode the event leaves the row in place: the next snapshot decides membership.",
+          "Rust · panel-mode event branch", `row.status = SubagentStatus::Completed;
+row.gate = None;
+// row remains in agent.subagents.rows`, state("Idle", { children: "1 · b1 Completed" }), ["AppendHistory(Shown { Delegating → Idle })", "PublishState"]),
+        step("Absence in the fresh panel removes it", "board", ["adapters", "inbox", "core", "board"],
+          "At t9, an empty panel replaces the whole scope. The completed row disappears. The reducer requests publication, but the current View does not include completed child rows, so the equality gate can suppress this output.",
+          "Rust · fresh empty snapshot", `Snapshot {
+    taken: t9,
+    kind: SnapshotKind::Subagents {
+        session: "s1".into(), rows: vec![],
+    },
+}`, state("Idle"), ["PublishState · may render equal and produce no watch update"])
+      ]
+    },
+    {
+      id: "deadlines", title: "Quiet is not dead", subtitle: "Stale-turn deadline → gate protection → process death cleanup",
+      status: "implemented",
+      summary: "A silent turn and a dead process are different facts. The timer may retire an unguarded stale turn; only Died removes the agent. This trace deliberately leaves a joined approval open while time passes.",
+      source: refs(["src/reduce/tick.rs", 13], ["src/reduce/tick.rs", 67], ["src/daemon/scanner.rs", 54], ["src/reduce/event.rs", 28], ["src/daemon/effects.rs", 74], ["docs/audit/repro/adv_daemon_bugs.rs", 30]),
+      steps: [
+        step("A turn has a stale deadline", "core", ["board", "core"],
+          "A Turn with no blocked own tool and no compaction has a deadline ten minutes after its last tool/turn activity update. CPU ticks do not themselves refresh that activity deadline.",
+          "Rust · deadline", `Some(last_event + TURN_STALE)
+// TURN_STALE = Duration::from_secs(10 * 60)`, state("Working", { turn: "Turn · quiet", tools: "1 · Running" })),
+        step("A joined approval protects the turn", "board", ["hook", "socket", "adapters", "inbox", "core", "board", "fold"],
+          "PermissionAsked blocks the tracked tool. stale_turn_deadline now returns None for this turn: a permission prompt can be perfectly live while the process and transcript are quiet.",
+          "Rust · stale-turn exclusion", `let gated = tools.values()
+    .any(|t| matches!(t.gate, Gate::Blocked { .. }));
+(!gated && !compacting).then(|| *last_event + TURN_STALE)`, state("Attention", { turn: "Turn · protected", tools: "1", gates: "1 · joined Human gate" }), ["AppendHistory(Shown { Working → Attention })", "PublishState"]),
+        step("Ten minutes of silence does not clear red", "fold", ["core", "board", "fold"],
+          "Even if tick is called because another agent has a deadline, this joined gate survives. Unjoined prompts have a separate 30-minute leak bound; they are not what this example uses.",
+          "Rust · outcome of an illustrative tick", `reduce::tick(&mut board, ten_minutes_later);
+// joined Gate::Blocked remains
+// agent.phase(limits) == Phase::Attention`, state("Attention", { turn: "Turn · protected", tools: "1", gates: "1 · joined Human gate" })),
+        step("The next sweep no longer sees the process", "scanner", ["scanner", "inbox"],
+          "The scanner first sends the current Processes snapshot, then emits a Died event for each previously known ProcKey now absent. An empty Processes snapshot alone does not remove agents in the reducer.",
+          "Rust · scanner output sequence", `Input::Snapshot(Snapshot {
+    taken: now, kind: SnapshotKind::Processes(vec![]),
+});
+Input::Event(Event {
+    process: Some(key), session: "".into(),
+    kind: EventKind::Died, ..
+});`, state("Attention", { turn: "Turn · protected", tools: "1", gates: "1 · joined Human gate" }), [],
+          "Known bug: proc::sweep returns an empty Vec on a top-level read error, so an unreadable sweep can incorrectly generate these deaths. Error and empty need distinct representations."),
+        step("Died removes the whole agent", "board", ["inbox", "core", "board", "view"],
+          "Died is handled before the session mismatch guard. Board.agents.remove removes the process and all its nested state; the chip is absent rather than painted as a special dead phase.",
+          "Rust · removal branch", `if let Some(gone) = board.agents.remove(&key) {
+    effects.push(Effect::Forget { process: key });
+    effects.push(Effect::AppendHistory(HistoryEntry::AgentGone {
+        process: key, session: gone.session,
+    }));
+}`, state("Absent", { turn: "Agent removed", shown: "Absent" }), ["Forget { process }", "AppendHistory(AgentGone)", "PublishState"]),
+        step("Cleanup runs outside the core", "effects", ["core", "effects", "watcher"],
+          "The effect runner removes and aborts the process's watcher. It forwards AgentGone to the best-effort history queue. The core can continue processing other inputs while the history appender performs disk I/O.",
+          "Rust · watcher cancellation", `if let Some(task) = self.tasks.remove(process) {
+    task.abort();
+}`, state("Absent", { turn: "Agent removed", shown: "Absent" }), ["Watcher aborted", "AgentGone queued for history"]),
+        step("History records the lifecycle edge", "history", ["effects", "history"],
+          "The appender stores a lifecycle record separately from the latest View. History and output snapshots serve different purposes: what happened versus what is currently shown.",
+          "Rust · history value", `HistoryEntry::AgentGone {
+    process: ProcKey { pid: 4036, start: 91000 },
+    session: Some("s1".into()),
+}`, state("Absent", { turn: "Agent removed", shown: "Absent" }), [],
+          "Current Board has no dead-key tombstones. A later stale Processes input can recreate the key; normal scanner ordering prevents that particular order, but the reducer alone does not.")
+      ]
+    },
+    {
+      id: "slow-reader", title: "A slow reader cannot stall the board", subtitle: "Arc<View> → latest-value watch → independent output tasks",
+      status: "implemented",
+      summary: "The view channel retains the latest value, not a queue of every frame. Each subscriber owns its socket task. The file publisher independently coalesces updates for 250 ms. All output numbers below are illustrative.",
+      source: refs(["src/daemon/core.rs", 61], ["src/daemon/rpc.rs", 94], ["src/daemon/publish.rs", 17], ["src/view.rs", 66], ["src/daemon/mod.rs", 59]),
+      steps: [
+        step("Subscribe asks for the current view", "socket", ["subscriber", "socket"],
+          "A client writes one newline-delimited command. The handler immediately serializes the current borrowed View, then waits for changes. The current API also supports a one-shot list request.",
+          "Wire · client request", `{"cmd":"subscribe"}\n`, state("Idle")),
+        step("The response is a full snapshot", "subscriber", ["view", "subscriber"],
+          "The RPC wrapper is snapshot; the inner document is switchboard-rust/1. Instants remain inside View and are converted to wall-clock milliseconds only when serializing.",
+          "Illustrative full RPC response", `{"snapshot":{"schema":"switchboard-rust/1","updated_ms":1000000,
+ "agents":[{"pid":4036,"start":91000,"session_id":"s1",
+ "name":"demo","cwd":"/work/demo","phase":"idle","lamp":"green",
+ "since_ms":990000,"truth":"idle","reason":"idle","focused":false}]}}`, state("Idle")),
+        step("The client stops reading", "subscriber", ["view", "subscriber"],
+          "Once its socket buffer fills, this subscriber's write_all awaits capacity. That task is separate from the core. It is not holding a Board lock or blocking the reducer.",
+          "Rust · this connection waits here", `write.write_all(line.as_bytes()).await?;
+// Core is another task and owns Board.`, state("Idle"), [],
+          "There is currently no write timeout. The stalled subscriber can retain its own task and a frame, but not an unbounded per-subscriber queue of all Views."),
+        step("The core keeps replacing the latest view", "view", ["inbox", "core", "board", "fold", "view"],
+          "As fresh input arrives, the core renders a View and compares it with the previous one. Different views replace the Arc in watch synchronously; equal renders do not wake readers.",
+          "Rust · equality gate", `view.send_if_modified(|current| {
+    if **current == next { return false; }
+    *current = Arc::new(next);
+    true
+});`, state("Working", { turn: "Turn" }), ["PublishState handled by the core"]),
+        step("Another change supersedes the first", "view", ["inbox", "core", "board", "fold", "view"],
+          "Suppose a confirmed prompt moves Working to Attention before the slow client catches up. watch now holds the Attention view. It does not retain a required delivery slot for every intermediate Working frame.",
+          "Rust · channel shape", `watch::Sender<Arc<View>>
+// latest View: truth = Attention, shown = Attention`, state("Attention", { turn: "Turn", tools: "1", gates: "1 · Human" }), ["AppendHistory(Shown)", "PublishState"]),
+        step("The file publisher coalesces independently", "publisher", ["view", "publisher"],
+          "The publisher waits 250 ms after observing a change, borrows the newest View, and writes a sibling temporary file before renaming it over state.json. Readers see the old or new complete document.",
+          "Rust · publication sequence", `view.changed().await?;
+tokio::time::sleep(coalesce).await;
+let latest = Arc::clone(&view.borrow_and_update());
+write_atomic(&path, body.as_bytes()).await;`, state("Attention", { turn: "Turn", tools: "1", gates: "1 · Human" }), ["state.json replaced atomically"]),
+        step("The slow client catches up to the newest view", "subscriber", ["view", "subscriber"],
+          "When the old blocked write completes, changed() notices unseen updates. The next loop borrows the latest Attention view. It may skip intermediate views, while the separate history path has attempted to record displayed transitions.",
+          "JSON · selected current agent fields", `{"phase":"attention","lamp":"red","truth":"attention",
+ "reason":"wants approval to run Bash"}`, state("Attention", { turn: "Turn", tools: "1", gates: "1 · Human" }), [],
+          "The wire carries whole snapshots, including reason text. There is no lazy tooltip endpoint, delta protocol or seqlock output in this implementation.")
+      ]
+    },
+    {
+      id: "replay-gap", title: "Restart replays history as fresh inputs", subtitle: "Known gaps · missing gates, synthetic history, stale account limits",
+      status: "known-gap",
+      summary: "This is the current recovery path, including audited failures. There is no Input::Replay batch, persisted gate model, or dual-clock Now type yet. The diagram intentionally exposes what reconstruction can and cannot know.",
+      source: refs(["src/daemon/watcher.rs", 39], ["src/ingest/claude/transcript.rs", 56], ["src/ingest/claude/transcript.rs", 186], ["src/reduce/tick.rs", 83], ["docs/audit/repro/adv_daemon_bugs.rs", 140], ["docs/audit/repro/adv_bugs.rs", 58]),
+      steps: [
+        step("Restart begins with an empty board", "board", ["scanner", "inbox", "core", "board", "view"],
+          "Discovery reconstructs process and session identity. The agent begins Unobserved/Unknown; the reducer does not reload open gates from history. The process itself may still be parked at a real approval prompt.",
+          "Rust · reconstructed initial activity", `Activity::Unobserved { since: now }
+// prompts = Prompts::default()
+// shown = Shown::new(Phase::Unknown, now)`, state("Unknown", { turn: "Unobserved" }), ["AppendHistory(AgentFound)", "WatchTranscript", "PublishState"]),
+        step("Read the last 128 KiB", "watcher", ["core", "effects", "watcher"],
+          "The watcher opens near the file's end and preserves complete lines. It processes only the bounded tail, not a full reconstruction of the session. All events in its initial poll use Inferred confidence and the current local receipt time.",
+          "Rust · initial watcher context", `LineCtx {
+    process, session, account,
+    now: now(),
+    confidence: Confidence::Inferred,
+}`, state("Unknown", { turn: "Unobserved" })),
+        step("Old lines become ordinary events", "adapters", ["watcher", "adapters", "inbox", "core", "board", "fold"],
+          "A historical typed prompt, assistant end_turn, then another prompt are applied separately. Changes inside the calm severity band are immediate even when inferred, so shown can move Working → Idle → Working during one tail read.",
+          "Illustrative adapted event sequence", `TurnStarted { turn: Some(Prompt("old-1")), origin: Human }
+TurnEnded { turn: None, outcome: Completed }
+TurnStarted { turn: Some(Prompt("old-2")), origin: Human }
+// These abbreviate real EventKind variants.`, state("Working", { turn: "Turn · old-2" }), ["AppendHistory(Shown) for each visible phase change", "PublishState for changed inputs"]),
+        step("Recovery writes synthetic transition history", "history", ["core", "effects", "history"],
+          "There is no replay flag in HistoryEntry or a batch-level settle. Each ordinary apply can append Shown, so restarting adds transitions for work that happened long ago. Output coalescing does not suppress these history effects.",
+          "Rust · current history shape", `HistoryEntry::Shown {
+    process, session,
+    from: Phase::Working, to: Phase::Idle,
+    held: now.saturating_duration_since(shown_since),
+}`, state("Working", { turn: "Turn · old-2" }), ["Historical work appears as new Shown edges"],
+          "Audit repro expects at most one replay transition; current code emits several. A replay batch is a proposal, not an existing Input variant."),
+        step("A real open gate is absent from the transcript", "board", ["watcher", "adapters", "inbox", "core", "board", "fold", "view"],
+          "The tail may end with a tool_use whose approval is still open. That line reconstructs ToolDispatched and Gate::Running, but no PermissionRequest. The chip can become Working/green while the real UI needs a person.",
+          "Rust · reconstructed tool", `Tool {
+    name: "Bash".into(),
+    gate: Gate::Running, ..
+}
+// Real external dialog: still waiting for approval.`, state("Working", { turn: "Turn", tools: "1 · reconstructed Running", gates: "0 · actual prompt unknown" }), ["PublishState"],
+          "Live status-file reconciliation is being investigated. Current golden does not ingest Claude's status/waitingFor fields to close this gap."),
+        step("An old limit line affects the entire account", "adapters", ["watcher", "adapters", "inbox", "core", "board", "fold"],
+          "In another tail, an API error carries quotaLimits. The adapter emits both a failed turn and a Limits snapshot. A reset time months in the past is still stored as Rejected; all agents currently use account default.",
+          "Illustrative historical JSON", `{"type":"assistant","isApiErrorMessage":true,"error":"rate_limit",
+ "quotaLimits":{"status":"rejected","resetsAt":1770000000,
+ "rateLimitType":"five_hour"}}`, state("Blocked", { shown: "Working", turn: "Idle · after Failed" }), ["SnapshotKind::Limits { account: default, value: Rejected }", "PublishState"],
+          "This step switches to a second example tail to expose the account-wide limit bug. It is not a continuation of the unresolved prompt's real UI state."),
+        step("Time does not expire that account limit", "fold", ["core", "board", "fold", "view"],
+          "After the pending dwell, shown becomes Blocked. Later ticks still see LimitStatus::Rejected: next_deadline has no account reset deadline and tick receives only Instant. Passing the wall-clock resets_at value does not clear it.",
+          "Rust · current phase rule", `if limits.is_some_and(|l| l.status == LimitStatus::Rejected) {
+    return Phase::Blocked;
+}
+// No resets_at check here or in tick.`, state("Blocked", { turn: "Idle · after Failed" }), ["AppendHistory(Shown { Working → Blocked })", "PublishState"],
+          "The current design needs both recovery semantics and a real limit-expiry rule. This trace demonstrates the bug; it does not prescribe the unresolved redesign.")
+      ]
+    },
+    {
+      id: "subagent-gap", title: "A child has two calls, but only one gate slot", subtitle: "Known gap · an unrelated completion clears a live prompt",
+      status: "known-gap",
+      summary: "The parent has a tools map, but Subagent currently has only Option<Gate>. This asymmetry explains the audited bug without requiring provider-specific logic in the fold. A shared per-call actor model remains a proposal.",
+      source: refs(["src/model.rs", 878], ["src/reduce/event.rs", 131], ["src/reduce/event.rs", 368], ["src/reduce/event.rs", 491], ["docs/audit/repro/adv_bugs.rs", 267]),
+      steps: [
+        step("The child starts beneath an idle parent", "board", ["hook", "socket", "adapters", "inbox", "core", "board", "fold"],
+          "SubagentStart creates a1 in the parent's Subagents table. With no own turn open, the running child makes the parent Delegating.",
+          "Rust · child row", `Subagent {
+    kind: SubagentKind::Task,
+    status: SubagentStatus::Running,
+    gate: None, ..
+}`, state("Delegating", { children: "1 · a1 Running" }), ["AppendHistory(Shown { Idle → Delegating })", "PublishState"]),
+        step("Two child tool calls are in flight", "adapters", ["hook", "socket", "adapters", "inbox", "core", "board"],
+          "The adapter marks tool events Actor::Subagent(a1). Unlike the main actor, the current subagent dispatch branch does not store a ToolUseId → Tool map; it refreshes last_seen and may join a parked prompt.",
+          "Rust · two normalized events", `Actor::Subagent("a1".into())
+ToolDispatched { call: "bash-1".into(), tool: "Bash".into(), hash }
+ToolDispatched { call: "read-2".into(), tool: "Read".into(), hash }
+// No per-call map is retained on Subagent.`, state("Delegating", { children: "1 · a1 / 2 external calls", tools: "0 · parent only" }), ["PublishState requested; View may be unchanged"]),
+        step("Bash asks for a human answer", "board", ["hook", "socket", "adapters", "inbox", "core", "board", "fold"],
+          "A PermissionRequest from a1 writes Gate::Blocked onto the child row. The reducer discards call-level ownership at this storage boundary: the row can remember one gate, but not which of its calls holds it.",
+          "Rust · stored child gate", `row.gate = Some(Gate::Blocked {
+    owner: Ownership::Human,
+    kind: GateKind::Approval,
+    since: now, req: None,
+});`, state("Attention", { children: "1 · a1 Running", gates: "1 · child a1 / Bash", tools: "0 · parent" }), ["AppendHistory(Shown { Delegating → Attention })", "PublishState"]),
+        step("The parent's fold sees the child's gate", "view", ["board", "fold", "view", "subscriber"],
+          "Agent::wants_a_human checks own tools, unjoined prompts and child gates. Therefore the parent chip correctly turns red even though its own activity remains Idle.",
+          "Rust · fold includes descendants", `let subagents = self.subagents.rows.values().any(|s| {
+    matches!(s.gate, Some(Gate::Blocked {
+        owner: Ownership::Human, ..
+    }))
+});`, state("Attention", { children: "1 · a1 Running", gates: "1 · child a1 / Bash" }), [],
+          "Separate known gap: view::human_gate currently omits stored child-row gates, so tooltip text can say subagent running while the chip is red."),
+        step("The unrelated Read call completes", "board", ["hook", "socket", "adapters", "inbox", "core", "board"],
+          "PostToolUse for read-2 becomes ToolSettled with a1 as actor. The child branch calls lift_subagent(agent, id), ignoring the call ID. That function takes the child row's gate unconditionally.",
+          "Rust · current ToolSettled branch", `Actor::Subagent(id) => lift_subagent(agent, id)
+
+// Inside lift_subagent:
+agent.subagents.rows.get_mut(id)
+    .and_then(|row| row.gate.take());`, state("Delegating", { shown: "Attention", children: "1 · a1 Running", gates: "0 · actual Bash prompt still open" }), [],
+          "This pause is inside one synchronous reducer invocation; no other input interleaves before settle."),
+        step("False green reaches the output", "subscriber", ["board", "fold", "view", "subscriber"],
+          "With no stored gate, the fold derives Delegating again. De-escalation is immediate, so the red chip becomes green although the Bash approval still exists outside the daemon.",
+          "JSON · selected actual output fields", `{"phase":"delegating","lamp":"green","truth":"delegating",
+ "reason":"1 subagent(s) running"}`, state("Delegating", { children: "1 · a1 Running", gates: "0 · actual Bash prompt still open" }), ["AppendHistory(Shown { Attention → Delegating })", "PublishState"],
+          "The missing information is the per-call association. The audit repro pins the desired behavior: settling read-2 must leave bash-1's prompt open.")
+      ]
+    }
+  ];
+})();
+</script>
+  <script>window.SB_SOURCE_BASE = "file:///home/tjmisko/Projects/switchboard-rust/.worktrees/golden/";
+/* Offline UI. This is an explanatory model; it never connects to the daemon. */
+(() => {
+  'use strict';
+  const $ = s => document.querySelector(s);
+  const $$ = s => [...document.querySelectorAll(s)];
+  const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const phases = ['Attention','Blocked','Stopped','Unknown','Working','Delegating','Waiting','Idle'];
+  const severity = p => p === 'Attention' ? 2 : ['Blocked','Stopped'].includes(p) ? 1 : 0;
+  const statusName = s => ({implemented:'IMPLEMENTED',unwired:'TYPE ONLY',proposed:'PROPOSAL','known-gap':'AUDIT GAP','known-bug':'KNOWN BUG',planned:'PLANNED',decision:'OPEN DECISION'}[s] || s.toUpperCase());
+  const statusHTML = status => `<span class="badge ${esc(status)}">${esc(statusName(status))}</span>`;
+  const sourceHTML = source => source ? `<a class="source-link" href="${esc(new URL(source.path, window.SB_SOURCE_BASE).href)}#L${Number(source.line)}" target="_blank" rel="noopener">${esc(source.path)}:${Number(source.line)} ↗</a>` : '';
+  const highlight = code => {
+    const re = /(\/\/[^\n]*|"(?:\\.|[^"\\])*"|\b(?:pub|struct|enum|fn|impl|let|mut|match|if|else|return|use|const|async|await|for|in|type|where|self|true|false)\b|\b[A-Z][A-Za-z0-9_]*\b)/g;
+    let out = '', last = 0;
+    for (const m of String(code).matchAll(re)) {
+      out += esc(code.slice(last, m.index));
+      const token = m[0];
+      const cls = token.startsWith('//') ? 'syntax-comment' : token.startsWith('"') ? 'syntax-string' : /^[A-Z]/.test(token) ? 'syntax-type' : 'syntax-key';
+      out += `<span class="${cls}">${esc(token)}</span>`;
+      last = m.index + token.length;
+    }
+    return out + esc(code.slice(last));
+  };
+  let tab = 'flow', scenarioIndex = 0, stepIndex = 0, timer = null, selectedType = 'input';
+  let reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let toastTimer;
+  function toast(message) {
+    $('#toast').textContent = message;
+    $('#toast').classList.add('visible');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => $('#toast').classList.remove('visible'), 2400);
+  }
+  async function copy(id, button) {
+    const element = document.getElementById(id);
+    if (!element) return;
+    const value = element.textContent;
+    let copied = false;
+    try { await navigator.clipboard.writeText(value); copied = true; } catch (_) {
+      const input = document.createElement('textarea');
+      input.value = value; input.style.position = 'fixed'; input.style.opacity = '0';
+      // Keep the fallback inside the modal when it owns keyboard focus.
+      const host = $('#inspector').open ? $('#inspector') : document.body;
+      host.append(input); input.select(); copied = document.execCommand('copy'); input.remove();
+    }
+    if (copied) {
+      button.textContent = 'Copied'; setTimeout(() => { button.textContent = 'Copy'; }, 1600);
+    } else toast('Select the code and use your usual copy shortcut.');
+  }
+  document.addEventListener('click', e => {
+    const button = e.target.closest('[data-copy]');
+    if (button) copy(button.dataset.copy, button);
+  });
+  function changeTab(next, updateHash = true) {
+    if (!['flow','state','types','runtime','evolution'].includes(next)) next = 'flow';
+    stopPlayback(); tab = next;
+    $$('.page').forEach(el => el.classList.toggle('active', el.id === `page-${tab}`));
+    $$('.nav-button').forEach(el => {
+      const active = el.dataset.tab === tab;
+      el.classList.toggle('active', active);
+      if (active) el.setAttribute('aria-current','page'); else el.removeAttribute('aria-current');
+    });
+    $('#crumb').textContent = {flow:'DATA FLOW',state:'AGENT STATE',types:'TYPE ATLAS',runtime:'CONCURRENCY',evolution:'DESIGN BOUNDARIES'}[tab];
+    if (updateHash) history.replaceState(null,'',`#${tab}`);
+    if (tab === 'flow') updateMap();
+    else $('#system-map').pauseAnimations();
+    window.scrollTo({top:0,behavior:'instant'});
+  }
+  $$('.nav-button').forEach(el => el.addEventListener('click', () => changeTab(el.dataset.tab)));
+  window.addEventListener('hashchange', () => changeTab(location.hash.slice(1),false));
+  $('#start-tour').addEventListener('click', () => {
+    scenarioIndex = 0; stepIndex = 0; $('#scenario-select').value = SB_SCENARIOS[0].id;
+    changeTab('flow'); renderStep();
+    toast('Use Next to read each hop, or Play flow to follow the animation.');
+  });
+  $('#help-button').addEventListener('click', () => {
+    openInspector(`<div class="eyebrow">A GUIDED MAP, NOT A LIVE MONITOR</div><h2>Follow the data.</h2><p>Choose a scenario, then use Play or the arrow buttons. The bright node is the current step; moving dots trace the route being discussed. Click any node for its source and related Rust types.</p><ul><li><strong>Inside an agent:</strong> change independent facts and watch the phase fold pick the first matching rule.</li><li><strong>The Rust types:</strong> search exact declarations, inspect fields, and copy code.</li><li><strong>Tasks & channels:</strong> pause a subscriber to see the difference between a queue and a latest-value channel.</li><li><strong>The wider design:</strong> compare what runs today with the extensible architecture you intend.</li></ul><p>Rust source links open files in the golden worktree. All example payloads are synthetic. Timelines advance at teaching speed, not daemon speed.</p><p>Keyboard: Tab to controls or diagram nodes; Enter opens a node; Escape closes this inspector. Motion can be reduced using the control at the bottom of the rail.</p>`);
+  });
+  function applyMotion() {
+    document.body.classList.toggle('reduced-motion', reduced);
+    $('#motion-toggle').textContent = reduced ? 'Enable motion' : 'Reduce motion';
+    if (reduced) $('#system-map').pauseAnimations(); else if (tab === 'flow') $('#system-map').unpauseAnimations();
+    $$('.particle').forEach(p => p.style.display = reduced ? 'none' : '');
+  }
+  $('#motion-toggle').addEventListener('click', () => { reduced = !reduced; applyMotion(); });
+  $('#map-size').addEventListener('click', () => {
+    const expanded = $('.map-card').classList.toggle('expanded');
+    $('#map-size').setAttribute('aria-pressed', String(expanded));
+    $('#map-size').setAttribute('aria-label', expanded ? 'Fit diagram' : 'Expand diagram');
+    $('#map-size').title = expanded ? 'Fit diagram' : 'Expand diagram';
+  });
+
+  // The topology is a readable projection of source calls and channels, not a task graph.
+  const positions = {
+    hook:[30,80], socket:[215,80], adapters:[405,80], scanner:[30,250], watcher:[30,440],
+    inbox:[405,250], core:[605,250], board:[605,360], fold:[805,360], view:[805,250],
+    effects:[605,490], publisher:[1000,150], subscriber:[1000,280], history:[1000,490]
+  };
+  const labels = {
+    hook:['Hook forwarder','scrub → JSON line','PROCESS / STDIN'],socket:['RPC listener','decode + resolve pid','TASK / UNIX SOCKET'],
+    scanner:['Process scanner','/proc · every 1 s','TASK / DISCOVERY'],watcher:['Transcript tail','JSONL · every 200 ms','TASK / FILE'],
+    adapters:['Pure adapters','bytes → Input','FUNCTIONS / NO I/O'],inbox:['Input inbox','mpsc<Input> · 4096','BOUNDED CHANNEL'],
+    core:['Core task','apply(input) / tick(now)','ONE BOARD OWNER'],board:['Board','agents + accounts','OWNED STATE'],
+    fold:['phase → settle','truth → shown','PURE DERIVATION'],view:['Published view','watch<Arc<View>>','LATEST VALUE'],
+    effects:['Effect runner','watchers + history','TASK / I/O'],publisher:['Disk publisher','state.json · 250 ms','TASK / COALESCE'],
+    subscriber:['RPC subscriber','full snapshot on change','TASK / EACH CLIENT'],history:['History writer','JSONL · best effort','TASK / APPEND']
+  };
+  const edgePaths = {
+    'hook-socket':['M180 111 H215',195,99],
+    'socket-adapters':['M365 111 H405',385,99],
+    'scanner-inbox':['M180 281 H405',285,270],
+    'watcher-adapters':['M180 471 H200 Q210 471 210 461 V187 Q210 175 222 175 H469 Q480 175 480 163 V142',309,164],
+    'adapters-inbox':['M480 142 V250',490,224],
+    'inbox-core':['M555 281 H605',580,268],
+    'core-board':['M680 312 V360',690,342],
+    'board-fold':['M755 391 H805',781,379],
+    'fold-view':['M880 360 V312',890,342],
+    'core-effects':['M605 296 H581 Q570 296 570 309 V509 Q570 521 582 521 H605',580,463],
+    'effects-watcher':['M680 552 V557 Q680 572 665 572 H119 Q105 572 105 558 V502',335,559],
+    'effects-history':['M755 521 H1000',879,509],
+    'view-publisher':['M955 267 H970 Q980 267 980 254 V194 Q980 181 992 181 H1000',1026,233],
+    'view-subscriber':['M955 294 H967 Q977 294 977 304 Q977 311 988 311 H1000',1035,355]
+  };
+  const shortEdgeLabel = {'hook-socket':'','socket-adapters':'','scanner-inbox':'Processes + Died','watcher-adapters':'JSON + LineCtx','adapters-inbox':'Vec<Input>','inbox-core':'Input','core-board':'mutate','board-fold':'facts','fold-view':'render','core-effects':'Effect','effects-watcher':'WatchTranscript / Forget · feedback','effects-history':'AppendHistory','view-publisher':'250 ms coalesce','view-subscriber':'initial + changes'};
+  const svg = $('#system-map');
+  function renderMap() {
+    const edgeMarkup = SB_SYSTEM.edges.map(e => {
+      const key = `${e.from}-${e.to}`, [path,x,y] = edgePaths[key];
+      return `<path id="edge-${key}" class="edge ${e.kind}" d="${path}" marker-end="url(#arrow-${e.kind})"><title>${esc(e.label)}</title></path>${shortEdgeLabel[key] ? `<text class="edge-label" x="${x}" y="${y}" text-anchor="middle">${esc(shortEdgeLabel[key])}</text>` : ''}`;
+    }).join('');
+    svg.innerHTML = `<defs><pattern id="grid" width="22" height="22" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".65" fill="#607484" opacity=".18"/></pattern><filter id="node-shadow" x="-20%" y="-25%" width="140%" height="160%"><feDropShadow dx="0" dy="4" stdDeviation="4" flood-opacity=".18"/></filter><filter id="node-glow" x="-40%" y="-70%" width="180%" height="240%"><feDropShadow dx="0" dy="0" stdDeviation="5" flood-color="#7cdec7" flood-opacity=".17"/></filter>${['event','snapshot','effect','view'].map((k,i)=>`<marker id="arrow-${k}" viewBox="0 0 7 7" refX="6" refY="3.5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 L7 3.5 L0 7" fill="${['#699f8b','#7695bb','#a38abd','#b89a70'][i]}"/></marker>`).join('')}</defs><rect width="1180" height="595" fill="url(#grid)"/><text x="30" y="42" class="map-section-label">OBSERVE</text><text x="405" y="42" class="map-section-label">NORMALIZE</text><text x="605" y="42" class="map-section-label">REDUCE & DERIVE</text><text x="1000" y="42" class="map-section-label">DELIVER</text><rect class="map-band" x="590" y="232" width="382" height="209" rx="13"/><text x="605" y="221" class="map-band-label">WITHIN THE CORE TASK · NO BLOCKING I/O</text>${edgeMarkup}<g id="route-extras"></g><g id="particles"></g>${SB_SYSTEM.nodes.map(n=>{
+      const [x,y]=positions[n.id], [title,subtitle,kind]=labels[n.id];
+      const model=['board','fold','adapters'].includes(n.id);
+      return `<g id="node-${n.id}" class="node ${model?'model':''}" tabindex="0" role="button" aria-label="Inspect ${esc(n.title)}" transform="translate(${x},${y})" data-node="${n.id}"><rect class="node-body" width="150" height="62" rx="8"/><circle class="node-dot" cx="13" cy="15" r="2.5"/><text class="node-kind" x="22" y="18">${esc(kind)}</text><text class="node-title" x="12" y="36">${esc(title)}</text><text class="node-subtitle" x="12" y="51">${esc(subtitle)}</text><text class="node-corner" x="133" y="18">↗</text><title>${esc(n.summary)}</title></g>`;
+    }).join('')}`;
+    $$('.node').forEach(el=>{
+      el.addEventListener('click',()=>inspectNode(el.dataset.node));
+      el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();inspectNode(el.dataset.node);}});
+    });
+  }
+  function updateMap() {
+    const step = SB_SCENARIOS[scenarioIndex].steps[stepIndex];
+    $$('.node').forEach(n=>n.classList.toggle('active',n.dataset.node===step.node));
+    $$('.edge').forEach(e=>e.classList.remove('active'));
+    $('#route-extras').innerHTML=''; $('#particles').innerHTML='';
+    let motion='';
+    for(let i=0;i<step.route.length-1;i++){
+      const from=step.route[i],to=step.route[i+1],key=`${from}-${to}`;
+      let path=$(`#edge-${key}`),reverse=false;
+      if(!path){path=$(`#edge-${to}-${from}`);reverse=Boolean(path);}
+      if(!path){
+        const [x1,y1]=positions[from],[x2,y2]=positions[to];
+        const extra=document.createElementNS('http://www.w3.org/2000/svg','path');
+        extra.setAttribute('d',`M${x1+75} ${y1+31} L${x2+75} ${y2+31}`);
+        extra.setAttribute('class','edge event active');extra.id=`extra-${key}`;
+        $('#route-extras').append(extra);path=extra;
+      }
+      path.classList.add('active');
+      const colors={event:'#7cdec7',snapshot:'#90bdf5',effect:'#b6a3ee',view:'#f0bc72'};
+      const kind=Object.keys(colors).find(k=>path.classList.contains(k))||'event';
+      motion+=`<circle class="particle" r="3.5" style="fill:${colors[kind]}"><animateMotion dur="2s" begin="${i*.19}s" repeatCount="indefinite" ${reverse?'keyPoints="1;0" keyTimes="0;1" calcMode="linear"':''}><mpath href="#${path.id}"/></animateMotion></circle>`;
+    }
+    $('#particles').innerHTML=motion;
+    svg.setCurrentTime(0);applyMotion();
+  }
+  function openInspector(html) {
+    stopPlayback();$('#inspector-content').innerHTML=html;
+    if(!$('#inspector').open)$('#inspector').showModal();
+    $('#inspector').scrollTop=0;
+  }
+  $('#close-inspector').addEventListener('click',()=>$('#inspector').close());
+  $('#inspector').addEventListener('click',e=>{if(e.target===$('#inspector')){
+    const r=$('#inspector').getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right)$('#inspector').close();
+  }});
+  function findType(name){return SB_TYPES.find(t=>t.name.split(/\s*[·/]\s*/).includes(name)||t.name===name)||SB_TYPES.find(t=>t.code.includes(`struct ${name}`)||t.code.includes(`enum ${name}`));}
+  function inspectNode(id){
+    const n=SB_SYSTEM.nodes.find(n=>n.id===id);
+    openInspector(`<div class="card-top"><span class="eyebrow">${esc(n.layer.toUpperCase())}</span>${statusHTML(n.status)}</div><h2>${esc(n.title)}</h2><p>${esc(n.summary)}</p><ul>${n.details.map(d=>`<li>${esc(d)}</li>`).join('')}</ul><div class="type-code"><div class="card-top"><span class="tiny-label">SOURCE EXCERPT / ABRIDGED WIRING</span><button class="copy-button" data-copy="inspector-code">Copy</button></div><pre><code id="inspector-code">${highlight(n.code)}</code></pre></div>${sourceHTML(n.source)}<h3>Data at this boundary</h3><div>${n.types.map(name=>{const t=findType(name);return t?`<button class="type-jump" data-type="${t.id}">${esc(name)} ↗</button>`:`<span class="effect-chip">${esc(name)}</span>`;}).join('')}</div>`);
+    $$('#inspector-content [data-type]').forEach(b=>b.addEventListener('click',()=>{selectedType=b.dataset.type;$('#type-search').value='';$('#inspector').close();changeTab('types');renderTypes();}));
+  }
+  $('#scenario-select').innerHTML=SB_SCENARIOS.map(s=>`<option value="${s.id}">${esc(s.title)}${s.status==='known-gap'?' · audit gap':''}</option>`).join('');
+  $('#scenario-select').addEventListener('change',e=>{stopPlayback();scenarioIndex=SB_SCENARIOS.findIndex(s=>s.id===e.target.value);stepIndex=0;renderStep();});
+  function stopPlayback(){clearTimeout(timer);timer=null;$('#play').innerHTML='<span aria-hidden="true">▶</span> Play flow';$('#play').setAttribute('aria-label','Play scenario');}
+  function scheduleStep(){
+    timer=setTimeout(()=>{
+      const s=SB_SCENARIOS[scenarioIndex];
+      if(stepIndex>=s.steps.length-1){stopPlayback();return;}
+      stepIndex++;renderStep();scheduleStep();
+    },Number($('#speed').value));
+  }
+  $('#play').addEventListener('click',()=>{
+    if(timer){stopPlayback();return;}
+    if(stepIndex===SB_SCENARIOS[scenarioIndex].steps.length-1){stepIndex=0;renderStep();}
+    $('#play').innerHTML='<span aria-hidden="true">Ⅱ</span> Pause';$('#play').setAttribute('aria-label','Pause scenario');scheduleStep();
+  });
+  $('#speed').addEventListener('change',()=>{if(timer){clearTimeout(timer);scheduleStep();}});
+  $('#next').addEventListener('click',()=>{stopPlayback();stepIndex=Math.min(stepIndex+1,SB_SCENARIOS[scenarioIndex].steps.length-1);renderStep();});
+  $('#previous').addEventListener('click',()=>{stopPlayback();stepIndex=Math.max(stepIndex-1,0);renderStep();});
+  $('#reset').addEventListener('click',()=>{stopPlayback();stepIndex=0;renderStep();});
+  function setPhase(el,phase){el.textContent=phase;el.className=`phase-${phases.includes(phase)?phase:'Unknown'}`;}
+  function renderStep(){
+    const scenario=SB_SCENARIOS[scenarioIndex],step=scenario.steps[stepIndex];
+    $('#step-counter').textContent=`STEP ${String(stepIndex+1).padStart(2,'0')} / ${String(scenario.steps.length).padStart(2,'0')}`;
+    $('#scenario-status').textContent=statusName(scenario.status);$('#scenario-status').className=`badge ${scenario.status}`;
+    $('#step-title').textContent=step.title;$('#step-explanation').textContent=step.explanation;
+    $('#step-note').textContent=step.note||'';$('#step-note').className=`note ${scenario.status==='known-gap'?'warning':''}`;
+    $('#payload-label').textContent=step.wire.label;$('#payload-code').innerHTML=highlight(step.wire.code);
+    setPhase($('#truth-phase'),step.state.phase);setPhase($('#shown-phase'),step.state.shown);
+    $('#step-state').innerHTML=['turn','tools','gates','children'].map(k=>`<dt>${k}</dt><dd>${esc(step.state[k])}</dd>`).join('');
+    $('#step-effects').innerHTML=step.effects.map(e=>`<span class="effect-chip">${esc(e)}</span>`).join('');
+    $('#step-track').innerHTML=scenario.steps.map((s,i)=>`<button class="step-dot ${i===stepIndex?'active':i<stepIndex?'past':''}" data-step="${i}" aria-label="Step ${i+1}: ${esc(s.title)}" title="${esc(s.title)}" ${i===stepIndex?'aria-current="step"':''}></button>`).join('');
+    $$('.step-dot').forEach(b=>b.addEventListener('click',()=>{stopPlayback();stepIndex=Number(b.dataset.step);renderStep();}));
+    $('#previous').disabled=stepIndex===0;$('#next').disabled=stepIndex===scenario.steps.length-1;
+    $('#scenario-sources').innerHTML='<span>TRACE SOURCES</span>'+scenario.source.map(sourceHTML).join('');
+    updateMap();
+  }
+
+  // A deliberately small projection of the Rust fold. verify.mjs compares it with the Rust oracle.
+  function phaseFor(a){
+    if(a.gate==='human')return{phase:'Attention',rule:0};
+    if(a.limit)return{phase:'Blocked',rule:1};
+    if(a.activity==='idle'&&a.outcome==='failed')return{phase:'Blocked',rule:2};
+    if(a.activity==='idle'&&a.outcome==='interrupted')return{phase:'Stopped',rule:3};
+    if(a.gate==='unknown')return{phase:'Unknown',rule:4};
+    if(a.activity==='turn')return{phase:'Working',rule:5};
+    if(a.activity==='unobserved')return{phase:'Unknown',rule:6};
+    if(a.children)return{phase:'Delegating',rule:7};
+    if(a.waits)return{phase:'Waiting',rule:8};
+    return{phase:'Idle',rule:9};
+  }
+  function settleFor(truth,cause,confidence,elapsed){
+    const immediate=severity(truth)<=severity('Working')||cause==='User'||confidence==='Confirmed';
+    const dwell=immediate?0:confidence==='Snapshot'?6:10;
+    return{phase:elapsed>=dwell?truth:'Working',pending:elapsed<dwell,dwell};
+  }
+  window.SB_LAB={phaseFor,settleFor};
+  const rules=[['Attention','A human gate anywhere'],['Blocked','Account limit rejected'],['Blocked','Last idle turn failed'],['Stopped','Last idle turn interrupted'],['Unknown','A gate has unknown ownership'],['Working','Activity::Turn'],['Unknown','Activity::Unobserved'],['Delegating','A subagent runs or is pending'],['Waiting','Background work remains'],['Idle','None of the above']];
+  function readAxes(){return{activity:$('#axis-activity').value,gate:$('#axis-gate').value,outcome:$('#axis-outcome').value,limit:$('#axis-limit').checked,children:$('#axis-children').checked,waits:$('#axis-waits').checked};}
+  function renderLab(){
+    const a=readAxes(),truth=phaseFor(a),cause=$('#lab-cause').value,confidence=$('#lab-confidence').value,elapsed=Number($('#lab-time').value),shown=settleFor(truth.phase,cause,confidence,elapsed);
+    $('#fold-rules').innerHTML=rules.map(([phase,rule],i)=>`<li class="${i===truth.rule?'winner':i>truth.rule?'after':''}"><div><strong class="phase-${phase}">${phase}</strong><small>${rule}</small></div>${i===truth.rule?'<span class="rule-check">✓</span>':''}</li>`).join('');
+    setPhase($('#lab-truth'),truth.phase);setPhase($('#lab-shown'),shown.phase);$('#lab-time-label').textContent=`${elapsed} s`;
+    $('#lab-explanation').textContent=shown.pending?`Pending ${truth.phase}: ${shown.dwell-elapsed} s of the ${shown.dwell} s dwell remain. The current display stays Working.`:shown.dwell?`The ${shown.dwell} s dwell has elapsed. Shown promotes to ${truth.phase}.`:`Immediate: ${cause==='User'?'a user-caused observation bypasses dwell':confidence==='Confirmed'?'confirmed evidence bypasses dwell':'this is not an escalation in severity'}.`;
+    $('#lab-warning').hidden=!(truth.phase==='Attention'&&confidence!=='Confirmed');
+    $('#lab-warning').textContent='Known policy gap: current Shown can promote inferred or snapshot Attention. It does not enforce “Attention requires confirmed evidence.” This lab preserves that behavior.';
+  }
+  $$('#page-state select,#page-state input').forEach(e=>e.addEventListener('input',renderLab));
+  $('#axis-reset').addEventListener('click',()=>{
+    $('#axis-activity').value='turn';$('#axis-gate').value='human';$('#axis-outcome').value='completed';
+    ['limit','children','waits'].forEach(k=>{$(`#axis-${k}`).checked=false;});
+    $('#lab-cause').value='Agent';$('#lab-confidence').value='Confirmed';$('#lab-time').value=0;renderLab();
+  });
+  function renderTypes(){
+    const query=$('#type-search').value.trim().toLowerCase();
+    const filtered=SB_TYPES.filter(t=>[t.name,t.summary,t.code,...t.fields.map(f=>f.meaning)].join(' ').toLowerCase().includes(query));
+    let group='';
+    $('#type-list').innerHTML=filtered.map(t=>{const header=t.group!==group?`<div class="type-group">${esc(t.group)}</div>`:'';group=t.group;return `${header}<button class="type-item ${t.id===selectedType?'active':''}" data-type="${t.id}" ${t.id===selectedType?'aria-current="true"':''}>${esc(t.name)}</button>`;}).join('')||'<p class="small muted">No matching types.</p>';
+    $$('#type-list [data-type]').forEach(b=>b.addEventListener('click',()=>{selectedType=b.dataset.type;renderTypes();}));
+    const t=SB_TYPES.find(t=>t.id===selectedType)||SB_TYPES[0];
+    $('#type-detail').innerHTML=`<div class="card-top"><span class="eyebrow">${esc(t.group.toUpperCase())} / TYPE ${String(SB_TYPES.indexOf(t)+1).padStart(2,'0')}</span>${statusHTML(t.status)}</div><h2>${esc(t.name)}</h2><p>${esc(t.summary)}</p>${sourceHTML(t.source)}<div class="type-code"><div class="card-top"><span class="tiny-label">RUST DECLARATION · DOC COMMENTS STRIPPED</span><button class="copy-button" data-copy="type-code">Copy</button></div><pre><code id="type-code">${highlight(t.code)}</code></pre></div><h3>Read the fields</h3><div class="table-scroll"><table><thead><tr><th>Field / variant</th><th>Rust type</th><th>Meaning</th></tr></thead><tbody>${t.fields.map(f=>`<tr><td><code>${esc(f.name)}</code></td><td><code>${esc(f.type)}</code></td><td>${esc(f.meaning)}</td></tr>`).join('')}</tbody></table></div><h3>Used by</h3><div class="used-by">${t.usedBy.map(x=>`<span>${esc(x)}</span>`).join('')}</div>`;
+  }
+  $('#type-search').addEventListener('input',renderTypes);
+  $('#runtime-boundaries').innerHTML=SB_SYSTEM.boundaries.map(b=>`<article class="panel boundary"><h3>${esc(b.title)}</h3><p>${esc(b.summary)}</p>${b.code?`<pre><code>${highlight(b.code)}</code></pre>`:''}${sourceHTML(b.source)}</article>`).join('');
+  $('#gap-grid').innerHTML=SB_SYSTEM.gaps.map(g=>`<article class="panel gap-card"><div class="card-top"><h3>${esc(g.title)}</h3>${statusHTML(g.status)}</div><span class="gap-label">CURRENT GOLDEN</span><p>${esc(g.current)}</p><div class="proposal"><span class="gap-label">DIRECTION / QUESTION TO SETTLE</span><p>${esc(g.proposal)}</p></div>${sourceHTML(g.source)}</article>`).join('');
+  const output={snapshot:{schema:'switchboard-rust/1',updated_ms:1789300000000,agents:[{pid:4036,start:9130042,session_id:'s1',name:'switchboard',cwd:'/work/switchboard',phase:'attention',lamp:'red',since_ms:1789299998000,truth:'attention',reason:'wants approval to run Bash',focused:false}]}};
+  $('#output-json').innerHTML=highlight(JSON.stringify(output,null,2));
+  let watchVersion=0,watchRead=0,watchPaused=false,watchSkipped=0;
+  const viewPhase=n=>['Unknown','Working','Attention','Working','Idle'][n%5];
+  function renderWatch(message){
+    $('#watch-producer').innerHTML=`View #${watchVersion} <small>${viewPhase(watchVersion)}</small>`;
+    $('#watch-current').textContent=`Arc<View #${watchVersion}>`;
+    $('#watch-consumer').innerHTML=`View #${watchRead} <small>${viewPhase(watchRead)}</small>`;
+    $('#watch-pause').textContent=watchPaused?'Resume subscriber':'Pause subscriber';
+    $('#watch-log').textContent=message;
+  }
+  $('#watch-publish').addEventListener('click',()=>{
+    watchVersion++;
+    if(!watchPaused)watchRead=watchVersion;
+    renderWatch(watchPaused?`Published #${watchVersion}. Reader paused at #${watchRead}; only #${watchVersion} is retained in the channel. ${Math.max(0,watchVersion-watchRead-1)} intermediate view(s) already overwritten.`:`Published #${watchVersion}. Subscriber read the full snapshot. The core did not wait for the socket write.`);
+    ['#watch-producer','#watch-current',...(!watchPaused?['#watch-consumer']:[])].forEach(s=>{const e=$(s);e.classList.remove('flash');void e.offsetWidth;e.classList.add('flash');});
+  });
+  $('#watch-pause').addEventListener('click',()=>{
+    watchPaused=!watchPaused;
+    if(watchPaused){renderWatch(`Reader paused at #${watchRead}. Publish several changes to replace the single channel slot.`);return;}
+    watchSkipped=Math.max(0,watchVersion-watchRead-1);watchRead=watchVersion;
+    renderWatch(`Resumed at view #${watchRead}. Skipped ${watchSkipped} intermediate snapshot(s). This channel distributes current state, not an event log.`);
+  });
+  $('#watch-reset').addEventListener('click',()=>{watchVersion=0;watchRead=0;watchPaused=false;watchSkipped=0;renderWatch('Subscriber is reading. Publish a changed view to start.');});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)stopPlayback();});
+  renderMap();renderStep();renderLab();renderTypes();changeTab(location.hash.slice(1)||'flow',false);applyMotion();
+})();
+</script>
+</body>
+</html>

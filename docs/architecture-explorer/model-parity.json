@@ -1,0 +1,5862 @@
+{
+  "phaseCases": [
+    {
+      "expected": "working",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "none",
+        "limit": false,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "working",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "none",
+        "limit": false,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "working",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "none",
+        "limit": false,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "working",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "none",
+        "limit": false,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "none",
+        "limit": true,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "none",
+        "limit": true,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "none",
+        "limit": true,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "none",
+        "limit": true,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "working",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "none",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "working",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "none",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "working",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "none",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "working",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "none",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "none",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "none",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "none",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "none",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "working",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "none",
+        "limit": false,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "working",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "none",
+        "limit": false,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "working",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "none",
+        "limit": false,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "working",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "none",
+        "limit": false,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "none",
+        "limit": true,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "none",
+        "limit": true,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "none",
+        "limit": true,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "none",
+        "limit": true,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "human",
+        "limit": false,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "human",
+        "limit": false,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "human",
+        "limit": false,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "human",
+        "limit": false,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "human",
+        "limit": true,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "human",
+        "limit": true,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "human",
+        "limit": true,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "human",
+        "limit": true,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "human",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "human",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "human",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "human",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "human",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "human",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "human",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "human",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "human",
+        "limit": false,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "human",
+        "limit": false,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "human",
+        "limit": false,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "human",
+        "limit": false,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "human",
+        "limit": true,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "human",
+        "limit": true,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "human",
+        "limit": true,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "human",
+        "limit": true,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "unknown",
+        "limit": false,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "unknown",
+        "limit": false,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "unknown",
+        "limit": false,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "unknown",
+        "limit": false,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "unknown",
+        "limit": true,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "unknown",
+        "limit": true,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "unknown",
+        "limit": true,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "unknown",
+        "limit": true,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "unknown",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "unknown",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "unknown",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "unknown",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "unknown",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "unknown",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "unknown",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "unknown",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "unknown",
+        "limit": false,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "unknown",
+        "limit": false,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "unknown",
+        "limit": false,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "unknown",
+        "limit": false,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "unknown",
+        "limit": true,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "unknown",
+        "limit": true,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "unknown",
+        "limit": true,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "unknown",
+        "limit": true,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "working",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "machine",
+        "limit": false,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "working",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "machine",
+        "limit": false,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "working",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "machine",
+        "limit": false,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "working",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "machine",
+        "limit": false,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "machine",
+        "limit": true,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "machine",
+        "limit": true,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "machine",
+        "limit": true,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "machine",
+        "limit": true,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "working",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "machine",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "working",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "machine",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "working",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "machine",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "working",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "machine",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "machine",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "machine",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "machine",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "machine",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "working",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "machine",
+        "limit": false,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "working",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "machine",
+        "limit": false,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "working",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "machine",
+        "limit": false,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "working",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "machine",
+        "limit": false,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "machine",
+        "limit": true,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "turn",
+        "children": false,
+        "gate": "machine",
+        "limit": true,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "machine",
+        "limit": true,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "turn",
+        "children": true,
+        "gate": "machine",
+        "limit": true,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "idle",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "none",
+        "limit": false,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "waiting",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "none",
+        "limit": false,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "delegating",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "none",
+        "limit": false,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "delegating",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "none",
+        "limit": false,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "none",
+        "limit": true,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "none",
+        "limit": true,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "none",
+        "limit": true,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "none",
+        "limit": true,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "stopped",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "none",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "stopped",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "none",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "stopped",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "none",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "stopped",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "none",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "none",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "none",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "none",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "none",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "none",
+        "limit": false,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "none",
+        "limit": false,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "none",
+        "limit": false,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "none",
+        "limit": false,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "none",
+        "limit": true,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "none",
+        "limit": true,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "none",
+        "limit": true,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "none",
+        "limit": true,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "human",
+        "limit": false,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "human",
+        "limit": false,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "human",
+        "limit": false,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "human",
+        "limit": false,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "human",
+        "limit": true,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "human",
+        "limit": true,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "human",
+        "limit": true,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "human",
+        "limit": true,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "human",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "human",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "human",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "human",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "human",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "human",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "human",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "human",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "human",
+        "limit": false,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "human",
+        "limit": false,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "human",
+        "limit": false,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "human",
+        "limit": false,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "human",
+        "limit": true,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "human",
+        "limit": true,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "human",
+        "limit": true,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "human",
+        "limit": true,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "unknown",
+        "limit": false,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "unknown",
+        "limit": false,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "unknown",
+        "limit": false,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "unknown",
+        "limit": false,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "unknown",
+        "limit": true,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "unknown",
+        "limit": true,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "unknown",
+        "limit": true,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "unknown",
+        "limit": true,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "stopped",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "unknown",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "stopped",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "unknown",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "stopped",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "unknown",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "stopped",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "unknown",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "unknown",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "unknown",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "unknown",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "unknown",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "unknown",
+        "limit": false,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "unknown",
+        "limit": false,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "unknown",
+        "limit": false,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "unknown",
+        "limit": false,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "unknown",
+        "limit": true,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "unknown",
+        "limit": true,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "unknown",
+        "limit": true,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "unknown",
+        "limit": true,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "idle",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "machine",
+        "limit": false,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "waiting",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "machine",
+        "limit": false,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "delegating",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "machine",
+        "limit": false,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "delegating",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "machine",
+        "limit": false,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "machine",
+        "limit": true,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "machine",
+        "limit": true,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "machine",
+        "limit": true,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "machine",
+        "limit": true,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "stopped",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "machine",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "stopped",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "machine",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "stopped",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "machine",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "stopped",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "machine",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "machine",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "machine",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "machine",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "machine",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "machine",
+        "limit": false,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "machine",
+        "limit": false,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "machine",
+        "limit": false,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "machine",
+        "limit": false,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "machine",
+        "limit": true,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": false,
+        "gate": "machine",
+        "limit": true,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "machine",
+        "limit": true,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "idle",
+        "children": true,
+        "gate": "machine",
+        "limit": true,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "none",
+        "limit": false,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "none",
+        "limit": false,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "none",
+        "limit": false,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "none",
+        "limit": false,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "none",
+        "limit": true,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "none",
+        "limit": true,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "none",
+        "limit": true,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "none",
+        "limit": true,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "none",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "none",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "none",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "none",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "none",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "none",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "none",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "none",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "none",
+        "limit": false,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "none",
+        "limit": false,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "none",
+        "limit": false,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "none",
+        "limit": false,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "none",
+        "limit": true,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "none",
+        "limit": true,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "none",
+        "limit": true,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "none",
+        "limit": true,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "human",
+        "limit": false,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "human",
+        "limit": false,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "human",
+        "limit": false,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "human",
+        "limit": false,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "human",
+        "limit": true,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "human",
+        "limit": true,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "human",
+        "limit": true,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "human",
+        "limit": true,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "human",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "human",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "human",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "human",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "human",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "human",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "human",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "human",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "human",
+        "limit": false,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "human",
+        "limit": false,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "human",
+        "limit": false,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "human",
+        "limit": false,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "human",
+        "limit": true,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "human",
+        "limit": true,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "human",
+        "limit": true,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "attention",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "human",
+        "limit": true,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "unknown",
+        "limit": false,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "unknown",
+        "limit": false,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "unknown",
+        "limit": false,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "unknown",
+        "limit": false,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "unknown",
+        "limit": true,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "unknown",
+        "limit": true,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "unknown",
+        "limit": true,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "unknown",
+        "limit": true,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "unknown",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "unknown",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "unknown",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "unknown",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "unknown",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "unknown",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "unknown",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "unknown",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "unknown",
+        "limit": false,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "unknown",
+        "limit": false,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "unknown",
+        "limit": false,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "unknown",
+        "limit": false,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "unknown",
+        "limit": true,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "unknown",
+        "limit": true,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "unknown",
+        "limit": true,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "unknown",
+        "limit": true,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "machine",
+        "limit": false,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "machine",
+        "limit": false,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "machine",
+        "limit": false,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "machine",
+        "limit": false,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "machine",
+        "limit": true,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "machine",
+        "limit": true,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "machine",
+        "limit": true,
+        "outcome": "completed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "machine",
+        "limit": true,
+        "outcome": "completed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "machine",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "machine",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "machine",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "machine",
+        "limit": false,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "machine",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "machine",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "machine",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "machine",
+        "limit": true,
+        "outcome": "interrupted",
+        "waits": true
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "machine",
+        "limit": false,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "machine",
+        "limit": false,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "machine",
+        "limit": false,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "unknown",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "machine",
+        "limit": false,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "machine",
+        "limit": true,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "unobserved",
+        "children": false,
+        "gate": "machine",
+        "limit": true,
+        "outcome": "failed",
+        "waits": true
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "machine",
+        "limit": true,
+        "outcome": "failed",
+        "waits": false
+      }
+    },
+    {
+      "expected": "blocked",
+      "input": {
+        "activity": "unobserved",
+        "children": true,
+        "gate": "machine",
+        "limit": true,
+        "outcome": "failed",
+        "waits": true
+      }
+    }
+  ],
+  "shownCases": [
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 0.0,
+      "expected": "attention",
+      "pending": null,
+      "truth": "attention"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 0.5,
+      "expected": "attention",
+      "pending": null,
+      "truth": "attention"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 5.5,
+      "expected": "attention",
+      "pending": null,
+      "truth": "attention"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 6.0,
+      "expected": "attention",
+      "pending": null,
+      "truth": "attention"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 9.5,
+      "expected": "attention",
+      "pending": null,
+      "truth": "attention"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 10.0,
+      "expected": "attention",
+      "pending": null,
+      "truth": "attention"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 12.0,
+      "expected": "attention",
+      "pending": null,
+      "truth": "attention"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 0.0,
+      "expected": "working",
+      "pending": "attention",
+      "truth": "attention"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 0.5,
+      "expected": "working",
+      "pending": "attention",
+      "truth": "attention"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 5.5,
+      "expected": "working",
+      "pending": "attention",
+      "truth": "attention"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 6.0,
+      "expected": "working",
+      "pending": "attention",
+      "truth": "attention"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 9.5,
+      "expected": "working",
+      "pending": "attention",
+      "truth": "attention"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 10.0,
+      "expected": "attention",
+      "pending": null,
+      "truth": "attention"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 12.0,
+      "expected": "attention",
+      "pending": null,
+      "truth": "attention"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 0.0,
+      "expected": "working",
+      "pending": "attention",
+      "truth": "attention"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 0.5,
+      "expected": "working",
+      "pending": "attention",
+      "truth": "attention"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 5.5,
+      "expected": "working",
+      "pending": "attention",
+      "truth": "attention"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 6.0,
+      "expected": "attention",
+      "pending": null,
+      "truth": "attention"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 9.5,
+      "expected": "attention",
+      "pending": null,
+      "truth": "attention"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 10.0,
+      "expected": "attention",
+      "pending": null,
+      "truth": "attention"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 12.0,
+      "expected": "attention",
+      "pending": null,
+      "truth": "attention"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 0.0,
+      "expected": "attention",
+      "pending": null,
+      "truth": "attention"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 0.5,
+      "expected": "attention",
+      "pending": null,
+      "truth": "attention"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 5.5,
+      "expected": "attention",
+      "pending": null,
+      "truth": "attention"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 6.0,
+      "expected": "attention",
+      "pending": null,
+      "truth": "attention"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 9.5,
+      "expected": "attention",
+      "pending": null,
+      "truth": "attention"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 10.0,
+      "expected": "attention",
+      "pending": null,
+      "truth": "attention"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 12.0,
+      "expected": "attention",
+      "pending": null,
+      "truth": "attention"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 0.0,
+      "expected": "attention",
+      "pending": null,
+      "truth": "attention"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 0.5,
+      "expected": "attention",
+      "pending": null,
+      "truth": "attention"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 5.5,
+      "expected": "attention",
+      "pending": null,
+      "truth": "attention"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 6.0,
+      "expected": "attention",
+      "pending": null,
+      "truth": "attention"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 9.5,
+      "expected": "attention",
+      "pending": null,
+      "truth": "attention"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 10.0,
+      "expected": "attention",
+      "pending": null,
+      "truth": "attention"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 12.0,
+      "expected": "attention",
+      "pending": null,
+      "truth": "attention"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 0.0,
+      "expected": "attention",
+      "pending": null,
+      "truth": "attention"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 0.5,
+      "expected": "attention",
+      "pending": null,
+      "truth": "attention"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 5.5,
+      "expected": "attention",
+      "pending": null,
+      "truth": "attention"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 6.0,
+      "expected": "attention",
+      "pending": null,
+      "truth": "attention"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 9.5,
+      "expected": "attention",
+      "pending": null,
+      "truth": "attention"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 10.0,
+      "expected": "attention",
+      "pending": null,
+      "truth": "attention"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 12.0,
+      "expected": "attention",
+      "pending": null,
+      "truth": "attention"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 0.0,
+      "expected": "blocked",
+      "pending": null,
+      "truth": "blocked"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 0.5,
+      "expected": "blocked",
+      "pending": null,
+      "truth": "blocked"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 5.5,
+      "expected": "blocked",
+      "pending": null,
+      "truth": "blocked"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 6.0,
+      "expected": "blocked",
+      "pending": null,
+      "truth": "blocked"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 9.5,
+      "expected": "blocked",
+      "pending": null,
+      "truth": "blocked"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 10.0,
+      "expected": "blocked",
+      "pending": null,
+      "truth": "blocked"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 12.0,
+      "expected": "blocked",
+      "pending": null,
+      "truth": "blocked"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 0.0,
+      "expected": "working",
+      "pending": "blocked",
+      "truth": "blocked"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 0.5,
+      "expected": "working",
+      "pending": "blocked",
+      "truth": "blocked"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 5.5,
+      "expected": "working",
+      "pending": "blocked",
+      "truth": "blocked"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 6.0,
+      "expected": "working",
+      "pending": "blocked",
+      "truth": "blocked"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 9.5,
+      "expected": "working",
+      "pending": "blocked",
+      "truth": "blocked"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 10.0,
+      "expected": "blocked",
+      "pending": null,
+      "truth": "blocked"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 12.0,
+      "expected": "blocked",
+      "pending": null,
+      "truth": "blocked"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 0.0,
+      "expected": "working",
+      "pending": "blocked",
+      "truth": "blocked"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 0.5,
+      "expected": "working",
+      "pending": "blocked",
+      "truth": "blocked"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 5.5,
+      "expected": "working",
+      "pending": "blocked",
+      "truth": "blocked"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 6.0,
+      "expected": "blocked",
+      "pending": null,
+      "truth": "blocked"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 9.5,
+      "expected": "blocked",
+      "pending": null,
+      "truth": "blocked"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 10.0,
+      "expected": "blocked",
+      "pending": null,
+      "truth": "blocked"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 12.0,
+      "expected": "blocked",
+      "pending": null,
+      "truth": "blocked"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 0.0,
+      "expected": "blocked",
+      "pending": null,
+      "truth": "blocked"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 0.5,
+      "expected": "blocked",
+      "pending": null,
+      "truth": "blocked"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 5.5,
+      "expected": "blocked",
+      "pending": null,
+      "truth": "blocked"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 6.0,
+      "expected": "blocked",
+      "pending": null,
+      "truth": "blocked"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 9.5,
+      "expected": "blocked",
+      "pending": null,
+      "truth": "blocked"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 10.0,
+      "expected": "blocked",
+      "pending": null,
+      "truth": "blocked"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 12.0,
+      "expected": "blocked",
+      "pending": null,
+      "truth": "blocked"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 0.0,
+      "expected": "blocked",
+      "pending": null,
+      "truth": "blocked"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 0.5,
+      "expected": "blocked",
+      "pending": null,
+      "truth": "blocked"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 5.5,
+      "expected": "blocked",
+      "pending": null,
+      "truth": "blocked"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 6.0,
+      "expected": "blocked",
+      "pending": null,
+      "truth": "blocked"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 9.5,
+      "expected": "blocked",
+      "pending": null,
+      "truth": "blocked"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 10.0,
+      "expected": "blocked",
+      "pending": null,
+      "truth": "blocked"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 12.0,
+      "expected": "blocked",
+      "pending": null,
+      "truth": "blocked"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 0.0,
+      "expected": "blocked",
+      "pending": null,
+      "truth": "blocked"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 0.5,
+      "expected": "blocked",
+      "pending": null,
+      "truth": "blocked"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 5.5,
+      "expected": "blocked",
+      "pending": null,
+      "truth": "blocked"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 6.0,
+      "expected": "blocked",
+      "pending": null,
+      "truth": "blocked"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 9.5,
+      "expected": "blocked",
+      "pending": null,
+      "truth": "blocked"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 10.0,
+      "expected": "blocked",
+      "pending": null,
+      "truth": "blocked"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 12.0,
+      "expected": "blocked",
+      "pending": null,
+      "truth": "blocked"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 0.0,
+      "expected": "stopped",
+      "pending": null,
+      "truth": "stopped"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 0.5,
+      "expected": "stopped",
+      "pending": null,
+      "truth": "stopped"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 5.5,
+      "expected": "stopped",
+      "pending": null,
+      "truth": "stopped"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 6.0,
+      "expected": "stopped",
+      "pending": null,
+      "truth": "stopped"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 9.5,
+      "expected": "stopped",
+      "pending": null,
+      "truth": "stopped"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 10.0,
+      "expected": "stopped",
+      "pending": null,
+      "truth": "stopped"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 12.0,
+      "expected": "stopped",
+      "pending": null,
+      "truth": "stopped"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 0.0,
+      "expected": "working",
+      "pending": "stopped",
+      "truth": "stopped"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 0.5,
+      "expected": "working",
+      "pending": "stopped",
+      "truth": "stopped"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 5.5,
+      "expected": "working",
+      "pending": "stopped",
+      "truth": "stopped"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 6.0,
+      "expected": "working",
+      "pending": "stopped",
+      "truth": "stopped"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 9.5,
+      "expected": "working",
+      "pending": "stopped",
+      "truth": "stopped"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 10.0,
+      "expected": "stopped",
+      "pending": null,
+      "truth": "stopped"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 12.0,
+      "expected": "stopped",
+      "pending": null,
+      "truth": "stopped"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 0.0,
+      "expected": "working",
+      "pending": "stopped",
+      "truth": "stopped"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 0.5,
+      "expected": "working",
+      "pending": "stopped",
+      "truth": "stopped"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 5.5,
+      "expected": "working",
+      "pending": "stopped",
+      "truth": "stopped"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 6.0,
+      "expected": "stopped",
+      "pending": null,
+      "truth": "stopped"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 9.5,
+      "expected": "stopped",
+      "pending": null,
+      "truth": "stopped"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 10.0,
+      "expected": "stopped",
+      "pending": null,
+      "truth": "stopped"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 12.0,
+      "expected": "stopped",
+      "pending": null,
+      "truth": "stopped"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 0.0,
+      "expected": "stopped",
+      "pending": null,
+      "truth": "stopped"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 0.5,
+      "expected": "stopped",
+      "pending": null,
+      "truth": "stopped"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 5.5,
+      "expected": "stopped",
+      "pending": null,
+      "truth": "stopped"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 6.0,
+      "expected": "stopped",
+      "pending": null,
+      "truth": "stopped"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 9.5,
+      "expected": "stopped",
+      "pending": null,
+      "truth": "stopped"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 10.0,
+      "expected": "stopped",
+      "pending": null,
+      "truth": "stopped"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 12.0,
+      "expected": "stopped",
+      "pending": null,
+      "truth": "stopped"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 0.0,
+      "expected": "stopped",
+      "pending": null,
+      "truth": "stopped"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 0.5,
+      "expected": "stopped",
+      "pending": null,
+      "truth": "stopped"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 5.5,
+      "expected": "stopped",
+      "pending": null,
+      "truth": "stopped"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 6.0,
+      "expected": "stopped",
+      "pending": null,
+      "truth": "stopped"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 9.5,
+      "expected": "stopped",
+      "pending": null,
+      "truth": "stopped"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 10.0,
+      "expected": "stopped",
+      "pending": null,
+      "truth": "stopped"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 12.0,
+      "expected": "stopped",
+      "pending": null,
+      "truth": "stopped"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 0.0,
+      "expected": "stopped",
+      "pending": null,
+      "truth": "stopped"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 0.5,
+      "expected": "stopped",
+      "pending": null,
+      "truth": "stopped"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 5.5,
+      "expected": "stopped",
+      "pending": null,
+      "truth": "stopped"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 6.0,
+      "expected": "stopped",
+      "pending": null,
+      "truth": "stopped"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 9.5,
+      "expected": "stopped",
+      "pending": null,
+      "truth": "stopped"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 10.0,
+      "expected": "stopped",
+      "pending": null,
+      "truth": "stopped"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 12.0,
+      "expected": "stopped",
+      "pending": null,
+      "truth": "stopped"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 0.0,
+      "expected": "unknown",
+      "pending": null,
+      "truth": "unknown"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 0.5,
+      "expected": "unknown",
+      "pending": null,
+      "truth": "unknown"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 5.5,
+      "expected": "unknown",
+      "pending": null,
+      "truth": "unknown"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 6.0,
+      "expected": "unknown",
+      "pending": null,
+      "truth": "unknown"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 9.5,
+      "expected": "unknown",
+      "pending": null,
+      "truth": "unknown"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 10.0,
+      "expected": "unknown",
+      "pending": null,
+      "truth": "unknown"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 12.0,
+      "expected": "unknown",
+      "pending": null,
+      "truth": "unknown"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 0.0,
+      "expected": "unknown",
+      "pending": null,
+      "truth": "unknown"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 0.5,
+      "expected": "unknown",
+      "pending": null,
+      "truth": "unknown"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 5.5,
+      "expected": "unknown",
+      "pending": null,
+      "truth": "unknown"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 6.0,
+      "expected": "unknown",
+      "pending": null,
+      "truth": "unknown"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 9.5,
+      "expected": "unknown",
+      "pending": null,
+      "truth": "unknown"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 10.0,
+      "expected": "unknown",
+      "pending": null,
+      "truth": "unknown"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 12.0,
+      "expected": "unknown",
+      "pending": null,
+      "truth": "unknown"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 0.0,
+      "expected": "unknown",
+      "pending": null,
+      "truth": "unknown"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 0.5,
+      "expected": "unknown",
+      "pending": null,
+      "truth": "unknown"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 5.5,
+      "expected": "unknown",
+      "pending": null,
+      "truth": "unknown"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 6.0,
+      "expected": "unknown",
+      "pending": null,
+      "truth": "unknown"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 9.5,
+      "expected": "unknown",
+      "pending": null,
+      "truth": "unknown"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 10.0,
+      "expected": "unknown",
+      "pending": null,
+      "truth": "unknown"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 12.0,
+      "expected": "unknown",
+      "pending": null,
+      "truth": "unknown"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 0.0,
+      "expected": "unknown",
+      "pending": null,
+      "truth": "unknown"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 0.5,
+      "expected": "unknown",
+      "pending": null,
+      "truth": "unknown"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 5.5,
+      "expected": "unknown",
+      "pending": null,
+      "truth": "unknown"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 6.0,
+      "expected": "unknown",
+      "pending": null,
+      "truth": "unknown"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 9.5,
+      "expected": "unknown",
+      "pending": null,
+      "truth": "unknown"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 10.0,
+      "expected": "unknown",
+      "pending": null,
+      "truth": "unknown"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 12.0,
+      "expected": "unknown",
+      "pending": null,
+      "truth": "unknown"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 0.0,
+      "expected": "unknown",
+      "pending": null,
+      "truth": "unknown"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 0.5,
+      "expected": "unknown",
+      "pending": null,
+      "truth": "unknown"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 5.5,
+      "expected": "unknown",
+      "pending": null,
+      "truth": "unknown"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 6.0,
+      "expected": "unknown",
+      "pending": null,
+      "truth": "unknown"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 9.5,
+      "expected": "unknown",
+      "pending": null,
+      "truth": "unknown"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 10.0,
+      "expected": "unknown",
+      "pending": null,
+      "truth": "unknown"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 12.0,
+      "expected": "unknown",
+      "pending": null,
+      "truth": "unknown"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 0.0,
+      "expected": "unknown",
+      "pending": null,
+      "truth": "unknown"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 0.5,
+      "expected": "unknown",
+      "pending": null,
+      "truth": "unknown"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 5.5,
+      "expected": "unknown",
+      "pending": null,
+      "truth": "unknown"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 6.0,
+      "expected": "unknown",
+      "pending": null,
+      "truth": "unknown"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 9.5,
+      "expected": "unknown",
+      "pending": null,
+      "truth": "unknown"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 10.0,
+      "expected": "unknown",
+      "pending": null,
+      "truth": "unknown"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 12.0,
+      "expected": "unknown",
+      "pending": null,
+      "truth": "unknown"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 0.0,
+      "expected": "working",
+      "pending": null,
+      "truth": "working"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 0.5,
+      "expected": "working",
+      "pending": null,
+      "truth": "working"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 5.5,
+      "expected": "working",
+      "pending": null,
+      "truth": "working"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 6.0,
+      "expected": "working",
+      "pending": null,
+      "truth": "working"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 9.5,
+      "expected": "working",
+      "pending": null,
+      "truth": "working"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 10.0,
+      "expected": "working",
+      "pending": null,
+      "truth": "working"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 12.0,
+      "expected": "working",
+      "pending": null,
+      "truth": "working"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 0.0,
+      "expected": "working",
+      "pending": null,
+      "truth": "working"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 0.5,
+      "expected": "working",
+      "pending": null,
+      "truth": "working"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 5.5,
+      "expected": "working",
+      "pending": null,
+      "truth": "working"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 6.0,
+      "expected": "working",
+      "pending": null,
+      "truth": "working"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 9.5,
+      "expected": "working",
+      "pending": null,
+      "truth": "working"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 10.0,
+      "expected": "working",
+      "pending": null,
+      "truth": "working"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 12.0,
+      "expected": "working",
+      "pending": null,
+      "truth": "working"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 0.0,
+      "expected": "working",
+      "pending": null,
+      "truth": "working"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 0.5,
+      "expected": "working",
+      "pending": null,
+      "truth": "working"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 5.5,
+      "expected": "working",
+      "pending": null,
+      "truth": "working"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 6.0,
+      "expected": "working",
+      "pending": null,
+      "truth": "working"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 9.5,
+      "expected": "working",
+      "pending": null,
+      "truth": "working"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 10.0,
+      "expected": "working",
+      "pending": null,
+      "truth": "working"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 12.0,
+      "expected": "working",
+      "pending": null,
+      "truth": "working"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 0.0,
+      "expected": "working",
+      "pending": null,
+      "truth": "working"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 0.5,
+      "expected": "working",
+      "pending": null,
+      "truth": "working"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 5.5,
+      "expected": "working",
+      "pending": null,
+      "truth": "working"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 6.0,
+      "expected": "working",
+      "pending": null,
+      "truth": "working"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 9.5,
+      "expected": "working",
+      "pending": null,
+      "truth": "working"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 10.0,
+      "expected": "working",
+      "pending": null,
+      "truth": "working"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 12.0,
+      "expected": "working",
+      "pending": null,
+      "truth": "working"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 0.0,
+      "expected": "working",
+      "pending": null,
+      "truth": "working"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 0.5,
+      "expected": "working",
+      "pending": null,
+      "truth": "working"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 5.5,
+      "expected": "working",
+      "pending": null,
+      "truth": "working"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 6.0,
+      "expected": "working",
+      "pending": null,
+      "truth": "working"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 9.5,
+      "expected": "working",
+      "pending": null,
+      "truth": "working"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 10.0,
+      "expected": "working",
+      "pending": null,
+      "truth": "working"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 12.0,
+      "expected": "working",
+      "pending": null,
+      "truth": "working"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 0.0,
+      "expected": "working",
+      "pending": null,
+      "truth": "working"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 0.5,
+      "expected": "working",
+      "pending": null,
+      "truth": "working"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 5.5,
+      "expected": "working",
+      "pending": null,
+      "truth": "working"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 6.0,
+      "expected": "working",
+      "pending": null,
+      "truth": "working"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 9.5,
+      "expected": "working",
+      "pending": null,
+      "truth": "working"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 10.0,
+      "expected": "working",
+      "pending": null,
+      "truth": "working"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 12.0,
+      "expected": "working",
+      "pending": null,
+      "truth": "working"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 0.0,
+      "expected": "delegating",
+      "pending": null,
+      "truth": "delegating"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 0.5,
+      "expected": "delegating",
+      "pending": null,
+      "truth": "delegating"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 5.5,
+      "expected": "delegating",
+      "pending": null,
+      "truth": "delegating"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 6.0,
+      "expected": "delegating",
+      "pending": null,
+      "truth": "delegating"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 9.5,
+      "expected": "delegating",
+      "pending": null,
+      "truth": "delegating"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 10.0,
+      "expected": "delegating",
+      "pending": null,
+      "truth": "delegating"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 12.0,
+      "expected": "delegating",
+      "pending": null,
+      "truth": "delegating"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 0.0,
+      "expected": "delegating",
+      "pending": null,
+      "truth": "delegating"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 0.5,
+      "expected": "delegating",
+      "pending": null,
+      "truth": "delegating"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 5.5,
+      "expected": "delegating",
+      "pending": null,
+      "truth": "delegating"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 6.0,
+      "expected": "delegating",
+      "pending": null,
+      "truth": "delegating"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 9.5,
+      "expected": "delegating",
+      "pending": null,
+      "truth": "delegating"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 10.0,
+      "expected": "delegating",
+      "pending": null,
+      "truth": "delegating"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 12.0,
+      "expected": "delegating",
+      "pending": null,
+      "truth": "delegating"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 0.0,
+      "expected": "delegating",
+      "pending": null,
+      "truth": "delegating"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 0.5,
+      "expected": "delegating",
+      "pending": null,
+      "truth": "delegating"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 5.5,
+      "expected": "delegating",
+      "pending": null,
+      "truth": "delegating"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 6.0,
+      "expected": "delegating",
+      "pending": null,
+      "truth": "delegating"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 9.5,
+      "expected": "delegating",
+      "pending": null,
+      "truth": "delegating"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 10.0,
+      "expected": "delegating",
+      "pending": null,
+      "truth": "delegating"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 12.0,
+      "expected": "delegating",
+      "pending": null,
+      "truth": "delegating"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 0.0,
+      "expected": "delegating",
+      "pending": null,
+      "truth": "delegating"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 0.5,
+      "expected": "delegating",
+      "pending": null,
+      "truth": "delegating"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 5.5,
+      "expected": "delegating",
+      "pending": null,
+      "truth": "delegating"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 6.0,
+      "expected": "delegating",
+      "pending": null,
+      "truth": "delegating"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 9.5,
+      "expected": "delegating",
+      "pending": null,
+      "truth": "delegating"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 10.0,
+      "expected": "delegating",
+      "pending": null,
+      "truth": "delegating"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 12.0,
+      "expected": "delegating",
+      "pending": null,
+      "truth": "delegating"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 0.0,
+      "expected": "delegating",
+      "pending": null,
+      "truth": "delegating"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 0.5,
+      "expected": "delegating",
+      "pending": null,
+      "truth": "delegating"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 5.5,
+      "expected": "delegating",
+      "pending": null,
+      "truth": "delegating"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 6.0,
+      "expected": "delegating",
+      "pending": null,
+      "truth": "delegating"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 9.5,
+      "expected": "delegating",
+      "pending": null,
+      "truth": "delegating"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 10.0,
+      "expected": "delegating",
+      "pending": null,
+      "truth": "delegating"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 12.0,
+      "expected": "delegating",
+      "pending": null,
+      "truth": "delegating"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 0.0,
+      "expected": "delegating",
+      "pending": null,
+      "truth": "delegating"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 0.5,
+      "expected": "delegating",
+      "pending": null,
+      "truth": "delegating"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 5.5,
+      "expected": "delegating",
+      "pending": null,
+      "truth": "delegating"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 6.0,
+      "expected": "delegating",
+      "pending": null,
+      "truth": "delegating"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 9.5,
+      "expected": "delegating",
+      "pending": null,
+      "truth": "delegating"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 10.0,
+      "expected": "delegating",
+      "pending": null,
+      "truth": "delegating"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 12.0,
+      "expected": "delegating",
+      "pending": null,
+      "truth": "delegating"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 0.0,
+      "expected": "waiting",
+      "pending": null,
+      "truth": "waiting"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 0.5,
+      "expected": "waiting",
+      "pending": null,
+      "truth": "waiting"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 5.5,
+      "expected": "waiting",
+      "pending": null,
+      "truth": "waiting"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 6.0,
+      "expected": "waiting",
+      "pending": null,
+      "truth": "waiting"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 9.5,
+      "expected": "waiting",
+      "pending": null,
+      "truth": "waiting"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 10.0,
+      "expected": "waiting",
+      "pending": null,
+      "truth": "waiting"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 12.0,
+      "expected": "waiting",
+      "pending": null,
+      "truth": "waiting"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 0.0,
+      "expected": "waiting",
+      "pending": null,
+      "truth": "waiting"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 0.5,
+      "expected": "waiting",
+      "pending": null,
+      "truth": "waiting"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 5.5,
+      "expected": "waiting",
+      "pending": null,
+      "truth": "waiting"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 6.0,
+      "expected": "waiting",
+      "pending": null,
+      "truth": "waiting"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 9.5,
+      "expected": "waiting",
+      "pending": null,
+      "truth": "waiting"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 10.0,
+      "expected": "waiting",
+      "pending": null,
+      "truth": "waiting"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 12.0,
+      "expected": "waiting",
+      "pending": null,
+      "truth": "waiting"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 0.0,
+      "expected": "waiting",
+      "pending": null,
+      "truth": "waiting"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 0.5,
+      "expected": "waiting",
+      "pending": null,
+      "truth": "waiting"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 5.5,
+      "expected": "waiting",
+      "pending": null,
+      "truth": "waiting"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 6.0,
+      "expected": "waiting",
+      "pending": null,
+      "truth": "waiting"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 9.5,
+      "expected": "waiting",
+      "pending": null,
+      "truth": "waiting"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 10.0,
+      "expected": "waiting",
+      "pending": null,
+      "truth": "waiting"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 12.0,
+      "expected": "waiting",
+      "pending": null,
+      "truth": "waiting"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 0.0,
+      "expected": "waiting",
+      "pending": null,
+      "truth": "waiting"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 0.5,
+      "expected": "waiting",
+      "pending": null,
+      "truth": "waiting"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 5.5,
+      "expected": "waiting",
+      "pending": null,
+      "truth": "waiting"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 6.0,
+      "expected": "waiting",
+      "pending": null,
+      "truth": "waiting"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 9.5,
+      "expected": "waiting",
+      "pending": null,
+      "truth": "waiting"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 10.0,
+      "expected": "waiting",
+      "pending": null,
+      "truth": "waiting"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 12.0,
+      "expected": "waiting",
+      "pending": null,
+      "truth": "waiting"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 0.0,
+      "expected": "waiting",
+      "pending": null,
+      "truth": "waiting"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 0.5,
+      "expected": "waiting",
+      "pending": null,
+      "truth": "waiting"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 5.5,
+      "expected": "waiting",
+      "pending": null,
+      "truth": "waiting"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 6.0,
+      "expected": "waiting",
+      "pending": null,
+      "truth": "waiting"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 9.5,
+      "expected": "waiting",
+      "pending": null,
+      "truth": "waiting"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 10.0,
+      "expected": "waiting",
+      "pending": null,
+      "truth": "waiting"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 12.0,
+      "expected": "waiting",
+      "pending": null,
+      "truth": "waiting"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 0.0,
+      "expected": "waiting",
+      "pending": null,
+      "truth": "waiting"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 0.5,
+      "expected": "waiting",
+      "pending": null,
+      "truth": "waiting"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 5.5,
+      "expected": "waiting",
+      "pending": null,
+      "truth": "waiting"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 6.0,
+      "expected": "waiting",
+      "pending": null,
+      "truth": "waiting"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 9.5,
+      "expected": "waiting",
+      "pending": null,
+      "truth": "waiting"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 10.0,
+      "expected": "waiting",
+      "pending": null,
+      "truth": "waiting"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 12.0,
+      "expected": "waiting",
+      "pending": null,
+      "truth": "waiting"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 0.0,
+      "expected": "idle",
+      "pending": null,
+      "truth": "idle"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 0.5,
+      "expected": "idle",
+      "pending": null,
+      "truth": "idle"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 5.5,
+      "expected": "idle",
+      "pending": null,
+      "truth": "idle"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 6.0,
+      "expected": "idle",
+      "pending": null,
+      "truth": "idle"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 9.5,
+      "expected": "idle",
+      "pending": null,
+      "truth": "idle"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 10.0,
+      "expected": "idle",
+      "pending": null,
+      "truth": "idle"
+    },
+    {
+      "cause": "agent",
+      "confidence": "confirmed",
+      "elapsed": 12.0,
+      "expected": "idle",
+      "pending": null,
+      "truth": "idle"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 0.0,
+      "expected": "idle",
+      "pending": null,
+      "truth": "idle"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 0.5,
+      "expected": "idle",
+      "pending": null,
+      "truth": "idle"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 5.5,
+      "expected": "idle",
+      "pending": null,
+      "truth": "idle"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 6.0,
+      "expected": "idle",
+      "pending": null,
+      "truth": "idle"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 9.5,
+      "expected": "idle",
+      "pending": null,
+      "truth": "idle"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 10.0,
+      "expected": "idle",
+      "pending": null,
+      "truth": "idle"
+    },
+    {
+      "cause": "agent",
+      "confidence": "inferred",
+      "elapsed": 12.0,
+      "expected": "idle",
+      "pending": null,
+      "truth": "idle"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 0.0,
+      "expected": "idle",
+      "pending": null,
+      "truth": "idle"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 0.5,
+      "expected": "idle",
+      "pending": null,
+      "truth": "idle"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 5.5,
+      "expected": "idle",
+      "pending": null,
+      "truth": "idle"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 6.0,
+      "expected": "idle",
+      "pending": null,
+      "truth": "idle"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 9.5,
+      "expected": "idle",
+      "pending": null,
+      "truth": "idle"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 10.0,
+      "expected": "idle",
+      "pending": null,
+      "truth": "idle"
+    },
+    {
+      "cause": "agent",
+      "confidence": "snapshot",
+      "elapsed": 12.0,
+      "expected": "idle",
+      "pending": null,
+      "truth": "idle"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 0.0,
+      "expected": "idle",
+      "pending": null,
+      "truth": "idle"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 0.5,
+      "expected": "idle",
+      "pending": null,
+      "truth": "idle"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 5.5,
+      "expected": "idle",
+      "pending": null,
+      "truth": "idle"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 6.0,
+      "expected": "idle",
+      "pending": null,
+      "truth": "idle"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 9.5,
+      "expected": "idle",
+      "pending": null,
+      "truth": "idle"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 10.0,
+      "expected": "idle",
+      "pending": null,
+      "truth": "idle"
+    },
+    {
+      "cause": "user",
+      "confidence": "confirmed",
+      "elapsed": 12.0,
+      "expected": "idle",
+      "pending": null,
+      "truth": "idle"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 0.0,
+      "expected": "idle",
+      "pending": null,
+      "truth": "idle"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 0.5,
+      "expected": "idle",
+      "pending": null,
+      "truth": "idle"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 5.5,
+      "expected": "idle",
+      "pending": null,
+      "truth": "idle"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 6.0,
+      "expected": "idle",
+      "pending": null,
+      "truth": "idle"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 9.5,
+      "expected": "idle",
+      "pending": null,
+      "truth": "idle"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 10.0,
+      "expected": "idle",
+      "pending": null,
+      "truth": "idle"
+    },
+    {
+      "cause": "user",
+      "confidence": "inferred",
+      "elapsed": 12.0,
+      "expected": "idle",
+      "pending": null,
+      "truth": "idle"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 0.0,
+      "expected": "idle",
+      "pending": null,
+      "truth": "idle"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 0.5,
+      "expected": "idle",
+      "pending": null,
+      "truth": "idle"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 5.5,
+      "expected": "idle",
+      "pending": null,
+      "truth": "idle"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 6.0,
+      "expected": "idle",
+      "pending": null,
+      "truth": "idle"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 9.5,
+      "expected": "idle",
+      "pending": null,
+      "truth": "idle"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 10.0,
+      "expected": "idle",
+      "pending": null,
+      "truth": "idle"
+    },
+    {
+      "cause": "user",
+      "confidence": "snapshot",
+      "elapsed": 12.0,
+      "expected": "idle",
+      "pending": null,
+      "truth": "idle"
+    }
+  ]
+}
