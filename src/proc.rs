@@ -44,7 +44,24 @@ impl Stat {
 ///
 /// `comm` is wrapped in parentheses and may itself contain spaces and `)`, so
 /// the only safe split is at the *last* `)`. Fields after it are counted from
-/// field 3 (`state`).
+/// field 3 (`state`), so field N is `fields[N - 3]` once the text after the
+/// paren is split on whitespace. The fields this reads, numbered as
+/// `proc_pid_stat(5)` numbers them:
+///
+/// | field | name        | goes to          |
+/// |-------|-------------|------------------|
+/// | 1     | `pid`       | `pid` (before the paren) |
+/// | 2     | `comm`      | `comm` (inside the parens) |
+/// | 3     | `state`     | `state`, its first character |
+/// | 4     | `ppid`      | `ppid`           |
+/// | 7     | `tty_nr`    | `tty_nr`         |
+/// | 14    | `utime`     | `cpu_ticks`, summed with |
+/// | 15    | `stime`     | `cpu_ticks`      |
+/// | 22    | `starttime` | `start`          |
+///
+/// A missing field is `Missing(name)` with that name; a field that will not
+/// parse is `BadNumber { field: name, .. }`. No paren pair, or a `)` before
+/// the `(`, is `NoComm`.
 pub fn parse_stat(s: &str) -> Result<Stat, StatError> {
     todo!("T06")
 }
@@ -64,8 +81,22 @@ pub fn parse_cmdline(bytes: &[u8]) -> Vec<Cow<'_, str>> {
 
 /// Whether a process is an interactive Claude session.
 ///
-/// `exe` is `None` when the link cannot be read, which for another user's
-/// process is normal; the check then rests on `comm` and `argv` alone.
+/// The rules, in the order they are checked:
+///
+/// 1. `comm` must be exactly `claude`. Anything else is not Claude, whatever
+///    its arguments say.
+/// 2. A readable `exe` must have `/claude/` somewhere in its path (the
+///    harness installs under `.../share/claude/versions/<v>`). `exe` is
+///    `None` when the link cannot be read, which for another user's process
+///    is normal; the check then rests on `comm` and `argv` alone, so `None`
+///    is not a rejection.
+/// 3. A service is not a session: `argv[1]` (the verb, right after the
+///    program) equal to `daemon` or `mcp` is rejected. Only the verb counts,
+///    so `claude --model daemon` is still a session.
+/// 4. Headless is not a session: `-p` or `--print` anywhere after the
+///    program is rejected.
+///
+/// Everything else is `Provider::Claude`.
 pub fn classify<S: AsRef<str>>(comm: &str, exe: Option<&Path>, argv: &[S]) -> Option<Provider> {
     todo!("T06")
 }
@@ -145,15 +176,22 @@ pub fn parent_of(proc_root: &Path, pid: u32) -> Option<u32> {
 
 /// `pid`, its parent, its grandparent, … at most `limit` of them.
 ///
+/// The chain starts with `pid` itself whether or not it can be read, and
+/// stops at the first parent that cannot be, or at `limit`. A `limit` of
+/// zero yields nothing, not even `pid`.
+///
 /// A hook runs as `claude -> sh -> switchboard-hook`, so the pid the
 /// forwarder reports is rarely the agent itself.
 pub fn ancestors(proc_root: &Path, pid: u32, limit: usize) -> impl Iterator<Item = u32> + '_ {
+    // T06. Replace this whole body. The `empty()` below only keeps the
+    // `impl Iterator` signature compiling until you do; it is not a start.
     todo!("T06");
     #[allow(unreachable_code)]
     std::iter::empty()
 }
 
-/// The start time of `pid`, to turn a bare pid into a `ProcKey`.
+/// The start time of `pid`, to turn a bare pid into a `ProcKey`. Reads the
+/// same `stat` file as `parent_of`; the two can share a helper.
 pub fn key_of(proc_root: &Path, pid: u32) -> Option<ProcKey> {
     todo!("T06")
 }

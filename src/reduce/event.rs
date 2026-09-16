@@ -10,12 +10,26 @@ use std::time::{Instant, UNIX_EPOCH};
 use crate::model::{
     Activity, Actor, Board, Compaction, Decision, Effect, Event, EventKind, Gate, GateKind,
     HistoryEntry, InputHash, Ownership, Prompts, StartSource, Subagent, SubagentId,
-    SubagentSource, SubagentStatus, Subagents, Tool, ToolName, ToolOutcome, ToolUseId, TurnKey,
-    TurnOutcome, Unjoined,
+    SubagentOutcome, SubagentSource, SubagentStatus, Subagents, Tool, ToolName, ToolOutcome,
+    ToolUseId, TurnKey, TurnOutcome, Unjoined,
 };
 use crate::paths::workspace_name;
 use crate::reduce::{Effects, limits_for, route, settle};
 
+/// One event, in order:
+///
+/// 1. `route` it, or return nothing: agents exist because processes do.
+/// 2. `Died` removes the agent, before the board is split.
+/// 3. The `/clear` race. An agent that has rotated to a new session drops
+///    every late event for the old one, and drops an event from its own
+///    (tracked) pid that names any session it does not hold. Only a
+///    `SessionStarted` may change which session that is. An agent with no
+///    session yet adopts the event's.
+/// 4. `transition`, then `last_event` is stamped if anything changed.
+/// 5. `settle`, always, no-op or not. A duplicate is still silent, because
+///    `Shown::settle` returns nothing when the truth already matches the
+///    screen; and an escalation whose dwell has elapsed promotes on the
+///    next event rather than waiting for a tick.
 pub fn apply_event(board: &mut Board, event: Event) -> Vec<Effect> {
     todo!("T07")
 }
@@ -26,13 +40,17 @@ pub fn apply_event(board: &mut Board, event: Event) -> Vec<Effect> {
 /// hand a subagent's event to `subagent_transition`. A subagent's turn is not
 /// the agent's turn, so a child's `StopFailure` must never end the agent's
 /// turn or paint it Blocked (47 of 56 captured failures were a child's).
+///
+/// The arms below are the agent's own. `SubagentStarted` and `SubagentEnded`
+/// are among them: Claude reports a child's lifecycle through the *agent's*
+/// hooks (`Actor::Agent`), so they never reach `subagent_transition`.
 fn transition(
     agent: &mut crate::model::Agent,
     event: &Event,
     now: Instant,
     effects: &mut Effects,
 ) -> bool {
-    todo!("T07 (agent arms) and T08 (route subagent events, then the permission arms)")
+    todo!("T07a (session, compaction, cwd arms), T07b (turn and tool arms), T08 (route subagent events, then the permission and subagent arms)")
 }
 
 /// Apply an event a subagent sent to that subagent's row. Returns whether
@@ -55,10 +73,14 @@ fn subagent_transition(
     todo!("T08")
 }
 
+/// `Idle`, carrying how the turn that just ended did. Private to this
+/// module: `tick.rs` writes the `Idle` literal itself.
 fn idle(now: Instant, after: Option<TurnOutcome>) -> Activity {
     todo!("T07")
 }
 
+/// A fresh turn with no calls open. `key` is `None` for a turn a dispatch
+/// started, because no prompt was seen.
 fn working(key: Option<TurnKey>, now: Instant) -> Activity {
     todo!("T07")
 }
@@ -73,6 +95,22 @@ fn hash_admits(prompt: Option<InputHash>, call: InputHash) -> bool {
     todo!("T08")
 }
 
+/// The agent's turn ended, by whichever signal said so.
+///
+/// The agent's own parked prompts are lifted first, on every path, idle
+/// included: the turn they belonged to is over. A subagent's parked prompts
+/// are not touched (`Actor::Agent` is the filter), which is what keeps a
+/// child's question alive through the parent's `Stop`.
+///
+/// Then, by activity:
+///
+/// - `Turn`: a key that names a different turn is ignored. Otherwise the
+///   turn closes with `outcome`, abandoning its open calls.
+/// - `Idle`: a second close may say *how* the turn ended, but never erases
+///   that. A non-`Completed` outcome replaces `after: None | Completed`;
+///   anything else is a no-op.
+/// - `Unobserved`: goes idle with that outcome, whatever it is. A replayed
+///   `Stop` is the first thing heard from this agent.
 fn end_turn(
     agent: &mut crate::model::Agent,
     turn: Option<&TurnKey>,
@@ -82,6 +120,9 @@ fn end_turn(
     todo!("T07")
 }
 
+/// A call was dispatched. While idle (or unobserved) this starts a keyless
+/// turn. A prompt parked for this `(tool, hash)` becomes the call's gate,
+/// keeping the prompt's arrival time. The same call twice is a no-op.
 fn dispatch(
     agent: &mut crate::model::Agent,
     call: &ToolUseId,
@@ -154,16 +195,21 @@ fn take_unjoined(
     tool: &ToolName,
     hash: InputHash,
 ) -> Option<Unjoined> {
-    todo!("T08")
+    // T08. A placeholder so T07's `dispatch` compiles and runs: nothing is
+    // ever parked before T08, so nothing is ever taken.
+    None
 }
 
 /// Drop every unjoined prompt held by `actor`. Returns whether any were.
 fn clear_unjoined(prompts: &mut Prompts, actor: &Actor) -> bool {
-    todo!("T08")
+    // T08. A placeholder so T07's `end_turn` and `TurnStarted` can call it
+    // from the right place now; nothing is parked before T08.
+    false
 }
 
 fn lift_sole_unjoined(prompts: &mut Prompts, actor: &Actor) -> bool {
-    todo!("T08")
+    // T08. A placeholder so T07's `settle_call` can call it now.
+    false
 }
 
 /// Anything from a subagent that shows it is moving again lifts its gate.
@@ -172,6 +218,13 @@ fn lift_subagent(agent: &mut crate::model::Agent, id: &SubagentId) -> bool {
 }
 
 /// A permission prompt was answered.
+///
+/// With a call id: `Allowed` releases that call's gate; `Denied` and
+/// `Abandoned` drop the call. Without one (Claude's `PermissionDenied` may
+/// carry none), the only thing it can mean is that a parked prompt was
+/// answered: if exactly one of the agent's prompts is parked, it is lifted;
+/// with none or several, nothing changes. A gated call is never released by
+/// a call-less answer.
 fn answer(
     agent: &mut crate::model::Agent,
     call: Option<&ToolUseId>,

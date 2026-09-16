@@ -143,6 +143,72 @@ fn should_key_the_prompt_turn_from_prompt_id() {
     assert_eq!(first, Some(TurnKey::Prompt(PromptId::from("p-0001"))));
 }
 
+/// The interrupt line carries the `promptId` of the turn it cut short, and
+/// the adapter keys the `TurnEnded` on it exactly as it keys a prompt. An
+/// interrupt with no `promptId` ends whatever turn is open.
+#[test]
+fn should_key_the_interrupt_from_the_prompt_id_when_the_line_carries_one() {
+    let inputs = all_inputs(Confidence::Confirmed);
+    let interrupt = inputs.iter().find_map(|i| match i {
+        Input::Event(Event {
+            kind:
+                EventKind::TurnEnded {
+                    turn,
+                    outcome: TurnOutcome::Interrupted { .. },
+                },
+            ..
+        }) => Some(turn.clone()),
+        _ => None,
+    });
+    assert_eq!(
+        interrupt,
+        Some(Some(TurnKey::Prompt(PromptId::from("p-0002"))))
+    );
+
+    let keyless = json!({
+        "type": "user",
+        "interruptedMessageId": "msg_9",
+        "message": {"content": [{"type": "text", "text": "[Request interrupted by user]"}]}
+    });
+    let out = line(&keyless, &ctx(Confidence::Confirmed));
+    let [Input::Event(e)] = out.as_slice() else {
+        panic!("{out:?}")
+    };
+    assert_eq!(e.cause, Cause::User);
+    assert!(matches!(
+        &e.kind,
+        EventKind::TurnEnded {
+            turn: None,
+            outcome: TurnOutcome::Interrupted {
+                killed: Some(killed)
+            }
+        } if killed.as_str() == "msg_9"
+    ));
+}
+
+/// A prompt line with no `origin` is a human prompt. Most typed prompts in
+/// real transcripts carry no `origin` at all, and every machine-started one
+/// names its `origin.kind`, so absence is evidence of a person here, unlike
+/// the hook side where an absent `source` means nothing.
+#[test]
+fn should_read_an_absent_origin_as_human_when_the_line_is_a_plain_prompt() {
+    let v = json!({
+        "type": "user",
+        "promptId": "p-old",
+        "message": {"role": "user", "content": "a typed line with no origin"}
+    });
+    let out = line(&v, &ctx(Confidence::Confirmed));
+    let [Input::Event(e)] = out.as_slice() else {
+        panic!("{out:?}")
+    };
+    assert_eq!(e.cause, Cause::User);
+    let EventKind::TurnStarted { turn, origin } = &e.kind else {
+        panic!("{:?}", e.kind)
+    };
+    assert_eq!(*origin, Origin::Human);
+    assert_eq!(*turn, Some(TurnKey::Prompt(PromptId::from("p-old"))));
+}
+
 #[test]
 fn should_classify_a_denial_by_rule_as_agent_caused() {
     let v = json!({
