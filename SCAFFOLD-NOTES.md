@@ -251,11 +251,10 @@ fn deadlines(agent: &Agent) -> impl Iterator<Item = Instant> + '_ {
 
 Listed so the diff against golden is not a surprise at grading.
 
-- `src/ingest/claude/transcript.rs`, `user_line`: a prompt with no
-  `origin` now maps to `Origin::Unknown` (was `Origin::Human`). The plan's
-  test `should_read_an_absent_origin_as_unknown_not_human` states this,
-  `Origin::Unknown`'s doc says it, and survey 10 §5 says it; golden's body
-  disagreed with all three.
+- `src/ingest/claude/transcript.rs`, `user_line`: unchanged. An absent
+  `origin` stays `Origin::Human`, per the F7 decision in docs/product/13
+  (35 of 53 human prompt lines carry no `origin`); the module comment, the
+  sheet and the test now state that rule and why it differs from the hook.
 - `src/reduce/event.rs`, `transition`, the `TurnStarted` arm: the duplicate
   key check now runs before `clear_unjoined`, so the transcript's repeat of
   the hook's prompt does not lift a prompt parked between the two reports.

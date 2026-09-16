@@ -186,25 +186,26 @@ fn should_key_the_interrupt_from_the_prompt_id_when_the_line_carries_one() {
     ));
 }
 
-/// A prompt line with no `origin` (an older build, a background session) is
-/// still a prompt, but not evidence that a person typed it: `Origin::Unknown`
-/// and agent-caused, so the chip does not claim human presence.
+/// A prompt line with no `origin` is a human prompt. Most typed prompts in
+/// real transcripts carry no `origin` at all, and every machine-started one
+/// names its `origin.kind`, so absence is evidence of a person here, unlike
+/// the hook side where an absent `source` means nothing.
 #[test]
-fn should_read_an_absent_origin_as_unknown_not_human() {
+fn should_read_an_absent_origin_as_human_when_the_line_is_a_plain_prompt() {
     let v = json!({
         "type": "user",
         "promptId": "p-old",
-        "message": {"role": "user", "content": "an older line with no origin"}
+        "message": {"role": "user", "content": "a typed line with no origin"}
     });
     let out = line(&v, &ctx(Confidence::Confirmed));
     let [Input::Event(e)] = out.as_slice() else {
         panic!("{out:?}")
     };
-    assert_eq!(e.cause, Cause::Agent);
+    assert_eq!(e.cause, Cause::User);
     let EventKind::TurnStarted { turn, origin } = &e.kind else {
         panic!("{:?}", e.kind)
     };
-    assert_eq!(*origin, Origin::Unknown);
+    assert_eq!(*origin, Origin::Human);
     assert_eq!(*turn, Some(TurnKey::Prompt(PromptId::from("p-old"))));
 }
 

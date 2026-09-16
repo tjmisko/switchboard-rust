@@ -12,7 +12,7 @@
 //! | user, `toolDenialKind`, tool_result blocks   | ToolSettled{Denied{by}} each   | User iff `user-rejected` |
 //! | user, tool_result blocks                     | ToolSettled{Ok or Failed} each | Agent |
 //! | user, string content, not a local command    | TurnStarted{origin}, `turn` from `promptId` | User iff `origin.kind` is `human` |
-//! | user, string content, no `origin`            | TurnStarted{Unknown}           | Agent |
+//! | user, string content, no `origin`            | TurnStarted{Human}             | User  |
 //! | assistant, `isApiErrorMessage`               | TurnEnded{Failed{class}}, then a Limits snapshot from `quotaLimits` | Agent |
 //! | assistant, tool_use blocks                   | ToolDispatched each            | Agent |
 //! | assistant, `stop_reason: end_turn`           | TurnEnded{Completed}           | Agent |
@@ -22,10 +22,13 @@
 //! `isMeta` line is text the client injected (a caveat after a `!` command, a
 //! system reminder, a teammate message). Neither is this session speaking.
 //!
-//! A prompt line with no `origin` at all is an older build or a background
-//! session (survey 10 §5, last rows). It starts a turn, but it is not
-//! evidence that a person typed, so its origin is `Unknown` and it is not
-//! user-caused.
+//! A prompt line with no `origin` at all is read as a human prompt. That is
+//! the opposite of the hook side, where `UserPromptSubmit` never carries
+//! `source` and an absent one means nothing (`Origin::Unknown`). Here absence
+//! is the common case for typed prompts: 35 of 53 human prompt lines in this
+//! machine's transcripts carry no `origin` (docs/product/13, F7), while every
+//! machine-started prompt names its `origin.kind`. So absent means human, and
+//! a named kind is what says otherwise.
 //!
 //! Everything else — metadata lines, attachments, `system` lines, thinking
 //! and text blocks — produces nothing.
@@ -116,7 +119,7 @@ fn user_line(v: &Value, event: impl Fn(Cause, EventKind) -> Input) -> Vec<Input>
         if LOCAL_COMMAND_PREFIXES.iter().any(|p| text.starts_with(p)) {
             return Vec::new();
         }
-        let origin = str_path(v, &["origin", "kind"]).map_or(Origin::Unknown, Origin::from_kind);
+        let origin = str_path(v, &["origin", "kind"]).map_or(Origin::Human, Origin::from_kind);
         let cause = if origin == Origin::Human {
             Cause::User
         } else {

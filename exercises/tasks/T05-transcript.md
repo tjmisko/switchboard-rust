@@ -34,8 +34,11 @@ Shape to aim for:
   exactly as a prompt is; with no `promptId` the key is `None` and it ends
   whatever turn is open. The string-content line is a prompt, unless it opens
   with one of the local-command prefixes; a prompt with no `origin` at all is
-  `Origin::Unknown` and agent-caused, because "the source did not say" is not
-  evidence of a person. Only the block-array branch is the pipeline: a single
+  `Origin::Human` and user-caused, because most typed prompts in real
+  transcripts carry no `origin` and every machine-started one names its kind
+  (the hook side is the other way round: `UserPromptSubmit` never carries
+  `source`, so absent means `Unknown` there). Only the block-array branch is
+  the pipeline: a single
   `filter` then `filter_map`, with the `?` operator *inside* the closure.
 - `assistant_line`: an API-error line returns early with the failure event
   chained to `quota_limits`, event first and snapshot second; the fixture test
