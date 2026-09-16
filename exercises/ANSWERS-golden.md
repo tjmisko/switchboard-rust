@@ -52,15 +52,6 @@
    ends each loop iteration. `new(file)` moves `file` into the writer, which is
    a temporary, so the file is closed at the end of that statement.
 
-## T07
-1. Keys would borrow from `Value`s created inside the function, which die when
-   it returns. To take `&[String]` the return type would have to own its keys
-   (`BTreeMap<String, Usage>`).
-2. The items are `Input`. `flat_map` accepts any `IntoIterator`, and
-   `Vec<Input>` is `IntoIterator<Item = Input>`.
-3. `then` takes a closure and evaluates lazily. `then_some` takes a value, so
-   `event(..)` runs, and allocates, even when the condition is false.
-
 ## T05
 1. The closure passed to `successors` captures `proc_root: &Path`, so the
    iterator borrows it. `'_` names that borrow in the return type.
@@ -69,6 +60,39 @@
    sweep, which works out to a few hundred per second on a busy machine.
 3. `comm: &str`, by deref of `&String`. `exe: Option<&Path>`, via `as_deref`.
    `argv: &[Cow<'_, str>]`, by deref of `&Vec<_>`. `S = Cow<'_, str>`.
+
+## T06
+1. Keys would borrow from `Value`s created inside the function, which die when
+   it returns. To take `&[String]` the return type would have to own its keys
+   (`BTreeMap<String, Usage>`).
+2. `I::IntoIter`, an iterator of `&'a Value`. Then an iterator of
+   `Response<'a>` (`filter_map` with a `fn(&Value) -> Option<Response<'_>>`
+   drops the `None`s). Then an iterator of `(&'a str, Response<'a>)`. Then
+   `BTreeMap<&'a str, Response<'a>>`: `FromIterator<(K, V)>` for `BTreeMap`,
+   and a later pair with the same key replaces the earlier one, which is
+   why the last line of a response wins.
+3. `Sum` is generic over the item: `trait Sum<A = Self>`. `impl Sum for Usage`
+   is `Sum<Usage>`, and `iter()` yields `&Usage`, so no impl matches.
+   `impl<'a> Sum<&'a Usage> for Usage` would make the first form work; std
+   writes exactly that second impl for every primitive number.
+
+## T07
+1. The items are `Input`. `flat_map` accepts any `IntoIterator`, and
+   `Vec<Input>` is `IntoIterator<Item = Input>`.
+2. `then` takes a closure and evaluates lazily. `then_some` takes a value, so
+   `event(..)` runs, and allocates, even when the condition is false.
+3. `impl Fn(..)` in argument position is a generic parameter, so `event` is
+   passed by value like any other argument. The closure captures `ctx` and
+   `v` by shared reference, so moving the closure moves two references, and
+   both outlive the call because `line`'s own parameters do. Returning
+   `event` fails first on `at`: a non-`move` closure captures even a `Copy`
+   local by shared reference and copies it out at each call, so the closure
+   borrows a local that dies with `line` (E0373, "closure may outlive the
+   current function"). `move` cures that one, and then the closure still
+   borrows `ctx` and `v`, so the return type would have to name a lifetime
+   covering both, and the caller would hold a closure it can only call
+   while both stay borrowed. Calling it in place keeps the borrow inside
+   one function.
 
 ## T08
 1. NLL ends the borrow at its last use. If `tools` is not used after the
