@@ -10,7 +10,10 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::SystemTime;
 
-use tokio::io::{AsyncBufReadExt, AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, BufReader};
+use tokio::io::{
+    AsyncBufRead, AsyncBufReadExt, AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, BufReader,
+    Lines,
+};
 use tokio::net::UnixListener;
 use tokio::sync::{mpsc, watch};
 
@@ -57,9 +60,10 @@ pub async fn serve(
 /// `tokio::io::duplex` pair instead of a socket.
 ///
 /// `subscribe` is the last request a connection makes: from then on the
-/// handler only writes, once now and once per view change, and ignores any
-/// further lines. A peer that hangs up is noticed on the next write, which is
-/// the next view change.
+/// handler writes once now and once per view change, and reads only to
+/// notice the peer going away. A further line from the peer is ignored; the
+/// peer closing its side ends the handler at once, even while the view is
+/// quiet. See `next_change`.
 ///
 /// A `watch::Ref` from `view.borrow()` is not `Send`, so it must never live
 /// across an `.await` here: take what is needed into a local first.
@@ -102,13 +106,14 @@ pub async fn handle<R, W>(
             Ok(Request::List) => snapshot_line(&view.borrow_and_update()),
 
             Ok(Request::Subscribe) => {
-                // The last request on a connection: from here it only writes.
+                // The last request on a connection: from here it only writes,
+                // and reads only to notice the peer hanging up.
                 loop {
                     let line = snapshot_line(&view.borrow_and_update());
                     if write_line(&mut write, &line).await.is_err() {
                         return;
                     }
-                    if view.changed().await.is_err() {
+                    if !next_change(&mut view, &mut lines).await {
                         return;
                     }
                 }
@@ -117,6 +122,31 @@ pub async fn handle<R, W>(
 
         if write_line(&mut write, &reply).await.is_err() {
             return;
+        }
+    }
+}
+
+/// Wait for the view to change, while watching the peer. Returns `true` on a
+/// change and `false` when the wait should end instead: the view's sender is
+/// gone, or the peer closed its side. A further line from the peer is read
+/// and ignored, and the wait goes on without another write.
+///
+/// Both futures are cancel-safe, which is what makes the race legal. A
+/// `changed` that loses has marked no version seen, so the change is still
+/// pending on the next pass. A `next_line` that loses keeps the bytes it has
+/// read so far in the `Lines` buffer, which is why this borrows the caller's
+/// `Lines` rather than building its own.
+async fn next_change<R>(view: &mut watch::Receiver<Arc<View>>, lines: &mut Lines<R>) -> bool
+where
+    R: AsyncBufRead + Unpin,
+{
+    loop {
+        tokio::select! {
+            changed = view.changed() => return changed.is_ok(),
+            read = lines.next_line() => match read {
+                Ok(Some(_ignored)) => continue,
+                Ok(None) | Err(_) => return false,
+            },
         }
     }
 }
