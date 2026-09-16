@@ -34,7 +34,18 @@ pub fn scrub(raw: Value, argv_event: Option<&str>, pid: u32) -> Value {
 
 /// Classify the daemon's one-line reply.
 pub fn interpret_reply(line: &str) -> Result<(), ForwardError> {
-    todo!("T02")
+    let reply: Value = serde_json::from_str(line)?;
+    match reply.get("ok").and_then(Value::as_bool) {
+        Some(true) => Ok(()),
+        Some(false) => {
+            let reason = reply
+                .get("error")
+                .and_then(Value::as_str)
+                .unwrap_or("daemon gave no reason");
+            Err(ForwardError::Rejected(Box::from(reason)))
+        }
+        None => Err(ForwardError::NoVerdict),
+    }
 }
 
 #[cfg(test)]

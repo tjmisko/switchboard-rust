@@ -98,3 +98,112 @@ branches. A "cycle" below is one `cargo test` or `cargo check`/`clippy` run.
      `gate_of`, and every test file compiles `common`). So instead point the
      sheet at that line: "`gate_of` in `tests/common/mod.rs` is the live
      reason `Borrow<str>` exists; comment the impl out and read the error."
+
+### T02 — Error architecture
+
+- **Effort:** 7 cycles (1 run of my new `t02_forward` tests against the
+  stubs, all ten failing on `todo!`; 1 run of both T02 files after
+  implementing, all green; 1 clippy; 1 regression run of the `names::`,
+  `paths::` and `frame::` unit tests; 1 rerun of `t01_names`; 1 clippy after
+  the fix; 1 rerun of `t02_forward`). 0 compiler errors. 1 clippy warning,
+  in my own test (`io::Error::new(ErrorKind::Other, ..)` should be
+  `io::Error::other`). Difficulty **2/5**: the volume is the cost, not any
+  single line. About 30% Rust (the `transpose` chain, the
+  `Option<&(dyn Error + 'static)>` return type, `UnixStream` timeouts,
+  tuple-variant constructors as `map_err` arguments), 70% deciding and
+  reading: message wording for the unpinned variants, what an absent reason
+  should say, what a hang-up before any byte should classify as, and what
+  the wire names for `StartSource` are.
+- **Prerequisites assumed:**
+  - `UnixStream` has no connect timeout, `set_read_timeout` exists and must
+    be called or a silent daemon blocks forever, `&UnixStream` implements
+    `Read` so `BufReader::new(&stream)` borrows rather than moves, and
+    `read_line` returning `Ok(0)` means EOF. The sheet says "every I/O step
+    maps its error" but never says a timeout has to be *installed*.
+  - That `Some(e)` where `e: &serde_json::Error` unsize-coerces to
+    `Option<&dyn Error>` without an explicit cast.
+  - That `serde_json::Value` implements `Display` (infallible), so the frame
+    can be serialised without going through a `Result`. The obvious
+    alternative, `serde_json::to_vec(frame)?`, compiles and silently routes a
+    serialisation failure into `ForwardError::Malformed`, whose doc says "the
+    reply is not JSON". Nothing in the sheet warns about this trap.
+  - The `Denier` wire vocabulary is in the doc comment on `Denier` in
+    `model.rs`, which the T01 reading covered. The `StartSource` vocabulary
+    is nowhere: the tests pin `clear` and `resume`, the fixtures show
+    `startup`, and `compact` appears in no file in the repository. I guessed
+    it from the variant name.
+  - `let ... else` (the given `t02_errors` uses it). Fine for 2024 edition,
+    but it is introduced by example, not by the sheet.
+- **Sheet accuracy:**
+  - Sheet: "The test file pins the exact wording of several messages." True
+    for five `FrameError`/`UnknownName` messages. `StatError` and
+    `RecordError` wording is unconstrained except `contains("starttime")`,
+    so two of the five `Display` impls are written blind. Not wrong, but the
+    sheet implies more guidance than exists.
+  - Sheet: "For `send` you need something to talk to. A `UnixListener` on a
+    thread that reads one line and writes a canned reply is enough, and a
+    second variant that never replies covers the timeout." The scaffold
+    already provides exactly that (`socket`, `one_shot`). The paragraph
+    reads as an instruction to build something that is already built.
+  - The provided `one_shot(path, None)` sleeps 400 ms and then *returns*,
+    which drops the stream and delivers EOF. A `send` that never sets a read
+    timeout gets `Ok(0)` from `read_line` at 400 ms, and if it maps that to
+    `Io` (as mine does), the timeout test passes without any timeout
+    existing. I only caught this because I asserted `elapsed < 350 ms`. The
+    test doc comment ("`Io`, after the timeout") does not say to check
+    elapsed time, so a learner can pass the test with the wrong code.
+  - Test doc: "When `error` is absent, the reason is still present and says
+    so." "Says so" pins nothing; I wrote "daemon gave no reason". If the
+    hidden golden pins the text, that is unwinnable from here.
+  - `FrameError::Json` must display as `malformed JSON: ` followed by
+    something, *and* expose the serde error as `source()`. That is the
+    duplicated-source pattern most error-handling guides warn against.
+    Neither the sheet nor `error.rs` states a policy, so I duplicated
+    consistently across all five enums; a learner who read the guides would
+    do the opposite and fail the prefix test on the other variants only if
+    they happened to be pinned. The course should say which it wants.
+  - The T01 sheet's "Done when" (unit tests in `names.rs` pass) becomes
+    true here, once `Phase: FromStr` exists.
+- **Where I got stuck:** never blocked. Three decisions with no guidance:
+  (1) EOF before any reply: I made it `Io(UnexpectedEof)` and wrote a test
+  for it, on the reasoning that no reply ever arrived so "malformed reply"
+  would be a lie; (2) `{"pid": null}`: wrong type, not absent, by analogy
+  with the given `session_id: null` case; (3) whether `{"ok":false,
+  "error":42}` is a reason: no, treated like absent.
+- **What this drilled:** `From` + `?` (genuinely: the test
+  `should_convert_with_question_mark_into_a_record_error` shows the three
+  conversions working in one function), `transpose` (the sheet's "write the
+  type after each step" is the best instruction in the first two tasks),
+  per-step `map_err(ForwardError::Connect)` with a variant as a function,
+  the `Error::source` signature. Incidental: five near-identical `Display`
+  matches and three trivial `From` bodies, choosing wording, and the
+  socket-test mechanics (provided, and mostly fine).
+- **Ordering:** right place. Inside it, `StatError` (used in T06) and
+  `RecordError` (used in T04) are written here without a consumer, so their
+  `Display` is wording chosen in a vacuum. Moving each enum's `Display` and
+  `source` to the task that first raises it would cut this task by a third
+  and put each error next to its use; `RecordError`'s three `From` impls
+  should stay, because the T02 test exercises them.
+- **Confidence after:** solid on `?`, `From`, `Display`, `source`, and on
+  why `ForwardError` refuses `From<io::Error>`. Shaky: the std blanket
+  `From<E> for Box<dyn Error>` (kata only, never seen in code), `ok_or`
+  versus `ok_or_else` (kata only), and read timeouts if their timeout test
+  passed for the wrong reason.
+- **Suggestions:**
+  1. Make `one_shot(path, None)` sleep well past any plausible timeout (5 s)
+     or have the test doc say "assert it returned before the daemon's
+     hang-up", so a `send` with no `set_read_timeout` fails the test.
+  2. Add the `StartSource` wire vocabulary (`startup`, `resume`, `clear`,
+     `compact`) as a doc comment on the enum in `model.rs`, matching the one
+     `Denier` already has, or list it in the sheet.
+  3. State the Display-versus-source policy in the `error.rs` module
+     comment. If the intent is "Display includes the cause", say so; if not,
+     change the pinned prefix test to accept `malformed JSON` alone.
+  4. In the sheet's `client.rs` bullet add: "`Value` implements `Display`;
+     do not reach for `serde_json::to_vec(frame)?`, and say which variant
+     that `?` would land in."
+  5. Either pin the absent-reason text or say explicitly that the golden
+     checks only that it is non-empty.
+  6. Delete the "you need something to talk to" paragraph or rewrite it as
+     "the helpers `socket` and `one_shot` are provided; read them and notice
+     what `None` does after 400 ms".

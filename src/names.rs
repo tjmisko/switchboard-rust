@@ -137,7 +137,10 @@ impl FromStr for Phase {
     type Err = UnknownName;
 
     fn from_str(s: &str) -> Result<Phase, UnknownName> {
-        todo!("T02")
+        Phase::ALL
+            .into_iter()
+            .find(|p| p.as_str() == s)
+            .ok_or_else(|| UnknownName::new("phase", s))
     }
 }
 
@@ -145,7 +148,13 @@ impl FromStr for StartSource {
     type Err = UnknownName;
 
     fn from_str(s: &str) -> Result<StartSource, UnknownName> {
-        todo!("T02")
+        match s {
+            "startup" => Ok(StartSource::Startup),
+            "resume" => Ok(StartSource::Resume),
+            "clear" => Ok(StartSource::Clear),
+            "compact" => Ok(StartSource::Compact),
+            _ => Err(UnknownName::new("start source", s)),
+        }
     }
 }
 
@@ -154,7 +163,14 @@ impl FromStr for Denier {
 
     /// The transcript's `toolDenialKind` vocabulary.
     fn from_str(s: &str) -> Result<Denier, UnknownName> {
-        todo!("T02")
+        match s {
+            "user-rejected" => Ok(Denier::User),
+            "permission-rule" => Ok(Denier::PermissionRule),
+            "automode-blocked" => Ok(Denier::AutoMode),
+            "automode-unavailable" => Ok(Denier::Unavailable),
+            "interrupted" => Ok(Denier::Interrupted),
+            _ => Err(UnknownName::new("denial kind", s)),
+        }
     }
 }
 

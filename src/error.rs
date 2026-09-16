@@ -41,7 +41,7 @@ impl UnknownName {
 
 impl fmt::Display for UnknownName {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        todo!("T02")
+        write!(f, "unknown {}: {:?}", self.vocabulary, self.value)
     }
 }
 
@@ -75,19 +75,33 @@ pub enum FrameError {
 
 impl fmt::Display for FrameError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        todo!("T02")
+        match self {
+            FrameError::Json(e) => write!(f, "malformed JSON: {e}"),
+            FrameError::NotAnObject => f.write_str("frame is not a JSON object"),
+            FrameError::Missing(field) => write!(f, "missing field `{field}`"),
+            FrameError::WrongType { field, expected } => {
+                write!(f, "field `{field}` is not {expected}")
+            }
+            FrameError::UnknownCommand(cmd) => write!(f, "unknown command: {cmd}"),
+        }
     }
 }
 
 impl Error for FrameError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
-        todo!("T02")
+        match self {
+            FrameError::Json(e) => Some(e),
+            FrameError::NotAnObject
+            | FrameError::Missing(_)
+            | FrameError::WrongType { .. }
+            | FrameError::UnknownCommand(_) => None,
+        }
     }
 }
 
 impl From<serde_json::Error> for FrameError {
     fn from(e: serde_json::Error) -> FrameError {
-        todo!("T02")
+        FrameError::Json(e)
     }
 }
 
@@ -111,13 +125,22 @@ pub enum StatError {
 
 impl fmt::Display for StatError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        todo!("T02")
+        match self {
+            StatError::NoComm => f.write_str("stat line has no (comm) section"),
+            StatError::Missing(field) => write!(f, "stat line ends before `{field}`"),
+            StatError::BadNumber { field, .. } => {
+                write!(f, "stat field `{field}` is not a number")
+            }
+        }
     }
 }
 
 impl Error for StatError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
-        todo!("T02")
+        match self {
+            StatError::BadNumber { source, .. } => Some(source),
+            StatError::NoComm | StatError::Missing(_) => None,
+        }
     }
 }
 
@@ -140,31 +163,44 @@ pub enum RecordError {
 
 impl fmt::Display for RecordError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        todo!("T02")
+        match self {
+            RecordError::Io(e) => write!(f, "cannot read history: {e}"),
+            RecordError::Json(e) => write!(f, "history line is not JSON: {e}"),
+            RecordError::Missing(field) => write!(f, "history line lacks `{field}`"),
+            RecordError::BadValue { field, value } => {
+                write!(f, "history field `{field}` has bad value {value:?}")
+            }
+            RecordError::Name(e) => write!(f, "history line: {e}"),
+        }
     }
 }
 
 impl Error for RecordError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
-        todo!("T02")
+        match self {
+            RecordError::Io(e) => Some(e),
+            RecordError::Json(e) => Some(e),
+            RecordError::Name(e) => Some(e),
+            RecordError::Missing(_) | RecordError::BadValue { .. } => None,
+        }
     }
 }
 
 impl From<io::Error> for RecordError {
     fn from(e: io::Error) -> RecordError {
-        todo!("T02")
+        RecordError::Io(e)
     }
 }
 
 impl From<serde_json::Error> for RecordError {
     fn from(e: serde_json::Error) -> RecordError {
-        todo!("T02")
+        RecordError::Json(e)
     }
 }
 
 impl From<UnknownName> for RecordError {
     fn from(e: UnknownName) -> RecordError {
-        todo!("T02")
+        RecordError::Name(e)
     }
 }
 
@@ -193,13 +229,23 @@ pub enum ForwardError {
 
 impl fmt::Display for ForwardError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        todo!("T02")
+        match self {
+            ForwardError::Connect(e) => write!(f, "cannot connect to the daemon: {e}"),
+            ForwardError::Io(e) => write!(f, "socket read or write failed: {e}"),
+            ForwardError::Malformed(e) => write!(f, "daemon reply is not JSON: {e}"),
+            ForwardError::NoVerdict => f.write_str("daemon reply carries no `ok` verdict"),
+            ForwardError::Rejected(reason) => write!(f, "daemon rejected the frame: {reason}"),
+        }
     }
 }
 
 impl Error for ForwardError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
-        todo!("T02")
+        match self {
+            ForwardError::Connect(e) | ForwardError::Io(e) => Some(e),
+            ForwardError::Malformed(e) => Some(e),
+            ForwardError::NoVerdict | ForwardError::Rejected(_) => None,
+        }
     }
 }
 
@@ -207,7 +253,7 @@ impl Error for ForwardError {
 /// from `Io`, and that difference is the point of the type.
 impl From<serde_json::Error> for ForwardError {
     fn from(e: serde_json::Error) -> ForwardError {
-        todo!("T02")
+        ForwardError::Malformed(e)
     }
 }
 

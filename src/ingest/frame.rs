@@ -52,13 +52,45 @@ pub struct StatuslineFrame {
 
 /// Decode one request line.
 pub fn decode_request(line: &str) -> Result<Request, FrameError> {
-    todo!("T02")
+    let v: Value = serde_json::from_str(line)?;
+    if !v.is_object() {
+        return Err(FrameError::NotAnObject);
+    }
+    match required_str(&v, "cmd")? {
+        "list" => Ok(Request::List),
+        "subscribe" => Ok(Request::Subscribe),
+        "hook" => {
+            let event = Box::from(required_str(&v, "event")?);
+            let session = SessionId::from(required_str(&v, "session_id")?);
+            let pid = optional_pid(&v)?;
+            Ok(Request::Hook(HookFrame {
+                event,
+                pid,
+                session,
+                payload: v,
+            }))
+        }
+        "statusline" => {
+            let session = SessionId::from(required_str(&v, "session_id")?);
+            let pid = optional_pid(&v)?;
+            Ok(Request::Statusline(StatuslineFrame {
+                pid,
+                session,
+                payload: v,
+            }))
+        }
+        other => Err(FrameError::UnknownCommand(Box::from(other))),
+    }
 }
 
 /// A string field the protocol requires. Absent and mistyped are different
 /// errors, because they point at different bugs in the sender.
 fn required_str<'a>(v: &'a Value, field: &'static str) -> Result<&'a str, FrameError> {
-    todo!("T02")
+    let raw = v.get(field).ok_or(FrameError::Missing(field))?;
+    raw.as_str().ok_or(FrameError::WrongType {
+        field,
+        expected: "a string",
+    })
 }
 
 /// `pid` may be absent. When present it must fit a `u32`.
@@ -67,7 +99,17 @@ fn required_str<'a>(v: &'a Value, field: &'static str) -> Result<&'a str, FrameE
 /// `transpose` is what lets `?` reject a bad value without also rejecting a
 /// missing one.
 fn optional_pid(v: &Value) -> Result<Option<u32>, FrameError> {
-    todo!("T02")
+    v.get("pid") // Option<&Value>: None when the field is absent
+        .map(|raw| {
+            // inside: &Value -> Result<u32, FrameError>
+            raw.as_u64() // Option<u64>: None for "4036", -1, 1.5
+                .and_then(|n| u32::try_from(n).ok()) // Option<u32>: None for 2^32
+                .ok_or(FrameError::WrongType {
+                    field: "pid",
+                    expected: "a u32",
+                }) // Result<u32, FrameError>
+        }) // Option<Result<u32, FrameError>>
+        .transpose() // Result<Option<u32>, FrameError>
 }
 
 /// `{"ok":true}`
