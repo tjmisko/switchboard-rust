@@ -387,3 +387,130 @@ below reports regressions against the four green files.
      and `take_unjoined` borrows `agent.prompts` at the same time. Why is
      that allowed, and what happens if you replace the field access with a
      method `agent.prompts_mut()`?"
+
+### T08 — Reducer II: gates, the join, subagents
+- **Effort:** 5 cycles (1 failed compile, 1 passing, 1 clippy with one
+  warning, 1 combined T07+T08 rerun, 1 whole suite). 1 compiler error
+  (E0433, a missing import: `SubagentOutcome` was not in the scaffold's
+  use list even though the `SubagentEnded` arm needs it) and 1 clippy
+  warning (`redundant_closure`). Difficulty 3/5: less than T07 because
+  the tests are provided and they are excellent, so the semantics were
+  never in doubt; the work was translating 26 precise stories into the
+  helper functions the scaffold already names. Roughly 35% Rust (split
+  borrows again, `entry().or_insert_with`, `values_mut().find`,
+  `Option::take`, `position`+`remove`, the two-`next` "exactly one"
+  trick), 65% reading the tests and tracing which helper each story goes
+  through.
+- **Prerequisites assumed:**
+  - That T07's `end_turn` and `TurnStarted` need to be *reopened* to call
+    `clear_unjoined` on the idle path, not just replace a placeholder.
+    `should_lift_every_agent_prompt_when_the_turn_ends_or_a_new_one_starts`
+    parks a prompt on an *idle* agent and then sends `Stop`; my T07
+    `end_turn` returned early from the `Idle` arm before clearing. The
+    sheet says "`end_turn` ... call T08's `*_unjoined` helpers" as if the
+    T07 shape were final.
+  - `Option::is_none_or` (stable since 1.82) for `hash_admits`; `let`
+    chains in `if let ... && cond` (edition 2024), which the provided
+    `snapshot.rs` uses, so it is at least visible.
+  - `SystemTime`/`UNIX_EPOCH` for `Subagent::started` from
+    `event.at.claimed`. The scaffold imports `UNIX_EPOCH`, which is the
+    only hint.
+  - The rule that a call-less `PermissionSettled` has to find *some* gate.
+    Neither the sheet nor a test says what `answer(call: None, ..)` does
+    for the agent; I chose "the one blocked call, else lift the sole
+    parked prompt". Unpinned.
+  - Domain: what `SubagentEnded` does to a row under `EventsOnly` (mark
+    the status, keep the row, let `tick` expire it) versus removing it.
+    The `Subagents` doc says events "may never create or remove one" for
+    the panel and "rows exist only while events keep arriving" for
+    `EventsOnly`, which reads as "remove", but T09's
+    `should_forget_a_subagent_row_nothing_has_mentioned_for_the_stale_cap`
+    only works if event-created rows *stay* until the cap. I kept them.
+- **Sheet accuracy:**
+  - Sheet: "`subagent_transition`: ... tool dispatched joins a parked
+    prompt onto the row; tool or permission settled lifts the gate".
+    Accurate. It does not say whether a subagent's settle should also lift
+    that subagent's *parked* prompt (no row yet). I did `lift_subagent |
+    lift_sole_unjoined(actor)`. Unpinned.
+  - Sheet: "`ask`: three paths." Accurate and the best paragraph in the
+    five sheets: every clause maps to a test.
+  - Sheet: "`park`: a duplicate park is a no-op." Duplicate on what?
+    I used `(actor, tool, hash)`. The test only checks the same call
+    twice.
+  - Sheet: "`lift_sole_unjoined` ... Try to write the 'exactly one' check
+    without `.count()`." Good prompt; the `(next(), next())` pattern is
+    worth teaching. The sheet could name it after the learner tries.
+  - Sheet: "`answer`: `Allowed` releases the gate; `Denied` / `Abandoned`
+    drop the call." Silent on `call: None`.
+  - Sheet: "The `Subagent` arms of `ToolDispatched` / `ToolSettled` /
+    `PermissionAsked` / `PermissionSettled`, plus `SubagentStarted` and
+    `SubagentEnded`." Misleading grouping: the first four are subagent-
+    *actor* arms inside `subagent_transition`; `SubagentStarted`/`Ended`
+    come from the agent (hook.rs sends them with `Actor::Agent`) and are
+    arms of `transition`. A learner who puts all six in
+    `subagent_transition` will find `SubagentStarted` never arrives there.
+  - Sheet: "`src/model.rs`: implement the `unowned_gate_anywhere` stub,
+    then make it the body of `Agent::has_unowned_gate` and delete the
+    stub ... move above the `Turn → Working` check." Clear. The scaffold
+    comment on the stub says the same. Well signposted, and the test that
+    fails until it is done is named.
+  - Scaffold `use` list for `event.rs` is missing `SubagentOutcome`; every
+    other type the arms need is present. One import error is a small
+    thing, but the rest of the scaffold's imports were curated so
+    precisely that its absence reads as a signal that the outcome should
+    not be matched.
+  - `Subagent::label` and `parent` have no source on `SubagentStarted`. I
+    used the id as the label. Nothing says.
+- **Where I got stuck:**
+  - Not in Rust. The one real pause was the T07 regression risk: adding
+    `clear_unjoined` to `TurnStarted` had to avoid clearing on a duplicate
+    key (the transcript repeats the hook's prompt, and a
+    `PermissionRequest` can land between them), so the duplicate check
+    moved before the clear. That interaction is worth a test; I did not
+    add one to T07 because it needs T08's `asked`.
+  - `subagent_transition` holds `row: &mut Subagent` from
+    `agent.subagents.rows` and then needs `agent.prompts` for
+    `take_unjoined`: legal as a split borrow, but only because both are
+    field accesses. I re-fetched the row inside each arm rather than
+    holding one across the match, which is the pattern that keeps the
+    borrow checker quiet.
+- **What this drilled:** `position` + `Vec::remove` to move out of a
+  collection; `retain`; `values_mut().find` returning `&mut`;
+  `entry().or_insert_with`; `Option::take`; the `(next(), next())`
+  cardinality check; `Option::is_none_or`; split borrows across three
+  fields of `Agent`. Incidental: the join semantics themselves (two
+  announcements of one question, running-preferred), which are a product
+  rule the tests carry well.
+- **Ordering:** Right after T07, as designed. But it is the *easier* of
+  the two, and the README's core-time estimate (1h15 versus 2h) agrees.
+  If T07 splits into T07a/T07b, T08 becomes the third reducer task and
+  the ramp inside the reducer stretch reads: routing and lifecycle,
+  turns and tools, then the join. That is a sensible order. The one
+  piece that could move out of T08 is `has_unowned_gate` + the `phase`
+  reorder: it is a `model.rs` change with its own test, and it would sit
+  naturally at the end of T07b (where `phase` is first read closely) or
+  as a five-minute preamble to T08.
+- **Confidence after:** Strong on the collection-ownership idioms the gap
+  list names; those are drilled repeatedly and each has a test. Shaky on
+  the unpinned semantics (`answer` with no call, subagent settle and
+  parked prompts, `park` duplicates), and on whether their `EventsOnly`
+  row lifecycle is what T09 expects until they get there.
+- **Suggestions:**
+  1. Add `SubagentOutcome` to the scaffold's imports in `event.rs`.
+  2. Regroup the sheet's arm list: "`transition`: `PermissionAsked`,
+     `PermissionSettled`, `SubagentStarted`, `SubagentEnded`;
+     `subagent_transition`: `TurnEnded{Failed}`, `ToolDispatched`,
+     `ToolSettled`, `PermissionAsked`, `PermissionSettled`".
+  3. Say in the sheet that T07's `end_turn` and `TurnStarted` must lift
+     the agent's parked prompts on the idle path too, and name the test
+     that proves it.
+  4. Pin `answer(call: None, ..)` with a test, or say it is out of scope
+     for Claude (whose `PermissionDenied` may carry no id).
+  5. Add a T07 test (or a T08 one) that a duplicate `TurnStarted` does
+     not clear a prompt parked between the hook's and the transcript's
+     report of the same prompt.
+  6. State the `EventsOnly` row lifecycle in `SubagentEnded`'s arm
+     comment: "mark, do not remove; `tick` forgets it after
+     `SUBAGENT_STALE`".
+  7. Move the `has_unowned_gate` rework to the end of T07 (or T07b) so
+     T08 is purely `event.rs`.

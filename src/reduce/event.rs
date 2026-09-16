@@ -11,7 +11,8 @@ use std::time::{Instant, UNIX_EPOCH};
 use crate::model::{
     Activity, Actor, Board, Compaction, Decision, Effect, Event, EventKind, Gate, GateKind,
     HistoryEntry, InputHash, Ownership, Prompts, StartSource, Subagent, SubagentId,
-    SubagentSource, SubagentStatus, Subagents, Tool, ToolName, ToolOutcome, ToolUseId, TurnKey,
+    SubagentOutcome, SubagentSource, SubagentStatus, Subagents, Tool, ToolName, ToolOutcome,
+    ToolUseId, TurnKey,
     TurnOutcome, Unjoined,
 };
 use crate::paths::workspace_name;
@@ -112,15 +113,20 @@ fn transition(
         // Not liveness: only `Died` ends an agent.
         EventKind::SessionEnded { .. } => false,
         EventKind::TurnStarted { turn, .. } => {
-            let Activity::Turn { key, last_event, .. } = &mut agent.activity else {
-                agent.activity = working(turn.clone(), now);
-                return true;
-            };
-            if *key == *turn {
+            if let Activity::Turn { key, .. } = &agent.activity
+                && *key == *turn
+            {
                 return false;
             }
-            *key = turn.clone();
-            *last_event = now;
+            // The next prompt lifts whatever the last one left parked (R4).
+            clear_unjoined(&mut agent.prompts, &Actor::Agent);
+            match &mut agent.activity {
+                Activity::Turn { key, last_event, .. } => {
+                    *key = turn.clone();
+                    *last_event = now;
+                }
+                _ => agent.activity = working(turn.clone(), now),
+            }
             true
         }
         EventKind::TurnEnded { turn, outcome } => end_turn(agent, turn.as_ref(), outcome, now),
@@ -160,10 +166,56 @@ fn transition(
         }
         // Handled in `apply_event` before the agent is borrowed.
         EventKind::Died => false,
-        EventKind::PermissionAsked { .. }
-        | EventKind::PermissionSettled { .. }
-        | EventKind::SubagentStarted { .. }
-        | EventKind::SubagentEnded { .. } => todo!("T08"),
+        EventKind::PermissionAsked {
+            call,
+            tool,
+            hash,
+            owner,
+            kind,
+        } => ask(agent, call.as_ref(), tool, *hash, *owner, *kind, now),
+        EventKind::PermissionSettled { call, outcome, .. } => {
+            answer(agent, call.as_ref(), *outcome, now)
+        }
+        EventKind::SubagentStarted { subagent, kind } => {
+            // The panel owns its table: events refine rows, never add them.
+            if agent.subagents.source == SubagentSource::Panel {
+                return false;
+            }
+            if agent.subagents.rows.contains_key(subagent) {
+                return false;
+            }
+            agent.subagents.rows.insert(
+                subagent.clone(),
+                Subagent {
+                    kind: *kind,
+                    status: SubagentStatus::Running,
+                    parent: None,
+                    started: event.at.claimed.unwrap_or(UNIX_EPOCH),
+                    label: subagent.as_str().into(),
+                    tokens: 0,
+                    gate: None,
+                    last_seen: now,
+                },
+            );
+            true
+        }
+        EventKind::SubagentEnded { subagent, outcome } => {
+            // Whatever it left parked is not waiting on anyone now.
+            let lifted = clear_unjoined(&mut agent.prompts, &Actor::Subagent(subagent.clone()));
+            let Some(row) = agent.subagents.rows.get_mut(subagent) else {
+                return lifted;
+            };
+            let status = match outcome {
+                SubagentOutcome::Completed => SubagentStatus::Completed,
+                SubagentOutcome::Failed => SubagentStatus::Failed,
+                SubagentOutcome::Killed | SubagentOutcome::Interrupted => SubagentStatus::Killed,
+            };
+            row.last_seen = now;
+            let ended = row.status != status || row.gate.is_some();
+            row.status = status;
+            row.gate = None;
+            lifted || ended
+        }
     }
 }
 
@@ -184,7 +236,49 @@ fn subagent_transition(
     event: &Event,
     now: Instant,
 ) -> bool {
-    todo!("T08")
+    if let Some(row) = agent.subagents.rows.get_mut(id) {
+        row.last_seen = now;
+    }
+    match &event.kind {
+        EventKind::TurnEnded {
+            outcome: TurnOutcome::Failed { .. },
+            ..
+        } => {
+            let Some(row) = agent.subagents.rows.get_mut(id) else {
+                return false;
+            };
+            if row.status == SubagentStatus::Failed && row.gate.is_none() {
+                return false;
+            }
+            row.status = SubagentStatus::Failed;
+            row.gate = None;
+            true
+        }
+        EventKind::ToolDispatched { tool, hash, .. } => {
+            let Some(row) = agent.subagents.rows.get_mut(id) else {
+                return false;
+            };
+            if row.gate.is_some() {
+                return false;
+            }
+            let Some(parked) = take_unjoined(&mut agent.prompts, &event.actor, tool, *hash) else {
+                return false;
+            };
+            row.gate = Some(blocked(&parked));
+            true
+        }
+        EventKind::ToolSettled { .. } | EventKind::PermissionSettled { .. } => {
+            lift_subagent(agent, id) | lift_sole_unjoined(&mut agent.prompts, &event.actor)
+        }
+        EventKind::PermissionAsked {
+            tool,
+            hash,
+            owner,
+            kind,
+            ..
+        } => ask_subagent(agent, id, tool, *hash, *owner, *kind, now),
+        _ => false,
+    }
 }
 
 fn idle(now: Instant, after: Option<TurnOutcome>) -> Activity {
@@ -201,13 +295,18 @@ fn working(key: Option<TurnKey>, now: Instant) -> Activity {
 }
 
 fn blocked(u: &Unjoined) -> Gate {
-    todo!("T08")
+    Gate::Blocked {
+        kind: u.kind,
+        since: u.since,
+        owner: u.owner,
+        req: None,
+    }
 }
 
 /// Whether a prompt's hash admits a call's. A prompt that arrived without a
 /// hash matches on name alone.
 fn hash_admits(prompt: Option<InputHash>, call: InputHash) -> bool {
-    todo!("T08")
+    prompt.is_none_or(|h| h == call)
 }
 
 fn end_turn(
@@ -216,15 +315,19 @@ fn end_turn(
     outcome: &TurnOutcome,
     now: Instant,
 ) -> bool {
-    match &agent.activity {
-        Activity::Turn { key, .. } => {
-            // Both sides keyed and disagreeing: the late close of an
-            // earlier turn, which is not this one.
-            if key.is_some() && turn.is_some() && key.as_ref() != turn {
-                return false;
-            }
+    // Both sides keyed and disagreeing: the late close of an earlier turn,
+    // which says nothing about this one.
+    if let Activity::Turn { key: Some(key), .. } = &agent.activity
+        && turn.is_some_and(|t| t != key)
+    {
+        return false;
+    }
+    // Only the agent's own prompts: a subagent's gate lives on its row and a
+    // subagent's parked prompt is keyed by its actor, so neither is touched.
+    let lifted = clear_unjoined(&mut agent.prompts, &Actor::Agent);
+    let ended = match &agent.activity {
+        Activity::Turn { .. } => {
             agent.activity = idle(now, Some(outcome.clone()));
-            clear_unjoined(&mut agent.prompts, &Actor::Agent);
             true
         }
         // The hook's `Stop` and the transcript's interrupt line can land in
@@ -232,21 +335,20 @@ fn end_turn(
         // still worth recording; a completion never erases one.
         Activity::Idle { after, .. } => {
             let plain = matches!(after, None | Some(TurnOutcome::Completed));
-            if !plain || *outcome == TurnOutcome::Completed {
-                return false;
+            if plain && *outcome != TurnOutcome::Completed {
+                agent.activity = idle(now, Some(outcome.clone()));
+                true
+            } else {
+                false
             }
-            let Activity::Idle { after, .. } = &mut agent.activity else {
-                return false;
-            };
-            *after = Some(outcome.clone());
-            true
         }
         // A replayed line is the first thing this agent ever said.
         Activity::Unobserved { .. } => {
             agent.activity = idle(now, Some(outcome.clone()));
             true
         }
-    }
+    };
+    lifted || ended
 }
 
 fn dispatch(
@@ -317,7 +419,56 @@ fn ask(
     kind: GateKind,
     now: Instant,
 ) -> bool {
-    todo!("T08")
+    let gate = Gate::Blocked {
+        kind,
+        since: now,
+        owner,
+        req: None,
+    };
+    if let Some(call) = call {
+        // The call is named. A question tool's `PreToolUse` is its own
+        // dispatch, so the call may not exist yet.
+        if !matches!(agent.activity, Activity::Turn { .. }) {
+            agent.activity = working(None, now);
+        }
+        let Activity::Turn {
+            tools, last_event, ..
+        } = &mut agent.activity
+        else {
+            return false;
+        };
+        let entry = tools.entry(call.clone()).or_insert_with(|| Tool {
+            name: tool.clone(),
+            hash: hash.unwrap_or(InputHash([0; 8])),
+            since: now,
+            gate: Gate::Running,
+        });
+        if matches!(entry.gate, Gate::Blocked { .. }) {
+            return false;
+        }
+        entry.gate = gate;
+        *last_event = now;
+        return true;
+    }
+    if let Activity::Turn {
+        tools, last_event, ..
+    } = &mut agent.activity
+    {
+        let matches = |t: &Tool| t.name == *tool && hash_admits(hash, t.hash);
+        if let Some(running) = tools
+            .values_mut()
+            .find(|t| matches(t) && t.gate == Gate::Running)
+        {
+            running.gate = gate;
+            *last_event = now;
+            return true;
+        }
+        // The same prompt said twice: the id already gated this call.
+        if tools.values().any(matches) {
+            return false;
+        }
+    }
+    park(&mut agent.prompts, &Actor::Agent, tool, hash, owner, kind, now)
 }
 
 /// A prompt from a subagent: its row is gated, or the prompt is parked under
@@ -331,7 +482,20 @@ fn ask_subagent(
     kind: GateKind,
     now: Instant,
 ) -> bool {
-    todo!("T08")
+    let Some(row) = agent.subagents.rows.get_mut(id) else {
+        let actor = Actor::Subagent(id.clone());
+        return park(&mut agent.prompts, &actor, tool, hash, owner, kind, now);
+    };
+    if matches!(row.gate, Some(Gate::Blocked { .. })) {
+        return false;
+    }
+    row.gate = Some(Gate::Blocked {
+        kind,
+        since: now,
+        owner,
+        req: None,
+    });
+    true
 }
 
 /// Hold a prompt that arrived before its call.
@@ -345,7 +509,22 @@ fn park(
     kind: GateKind,
     now: Instant,
 ) -> bool {
-    todo!("T08")
+    let duplicate = prompts
+        .unjoined
+        .iter()
+        .any(|u| u.actor == *actor && u.tool == *tool && u.hash == hash);
+    if duplicate {
+        return false;
+    }
+    prompts.unjoined.push(Unjoined {
+        actor: actor.clone(),
+        tool: tool.clone(),
+        hash,
+        since: now,
+        owner,
+        kind,
+    });
+    true
 }
 
 /// Remove and return the oldest prompt this call satisfies.
@@ -355,24 +534,56 @@ fn take_unjoined(
     tool: &ToolName,
     hash: InputHash,
 ) -> Option<Unjoined> {
-    // T07 placeholder; T08 joins prompts to calls.
-    None
+    let i = prompts
+        .unjoined
+        .iter()
+        .position(|u| u.actor == *actor && u.tool == *tool && hash_admits(u.hash, hash))?;
+    Some(prompts.unjoined.remove(i))
 }
 
 /// Drop every unjoined prompt held by `actor`. Returns whether any were.
 fn clear_unjoined(prompts: &mut Prompts, actor: &Actor) -> bool {
-    // T07 placeholder.
-    false
+    let before = prompts.unjoined.len();
+    prompts.unjoined.retain(|u| u.actor != *actor);
+    prompts.unjoined.len() != before
 }
 
+/// Lifts the one prompt `actor` has parked. Two or more is ambiguous, and
+/// ambiguity holds the current state (R5).
 fn lift_sole_unjoined(prompts: &mut Prompts, actor: &Actor) -> bool {
-    // T07 placeholder.
-    false
+    let mut held = prompts
+        .unjoined
+        .iter()
+        .enumerate()
+        .filter(|(_, u)| u.actor == *actor)
+        .map(|(i, _)| i);
+    let (Some(i), None) = (held.next(), held.next()) else {
+        return false;
+    };
+    prompts.unjoined.remove(i);
+    true
 }
 
 /// Anything from a subagent that shows it is moving again lifts its gate.
 fn lift_subagent(agent: &mut crate::model::Agent, id: &SubagentId) -> bool {
-    todo!("T08")
+    agent
+        .subagents
+        .rows
+        .get_mut(id)
+        .and_then(|row| row.gate.take())
+        .is_some()
+}
+
+/// The one blocked call, when exactly one is.
+fn sole_blocked(tools: &BTreeMap<ToolUseId, Tool>) -> Option<ToolUseId> {
+    let mut blocked = tools
+        .iter()
+        .filter(|(_, t)| matches!(t.gate, Gate::Blocked { .. }))
+        .map(|(id, _)| id);
+    match (blocked.next(), blocked.next()) {
+        (Some(id), None) => Some(id.clone()),
+        _ => None,
+    }
 }
 
 /// A permission prompt was answered.
@@ -382,5 +593,30 @@ fn answer(
     outcome: Decision,
     now: Instant,
 ) -> bool {
-    todo!("T08")
+    let Activity::Turn {
+        tools, last_event, ..
+    } = &mut agent.activity
+    else {
+        return lift_sole_unjoined(&mut agent.prompts, &Actor::Agent);
+    };
+    // Without a call id, the answer can only be for the one blocked call.
+    let Some(id) = call.cloned().or_else(|| sole_blocked(tools)) else {
+        return lift_sole_unjoined(&mut agent.prompts, &Actor::Agent);
+    };
+    let Some(tool) = tools.get_mut(&id) else {
+        return lift_sole_unjoined(&mut agent.prompts, &Actor::Agent);
+    };
+    match outcome {
+        Decision::Allowed => {
+            if tool.gate == Gate::Running {
+                return false;
+            }
+            tool.gate = Gate::Running;
+        }
+        Decision::Denied { .. } | Decision::Abandoned => {
+            tools.remove(&id);
+        }
+    }
+    *last_event = now;
+    true
 }
