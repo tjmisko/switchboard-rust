@@ -13,6 +13,17 @@
 //!   syntax      the bytes are not JSON / a number (the sender is broken)
 //!   shape       valid JSON, wrong structure       (a version mismatch)
 //!   refusal     well-formed, and the peer said no (report it)
+//!
+//! `Display` and `source` overlap here on purpose. A variant that wraps
+//! another error both names it in its `Display` (`malformed JSON: expected
+//! value at line 1 column 1`) and returns it from `source`. The one-line form
+//! is what the two consumers print: `main` and the hook forwarder each write
+//! a single `eprintln!("…: {e}")` and never walk the chain. `source` is kept
+//! for a reporter that does walk it, which will then print the cause twice;
+//! that is the accepted price. Some guides argue for the opposite split
+//! (`Display` says only what this layer added, `source` carries the rest).
+//! Not here: every enum in this file follows the rule above, and the tests
+//! pin the `malformed JSON: ` prefix together with a present `source`.
 
 use std::error::Error;
 use std::fmt;

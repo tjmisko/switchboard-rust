@@ -46,6 +46,8 @@ pub fn str_path<'a>(v: &'a Value, path: &[&str]) -> Option<&'a str> {
 /// `flatten` turns "maybe an array" into "the array's elements, or none"
 /// without a branch.
 pub fn array_at<'a>(v: &'a Value, key: &str) -> impl Iterator<Item = &'a Value> {
+    // The `empty()` below only keeps the `impl Iterator` signature compiling
+    // while the body is missing. Replace the whole body, not just the `todo!`.
     todo!("T03");
     #[allow(unreachable_code)]
     std::iter::empty()
