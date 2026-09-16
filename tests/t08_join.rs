@@ -300,6 +300,69 @@ fn should_gate_an_already_dispatched_call_when_its_id_arrives_with_the_ask() {
     assert!(again.is_empty(), "already blocked");
 }
 
+/// Claude announces one question twice: `PreToolUse` with the call id, then
+/// `PermissionRequest` with the same input and no id. The second is the
+/// same prompt said again, not a second question, so answering the call
+/// must leave nothing parked behind it.
+#[test]
+fn should_treat_a_call_less_ask_for_an_already_gated_call_as_the_same_prompt() {
+    let t = Clock::new();
+    let mut b = board_with(&[(1, "s")], t.at(0));
+    let input = json!({"questions": [{"question": "which?"}]});
+    apply(&mut b, hook(1, "s", t.at(1), turn_started("p")));
+    let mut first = question("toolu_ask", "AskUserQuestion");
+    if let EventKind::PermissionAsked { hash, .. } = &mut first {
+        *hash = Some(common::hash(&input));
+    }
+    apply(&mut b, hook(1, "s", t.at(2), first));
+
+    let mut second = asked("AskUserQuestion", &input);
+    if let EventKind::PermissionAsked { kind, .. } = &mut second {
+        *kind = GateKind::Question;
+    }
+    let fx = apply(&mut b, hook(1, "s", t.at(3), second));
+    assert!(fx.is_empty(), "the same question, announced twice");
+    assert!(agent(&b, 1).prompts.unjoined.is_empty());
+    assert_eq!(truth(&b, 1), Phase::Attention);
+
+    // The operator answers: PostToolUse carries the id from PreToolUse.
+    apply(&mut b, hook(1, "s", t.at(90), settled("toolu_ask")));
+    assert_eq!(shown(&b, 1), Phase::Working, "nothing parked keeps it red");
+}
+
+/// Two genuinely different questions with identical inputs, each announced
+/// with its id, are two gates: answering one leaves the other open.
+#[test]
+fn should_keep_the_second_of_two_identical_questions_open_when_the_first_is_answered() {
+    let t = Clock::new();
+    let mut b = board_with(&[(1, "s")], t.at(0));
+    let input = json!({"questions": [{"question": "which?"}]});
+    let ask_with = |call: &str| {
+        let mut k = question(call, "AskUserQuestion");
+        if let EventKind::PermissionAsked { hash, .. } = &mut k {
+            *hash = Some(common::hash(&input));
+        }
+        k
+    };
+    apply(&mut b, hook(1, "s", t.at(1), ask_with("q1")));
+    apply(
+        &mut b,
+        hook(1, "s", t.at(1), asked("AskUserQuestion", &input)),
+    );
+    apply(&mut b, hook(1, "s", t.at(2), ask_with("q2")));
+    apply(
+        &mut b,
+        hook(1, "s", t.at(2), asked("AskUserQuestion", &input)),
+    );
+    assert_eq!(open_tools(&b, 1), ["q1", "q2"]);
+    assert!(agent(&b, 1).prompts.unjoined.is_empty());
+
+    apply(&mut b, hook(1, "s", t.at(3), settled("q1")));
+    assert_eq!(truth(&b, 1), Phase::Attention, "q2 still waits");
+    apply(&mut b, hook(1, "s", t.at(4), settled("q2")));
+    assert_eq!(shown(&b, 1), Phase::Working);
+}
+
 #[test]
 fn should_render_an_unowned_gate_grey_never_red_even_mid_turn() {
     let t = Clock::new();
@@ -405,6 +468,141 @@ fn should_park_a_prompt_from_an_unknown_subagent_and_lift_it_when_that_subagent_
     );
     end_sub(&mut b, &t, 3, "ghost");
     assert_eq!(truth(&b, 1), Phase::Idle);
+}
+
+/// A subagent's turn is not the agent's turn. 47 of 56 captured
+/// `StopFailure` payloads were a child's; the parent was still working.
+#[test]
+fn should_keep_the_agent_working_and_mark_the_row_failed_when_a_subagents_turn_fails() {
+    let t = Clock::new();
+    let mut b = board_with(&[(1, "s")], t.at(0));
+    apply(&mut b, hook(1, "s", t.at(1), turn_started("p")));
+    start_sub(&mut b, &t, 2, "a1");
+    assert_eq!(truth(&b, 1), Phase::Working);
+
+    let failed = turn_ended(
+        Some("p"),
+        TurnOutcome::Failed {
+            class: ErrorClass::RateLimit,
+        },
+    );
+    let fx = apply(&mut b, from_subagent(1, "s", "a1", t.at(3), failed));
+    assert!(publishes(&fx), "a failed child is a fact worth showing");
+    assert_eq!(truth(&b, 1), Phase::Working);
+    assert_eq!(shown(&b, 1), Phase::Working);
+    assert!(matches!(agent(&b, 1).activity, Activity::Turn { .. }));
+    assert_eq!(
+        agent(&b, 1).subagents.rows[&SubagentId::from("a1")].status,
+        SubagentStatus::Failed
+    );
+
+    // The agent's own Stop still ends the agent's turn as completed.
+    apply(&mut b, hook(1, "s", t.at(4), stop()));
+    assert_eq!(
+        truth(&b, 1),
+        Phase::Idle,
+        "a failed child is not delegation"
+    );
+}
+
+/// A subagent's answered prompt lifts its gate exactly as its tool settling
+/// does: the child is moving again.
+#[test]
+fn should_lift_a_subagents_gate_when_its_permission_is_settled() {
+    let t = Clock::new();
+    let mut b = board_with(&[(1, "s")], t.at(0));
+    start_sub(&mut b, &t, 1, "a1");
+    apply(
+        &mut b,
+        from_subagent(1, "s", "a1", t.at(2), asked("Bash", &ls())),
+    );
+    assert_eq!(truth(&b, 1), Phase::Attention);
+    let settled = EventKind::PermissionSettled {
+        call: None,
+        req: None,
+        outcome: Decision::Allowed,
+    };
+    let fx = apply(&mut b, from_subagent(1, "s", "a1", t.at(3), settled));
+    assert!(publishes(&fx));
+    assert_eq!(shown(&b, 1), Phase::Delegating);
+}
+
+/// Escape inside a child's tool is reported to the child. The agent learns
+/// about its own interruption from its own signals.
+#[test]
+fn should_not_end_the_agents_turn_when_a_subagents_tool_is_interrupted() {
+    let t = Clock::new();
+    let mut b = board_with(&[(1, "s")], t.at(0));
+    apply(&mut b, hook(1, "s", t.at(1), turn_started("p")));
+    start_sub(&mut b, &t, 2, "a1");
+    let interrupted = EventKind::ToolSettled {
+        call: "c-child".into(),
+        outcome: ToolOutcome::Failed { interrupt: true },
+    };
+    apply(&mut b, from_subagent(1, "s", "a1", t.at(3), interrupted));
+    assert_eq!(truth(&b, 1), Phase::Working);
+}
+
+/// What a child says about its own session, compaction or cwd is dropped:
+/// none of it describes the agent.
+#[test]
+fn should_ignore_a_subagents_session_compaction_and_cwd_events() {
+    let t = Clock::new();
+    let mut b = board_with(&[(1, "s")], t.at(0));
+    start_sub(&mut b, &t, 1, "a1");
+    for kind in [
+        EventKind::CompactionStarted {
+            trigger: Trigger::Auto,
+        },
+        EventKind::CwdChanged {
+            to: "/elsewhere".into(),
+        },
+        turn_started("child-prompt"),
+        stop(),
+    ] {
+        let fx = apply(&mut b, from_subagent(1, "s", "a1", t.at(2), kind));
+        assert!(fx.is_empty(), "no effects");
+    }
+    assert_eq!(agent(&b, 1).compaction, Compaction::None);
+    assert!(!agent(&b, 1).cwd.ends_with("elsewhere"));
+    assert_eq!(truth(&b, 1), Phase::Delegating);
+}
+
+/// A prompt parked before its subagent had a row moves onto that row when
+/// the subagent dispatches the matching call. Asking again on a row that is
+/// already gated changes nothing.
+#[test]
+fn should_move_a_parked_prompt_onto_the_row_when_the_subagent_dispatches_the_call() {
+    let t = Clock::new();
+    let mut b = board_with(&[(1, "s")], t.at(0));
+    apply(
+        &mut b,
+        from_subagent(1, "s", "a1", t.at(1), asked("Bash", &ls())),
+    );
+    assert_eq!(agent(&b, 1).prompts.unjoined.len(), 1);
+    start_sub(&mut b, &t, 2, "a1");
+    let fx = apply(
+        &mut b,
+        from_subagent(1, "s", "a1", t.at(3), dispatched("c1", "Bash", &ls())),
+    );
+    assert!(publishes(&fx));
+    assert!(agent(&b, 1).prompts.unjoined.is_empty());
+    let row = &agent(&b, 1).subagents.rows[&SubagentId::from("a1")];
+    assert!(matches!(row.gate, Some(Gate::Blocked { since, .. }) if since == t.at(1)));
+    assert_eq!(truth(&b, 1), Phase::Attention);
+
+    let again = apply(
+        &mut b,
+        from_subagent(1, "s", "a1", t.at(4), asked("Bash", &ls())),
+    );
+    assert!(again.is_empty(), "already gated");
+
+    // An unrelated dispatch from that child, with nothing parked, is silent.
+    let quiet = apply(
+        &mut b,
+        from_subagent(1, "s", "a1", t.at(5), dispatched("c2", "Read", &ls())),
+    );
+    assert!(quiet.is_empty());
 }
 
 #[test]

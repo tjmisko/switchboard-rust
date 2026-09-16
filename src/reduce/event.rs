@@ -9,7 +9,7 @@ use std::time::{Instant, UNIX_EPOCH};
 
 use crate::model::{
     Activity, Actor, Board, Compaction, Decision, Effect, Event, EventKind, Gate, GateKind,
-    HistoryEntry, InputHash, Ownership, Prompts, StartSource, Subagent, SubagentSource,
+    HistoryEntry, InputHash, Ownership, Prompts, StartSource, Subagent, SubagentId, SubagentSource,
     SubagentStatus, Subagents, Tool, ToolName, ToolOutcome, ToolUseId, TurnKey, TurnOutcome,
     Unjoined,
 };
@@ -76,6 +76,15 @@ fn transition(
     now: Instant,
     effects: &mut Effects,
 ) -> bool {
+    // An event is applied to the actor it names. A subagent's turn is not
+    // the agent's turn: Claude reports a child's lifecycle through
+    // SubagentStart/Stop, and a child's own hooks refine that child's row
+    // only. Without this, a child's `StopFailure` ends the parent's turn and
+    // paints the parent Blocked (47 of 56 captured failures were a child's).
+    if let Actor::Subagent(id) = &event.actor {
+        return subagent_transition(agent, id, event, now);
+    }
+
     match &event.kind {
         EventKind::SessionStarted { source, title } => {
             if let Some(title) = title {
@@ -128,25 +137,10 @@ fn transition(
 
         EventKind::TurnEnded { turn, outcome } => end_turn(agent, turn.as_ref(), outcome, now),
 
-        EventKind::ToolDispatched { call, tool, hash } => match &event.actor {
-            Actor::Subagent(id) => {
-                let Some(row) = agent.subagents.rows.get_mut(id) else {
-                    return false;
-                };
-                row.last_seen = now;
-                if let Some(u) = take_unjoined(&mut agent.prompts, &event.actor, tool, *hash) {
-                    row.gate = Some(blocked(&u));
-                }
-                true
-            }
-            Actor::Agent => dispatch(agent, call, tool, *hash, now),
-        },
+        EventKind::ToolDispatched { call, tool, hash } => dispatch(agent, call, tool, *hash, now),
 
         EventKind::ToolSettled { call, outcome } => {
-            let changed = match &event.actor {
-                Actor::Subagent(id) => lift_subagent(agent, id),
-                Actor::Agent => settle_call(agent, call, now),
-            };
+            let changed = settle_call(agent, call, now);
             // Escape during a tool ends the turn, and the operator knows.
             if let ToolOutcome::Failed { interrupt: true } = outcome {
                 let ended = end_turn(agent, None, &TurnOutcome::Interrupted { killed: None }, now);
@@ -161,21 +155,11 @@ fn transition(
             hash,
             owner,
             kind,
-        } => ask(
-            agent,
-            &event.actor,
-            call.as_ref(),
-            tool,
-            *hash,
-            *owner,
-            *kind,
-            now,
-        ),
+        } => ask(agent, call.as_ref(), tool, *hash, *owner, *kind, now),
 
-        EventKind::PermissionSettled { call, outcome, .. } => match &event.actor {
-            Actor::Subagent(id) => lift_subagent(agent, id),
-            Actor::Agent => answer(agent, call.as_ref(), *outcome, now),
-        },
+        EventKind::PermissionSettled { call, outcome, .. } => {
+            answer(agent, call.as_ref(), *outcome, now)
+        }
 
         EventKind::SubagentStarted { subagent, kind } => {
             if agent.subagents.source == SubagentSource::Panel
@@ -242,6 +226,86 @@ fn transition(
 
         // Handled before the agent is borrowed.
         EventKind::Died => false,
+    }
+}
+
+/// Apply an event a subagent sent to that subagent's row. Returns whether
+/// anything visible changed.
+///
+/// A child can legitimately report a turn ending, a tool dispatched or
+/// settled, and a permission asked or settled. Its turn outcome is recorded
+/// on the row: a failed child is a fact worth showing, and by R3 it may raise
+/// the agent's phase only through a gate, never by itself. Everything else a
+/// child could send says nothing about the agent and is dropped.
+///
+/// Every signal from a child refreshes the row's `last_seen`, which is what
+/// keeps `tick` from expiring a child that is still working.
+fn subagent_transition(
+    agent: &mut crate::model::Agent,
+    id: &SubagentId,
+    event: &Event,
+    now: Instant,
+) -> bool {
+    let actor = &event.actor;
+    if let Some(row) = agent.subagents.rows.get_mut(id) {
+        row.last_seen = now;
+    }
+
+    match &event.kind {
+        EventKind::TurnEnded {
+            outcome: TurnOutcome::Failed { .. },
+            ..
+        } => {
+            let cleared = clear_unjoined(&mut agent.prompts, actor);
+            let failed = match agent.subagents.rows.get_mut(id) {
+                Some(row) if row.status != SubagentStatus::Failed => {
+                    row.status = SubagentStatus::Failed;
+                    row.gate = None;
+                    true
+                }
+                _ => false,
+            };
+            cleared || failed
+        }
+
+        EventKind::ToolDispatched { tool, hash, .. } => {
+            let Some(row) = agent.subagents.rows.get_mut(id) else {
+                return false;
+            };
+            match take_unjoined(&mut agent.prompts, actor, tool, *hash) {
+                Some(u) => {
+                    row.gate = Some(blocked(&u));
+                    true
+                }
+                None => false,
+            }
+        }
+
+        EventKind::ToolSettled { .. } | EventKind::PermissionSettled { .. } => {
+            lift_subagent(agent, id)
+        }
+
+        EventKind::PermissionAsked {
+            tool,
+            hash,
+            owner,
+            kind,
+            ..
+        } => ask_subagent(agent, id, tool, *hash, *owner, *kind, now),
+
+        // A child's turn starting or completing, its session, its compaction
+        // and its cwd are its own business; SubagentStart/Stop carry what
+        // the agent needs to know.
+        EventKind::TurnEnded { .. }
+        | EventKind::TurnStarted { .. }
+        | EventKind::SessionStarted { .. }
+        | EventKind::SessionEnded { .. }
+        | EventKind::SubagentStarted { .. }
+        | EventKind::SubagentEnded { .. }
+        | EventKind::CompactionStarted { .. }
+        | EventKind::CompactionEnded
+        | EventKind::CwdChanged { .. }
+        | EventKind::Died => false,
     }
 }
 
@@ -364,10 +428,10 @@ fn settle_call(agent: &mut crate::model::Agent, call: &ToolUseId, now: Instant) 
     lift_sole_unjoined(&mut agent.prompts, &Actor::Agent)
 }
 
-#[allow(clippy::too_many_arguments)]
+/// A prompt from the agent itself. Three paths: the call id is known, the
+/// call is open and matches, or the prompt is parked.
 fn ask(
     agent: &mut crate::model::Agent,
-    actor: &Actor,
     call: Option<&ToolUseId>,
     tool: &ToolName,
     hash: Option<InputHash>,
@@ -381,16 +445,6 @@ fn ask(
         owner,
         req: None,
     };
-
-    if let Actor::Subagent(id) = actor {
-        if let Some(row) = agent.subagents.rows.get_mut(id) {
-            let already = matches!(row.gate, Some(Gate::Blocked { .. }));
-            row.gate = Some(gate);
-            row.last_seen = now;
-            return !already;
-        }
-        return park(&mut agent.prompts, actor, tool, hash, owner, kind, now);
-    }
 
     // With a call id, the gate goes straight onto the call — creating it if
     // this is a question tool, whose ask is its own dispatch.
@@ -416,17 +470,63 @@ fn ask(
         return !already;
     }
 
-    // Without one, join on (tool, hash) against a call that is running.
+    // Without one, join on (tool, hash). A running call takes the gate. A
+    // call already blocked on the same (tool, hash) means this is the same
+    // prompt said twice: Claude sends `PreToolUse` (with the id) and then
+    // `PermissionRequest` (without) for one question, 16-214 ms apart. The
+    // id is the richer evidence and the hash must not contradict it, so the
+    // second announcement is a duplicate, not a second question. Two
+    // identical calls are still two gates: a running one is preferred.
     if let Activity::Turn { tools, .. } = &mut agent.activity {
-        let open = tools.values_mut().find(|t| {
-            t.name == *tool && matches!(t.gate, Gate::Running) && hash_admits(hash, t.hash)
-        });
+        let same = |t: &Tool| t.name == *tool && hash_admits(hash, t.hash);
+        let open = tools
+            .values_mut()
+            .find(|t| same(t) && matches!(t.gate, Gate::Running));
         if let Some(t) = open {
             t.gate = gate;
             return true;
         }
+        let already_gated = tools
+            .values()
+            .any(|t| same(t) && matches!(t.gate, Gate::Blocked { .. }));
+        if already_gated {
+            return false;
+        }
     }
-    park(&mut agent.prompts, actor, tool, hash, owner, kind, now)
+    park(
+        &mut agent.prompts,
+        &Actor::Agent,
+        tool,
+        hash,
+        owner,
+        kind,
+        now,
+    )
+}
+
+/// A prompt from a subagent: its row is gated, or the prompt is parked under
+/// that subagent until the row appears.
+fn ask_subagent(
+    agent: &mut crate::model::Agent,
+    id: &SubagentId,
+    tool: &ToolName,
+    hash: Option<InputHash>,
+    owner: Ownership,
+    kind: GateKind,
+    now: Instant,
+) -> bool {
+    let actor = Actor::Subagent(id.clone());
+    let Some(row) = agent.subagents.rows.get_mut(id) else {
+        return park(&mut agent.prompts, &actor, tool, hash, owner, kind, now);
+    };
+    let already = matches!(row.gate, Some(Gate::Blocked { .. }));
+    row.gate = Some(Gate::Blocked {
+        kind,
+        since: now,
+        owner,
+        req: None,
+    });
+    !already
 }
 
 /// Hold a prompt that arrived before its call.
@@ -488,7 +588,7 @@ fn lift_sole_unjoined(prompts: &mut Prompts, actor: &Actor) -> bool {
 }
 
 /// Anything from a subagent that shows it is moving again lifts its gate.
-fn lift_subagent(agent: &mut crate::model::Agent, id: &crate::model::SubagentId) -> bool {
+fn lift_subagent(agent: &mut crate::model::Agent, id: &SubagentId) -> bool {
     let actor = Actor::Subagent(id.clone());
     let cleared = clear_unjoined(&mut agent.prompts, &actor);
     let lifted = agent
