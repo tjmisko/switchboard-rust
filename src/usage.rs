@@ -28,30 +28,30 @@ impl Usage {
     /// A `message.usage` object. Absent counters are zero; a `usage` that is
     /// not an object is no usage at all.
     pub fn from_json(u: &Value) -> Option<Usage> {
-        todo!("T07")
+        todo!("T06")
     }
 
     pub fn total(&self) -> u64 {
-        todo!("T07")
+        todo!("T06")
     }
 }
 
 impl Add for Usage {
     type Output = Usage;
     fn add(self, rhs: Usage) -> Usage {
-        todo!("T07")
+        todo!("T06")
     }
 }
 
 impl AddAssign for Usage {
     fn add_assign(&mut self, rhs: Usage) {
-        todo!("T07")
+        todo!("T06")
     }
 }
 
 impl Sum for Usage {
     fn sum<I: Iterator<Item = Usage>>(iter: I) -> Usage {
-        todo!("T07")
+        todo!("T06")
     }
 }
 
@@ -67,7 +67,7 @@ pub struct Response<'a> {
 /// to. `None` for any other line, and for synthetic error lines whose model
 /// is `<synthetic>`.
 pub fn response(line: &Value) -> Option<Response<'_>> {
-    todo!("T07")
+    todo!("T06")
 }
 
 /// Total usage per model, counting each response once however many lines it
@@ -79,7 +79,7 @@ pub fn usage_by_model<'a, I>(lines: I) -> BTreeMap<&'a str, Usage>
 where
     I: IntoIterator<Item = &'a Value>,
 {
-    todo!("T07")
+    todo!("T06")
 }
 
 /// Micro-dollars per million tokens, per bucket.
@@ -94,20 +94,20 @@ pub struct Rates {
 impl Rates {
     /// `usage` priced at these rates, in micro-dollars, rounded down.
     pub fn cost_micros(&self, usage: &Usage) -> u64 {
-        todo!("T07 stretch")
+        todo!("T06 stretch")
     }
 }
 
 /// A price as the pricing page writes it: `$6.25 / MTok`, `$0.50`, `5`.
 /// At most six decimal places. Returns micro-dollars.
 pub fn parse_price(text: &str) -> Option<u64> {
-    todo!("T07 stretch")
+    todo!("T06 stretch")
 }
 
 /// Look a model up by exact id, then with a bracketed context suffix such as
 /// `[1m]` removed.
 pub fn rates_for<'t>(table: &'t BTreeMap<String, Rates>, model: &str) -> Option<&'t Rates> {
-    todo!("T07 stretch")
+    todo!("T06 stretch")
 }
 
 /// The cost of a whole transcript, and the models it could not price.
@@ -115,5 +115,5 @@ pub fn transcript_cost<'a, I>(lines: I, table: &BTreeMap<String, Rates>) -> (u64
 where
     I: IntoIterator<Item = &'a Value>,
 {
-    todo!("T07 stretch")
+    todo!("T06 stretch")
 }

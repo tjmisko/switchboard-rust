@@ -1,12 +1,13 @@
-# T07 — The transcript adapter and usage
+# T07 — The transcript adapter
 
-**Core: 45m · Stretch: 30m** · Gaps: `flat_map`, `filter_map`, `chain`,
-`bool::then`, collecting borrowed keys, operator traits · Test:
-`cargo test --test t07_transcript`
+**Core: 40m** · Gaps: `flat_map`, `filter_map`, `chain`, `bool::then`, a
+closure passed by value as `impl Fn` · Test: `cargo test --test t07_transcript`
 
 The transcript carries the user-caused edges that no hook reports, Escape
-during generation above all. It also repeats a response's usage once per
-content block. That second fact is a classic iterator bug to get wrong.
+during generation above all. This task is T03 again with a different table:
+the same JSON helpers, the same `filter_map` with `?` inside the closure,
+and one closure that carries the line's context into two branch functions.
+Usage accounting for these same lines was T06; nothing here touches it.
 
 ## Read first
 
@@ -51,31 +52,16 @@ Shape to aim for:
   `statusline::WINDOWS` lists the per-window keys. The per-model seven-day
   names fold into `SevenDay`; `seven_day_overage_included` is an overage.
 
-**`src/usage.rs`** (core): `Usage::from_json`, `Add`, `AddAssign`, `Sum`,
-`response`, `usage_by_model`. `Sum` is a `fold` starting from `Default`.
-
-**`src/usage.rs`** (stretch): `Rates::cost_micros`, `parse_price`,
-`rates_for` and `transcript_cost`. Use integer micro-dollars and no floats.
-The tests enumerate the rejected price spellings and the saturating multiply;
-read `should_parse_prices_without_floats` and
-`should_price_usage_in_micro_dollars_without_overflow` before writing either.
-`transcript_cost` must *report* the models it couldn't price rather than
-counting them as zero cost. The Go daemon has a live bug of exactly that shape,
-with `inference_geo: "not_available"`.
-
 ## Katas
 
-1. `usage_by_model<'a, I: IntoIterator<Item = &'a Value>>(lines: I) -> BTreeMap<&'a str, Usage>`.
-   Why can't this take `lines: &[String]` and parse them inside, while keeping
-   the same return type?
-2. In `lines().iter().flat_map(|v| line(v, &c))`, what is the item type of the
+1. In `lines().iter().flat_map(|v| line(v, &c))`, what is the item type of the
    `flat_map`, and why does `Vec<Input>` qualify as the closure's return?
-3. `(cond).then(|| event(..))` versus `cond.then_some(event(..))`. Which one
+2. `(cond).then(|| event(..))` versus `cond.then_some(event(..))`. Which one
    evaluates `event` when `cond` is false?
-4. `user_line(v, event)` takes `event` by value, and `event` borrows `ctx` and
+3. `user_line(v, event)` takes `event` by value, and `event` borrows `ctx` and
    `v`. Why does that compile, and what would break if `line` returned `event`
    to its caller instead of calling it?
 
 ## Done when
 
-The core tests in `t07_transcript` pass. The pricing tests are the stretch.
+`t07_transcript` passes, the fixture sequence test included.

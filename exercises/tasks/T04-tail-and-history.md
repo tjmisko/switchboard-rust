@@ -1,8 +1,9 @@
 # T04 — Line-oriented I/O: tail and history
 
-**Core: 1h30** · Gaps: `Read` / `BufRead` / `Write`, generic `R: BufRead`,
+**Core: 1h45** · Gaps: `Read` / `BufRead` / `Write`, generic `R: BufRead`,
 why `BufReader` exists, `Cursor<Vec<u8>>` and `Vec<u8>` as test doubles,
-`&mut R` as a reader · Tests: `cargo test --test t04_history`, and
+`&mut R` as a reader, an error's `Display` and `source` written next to
+its raiser · Tests: `cargo test --test t04_history`, and
 **`t04_tail`, which you write**
 
 The transcript is a file another process appends to. The history is a file
@@ -18,7 +19,20 @@ calls.
 
 ## Implement
 
-**`src/history.rs`** first:
+**`src/error.rs`** first, and it is short: `Display` and `Error::source` for
+`RecordError`, the two bodies T02 left as `todo!`. `read_day` is the only
+thing that raises this error, and `t04_history` pins every message: a
+wrapped `io::Error` is `read failed: <it>`, a wrapped `serde_json::Error` is
+`malformed JSON: <it>`, `Missing` and `BadValue` are in T02's `FrameError`
+voice (`missing field \`pid\``, `field \`ts\` has unusable value
+"yesterday"`), and `Name` prints its `UnknownName` unchanged. The policy is
+the one in the `error.rs` module comment: a variant that wraps another error
+names it in `Display` *and* returns it from `source`, so a one-line
+`eprintln!("{e}")` says everything and a reporter that walks the chain
+prints the cause twice, which is the accepted price. `Io`, `Json` and
+`Name` have a source; `Missing` and `BadValue` do not.
+
+**`src/history.rs`** next:
 
 - `Record::to_json` and `Record::from_json(v) -> Result<Option<Record>, RecordError>`.
   `Ok(None)` means "a type this crate doesn't write", which is not an error.
@@ -102,6 +116,9 @@ The behaviours worth pinning down, with the answer golden gives for each:
    hand-roll byte-at-a-time `read` on a `File`?
 3. `HistoryWriter::new(&mut file)` in a loop, then `HistoryWriter::new(file)`
    once at the end. What does each form do to `file`'s ownership?
+4. `source` returns `Option<&(dyn Error + 'static)>`. In the `Io(e)` arm you
+   wrote `Some(e)` with `e: &io::Error`. What converts one to the other with
+   no cast, and what does the `'static` bound refuse?
 
 ## Done when
 
