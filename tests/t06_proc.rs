@@ -115,6 +115,61 @@ fn should_classify_an_interactive_claude_and_reject_everything_else() {
     );
 }
 
+/// The Codex TUI, and nothing else that shares its `comm`. The rules are
+/// the Go daemon's: unknown verbs and flags fail closed.
+#[test]
+fn should_classify_an_interactive_codex_tui_and_reject_its_other_modes() {
+    let exe = Path::new("/home/u/.codex/packages/standalone/releases/0.154.0/bin/codex");
+    let yes = |argv: &[&str]| classify("codex", Some(exe), argv) == Some(Provider::Codex);
+
+    assert!(yes(&["codex"]));
+    assert!(yes(&["codex", "resume", "01a09c7a"]));
+    assert!(yes(&[
+        "codex",
+        "--model",
+        "gpt-6-astra",
+        "--profile",
+        "work",
+        "--search"
+    ]));
+    assert!(yes(&["codex", "--model=gpt-6-astra", "fork", "x"]));
+    assert!(yes(&["codex", "-c", "model=x", "--full-auto"]));
+    assert!(yes(&["codex", "fix the build"]), "a quoted initial prompt");
+    assert!(
+        yes(&["codex", "--", "exec"]),
+        "everything after -- is a prompt"
+    );
+    assert!(yes(&["/home/u/.local/bin/codex"]));
+
+    assert!(!yes(&["codex", "app-server", "--stdio"]));
+    assert!(!yes(&["codex", "exec", "ls"]), "headless");
+    assert!(!yes(&["codex", "mcp-server"]));
+    assert!(!yes(&["codex", "--help"]));
+    assert!(!yes(&["codex", "resume", "--help"]));
+    assert!(
+        !yes(&["codex", "future-command"]),
+        "an unknown verb fails closed"
+    );
+    assert!(!yes(&["codex", "--future-flag"]), "so does an unknown flag");
+    assert!(!yes(&["codex", "--model"]), "a value option with no value");
+
+    assert_eq!(
+        classify(
+            "codex",
+            Some(Path::new("/usr/libexec/codex-linux-sandbox")),
+            &["codex"]
+        ),
+        None,
+        "the sandbox helper shares the comm, not the exe"
+    );
+    assert_eq!(classify("codex", Some(exe), &["/tmp/impostor"]), None);
+    assert_eq!(
+        classify("codex", None, &["codex"]),
+        Some(Provider::Codex),
+        "an unreadable exe is not a rejection"
+    );
+}
+
 #[test]
 fn should_accept_owned_and_borrowed_argv_alike() {
     let exe = Path::new("/x/claude/2");

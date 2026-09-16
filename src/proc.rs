@@ -99,14 +99,19 @@ pub fn parse_cmdline(bytes: &[u8]) -> Vec<Cow<'_, str>> {
         .collect()
 }
 
-/// Whether a process is an interactive Claude session.
+/// Whether a process is an interactive agent session, and of which provider.
 ///
 /// `exe` is `None` when the link cannot be read, which for another user's
 /// process is normal; the check then rests on `comm` and `argv` alone.
 pub fn classify<S: AsRef<str>>(comm: &str, exe: Option<&Path>, argv: &[S]) -> Option<Provider> {
-    if comm != "claude" {
-        return None;
+    match comm {
+        "claude" => classify_claude(exe, argv),
+        "codex" => classify_codex(exe, argv),
+        _ => None,
     }
+}
+
+fn classify_claude<S: AsRef<str>>(exe: Option<&Path>, argv: &[S]) -> Option<Provider> {
     if let Some(exe) = exe
         && !exe.to_string_lossy().contains("/claude/")
     {
@@ -121,6 +126,98 @@ pub fn classify<S: AsRef<str>>(comm: &str, exe: Option<&Path>, argv: &[S]) -> Op
         return None;
     }
     Some(Provider::Claude)
+}
+
+/// Codex verbs that never open the TUI.
+const CODEX_NONINTERACTIVE: [&str; 12] = [
+    "exec",
+    "app-server",
+    "mcp",
+    "mcp-server",
+    "login",
+    "logout",
+    "completion",
+    "apply",
+    "debug",
+    "sandbox",
+    "generate-json-schema",
+    "help",
+];
+
+/// Codex global options that take a value in the next argument.
+const CODEX_VALUE_OPTIONS: [&str; 16] = [
+    "-m",
+    "--model",
+    "-c",
+    "--config",
+    "-p",
+    "--profile",
+    "-s",
+    "--sandbox",
+    "-a",
+    "--ask-for-approval",
+    "-C",
+    "--cd",
+    "-i",
+    "--image",
+    "--add-dir",
+    "--enable",
+];
+
+/// Codex global options that take no value.
+const CODEX_FLAGS: [&str; 6] = [
+    "--full-auto",
+    "--search",
+    "--oss",
+    "--yolo",
+    "--dangerously-bypass-approvals-and-sandbox",
+    "--no-alt-screen",
+];
+
+/// The Codex TUI, and nothing else that shares its `comm`: `codex exec`, the
+/// app-server, and `codex-linux-sandbox` (whose comm is also `codex`, and
+/// whose exe is not) all fail closed. The rules are the Go daemon's,
+/// including "an unknown verb or flag is not interactive".
+fn classify_codex<S: AsRef<str>>(exe: Option<&Path>, argv: &[S]) -> Option<Provider> {
+    if let Some(exe) = exe
+        && exe.file_name().and_then(|f| f.to_str()) != Some("codex")
+    {
+        return None;
+    }
+    let mut args = argv.iter().map(AsRef::as_ref);
+    let program = args.next()?;
+    if Path::new(program).file_name().and_then(|f| f.to_str()) != Some("codex") {
+        return None;
+    }
+    while let Some(arg) = args.next() {
+        match arg {
+            "--" => return Some(Provider::Codex),
+            "-h" | "--help" | "-V" | "--version" => return None,
+            // Interactive, unless asked for help before a `--`.
+            "resume" | "fork" => {
+                let helped = args
+                    .take_while(|a| *a != "--")
+                    .any(|a| matches!(a, "-h" | "--help" | "-V" | "--version"));
+                return (!helped).then_some(Provider::Codex);
+            }
+            verb if CODEX_NONINTERACTIVE.contains(&verb) => return None,
+            opt if CODEX_VALUE_OPTIONS.contains(&opt) => {
+                args.next()?;
+            }
+            flag if CODEX_FLAGS.contains(&flag) => {}
+            opt if opt.starts_with('-') => {
+                // `--model=x` is fine; any other flag is one we do not know.
+                let (name, _) = opt.split_once('=')?;
+                if !CODEX_VALUE_OPTIONS.contains(&name) {
+                    return None;
+                }
+            }
+            // A bare token with whitespace is a quoted initial prompt.
+            token if token.contains(char::is_whitespace) => return Some(Provider::Codex),
+            _ => return None,
+        }
+    }
+    Some(Provider::Codex)
 }
 
 /// A session file `~/.claude/sessions/<pid>.json` names the conversation only
