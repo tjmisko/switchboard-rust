@@ -34,8 +34,14 @@ pub struct WatchSpec {
     pub replay_bytes: u64,
 }
 
-/// Run until the inbox closes. The effect runner ends a watcher by aborting
-/// its task.
+/// Run until the inbox closes, which is checked at the top of every pass: a
+/// quiet transcript never sends, so a failed send alone would never notice.
+/// The effect runner ends a watcher by aborting its task.
+///
+/// Each tick moves the open file and its cursor into a blocking closure and
+/// takes them back with the result. The lines come back as text; parsing
+/// them and handing them to the transcript adapter happens here, and a line
+/// that is not JSON is skipped.
 pub async fn run(spec: WatchSpec, inbox: mpsc::Sender<Input>) {
     let mut ticker = interval(spec.poll);
     ticker.set_missed_tick_behavior(MissedTickBehavior::Delay);

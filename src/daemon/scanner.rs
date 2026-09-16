@@ -50,7 +50,8 @@ pub async fn run(layout: Arc<Layout>, inbox: mpsc::Sender<Input>, every: Duratio
 }
 
 /// One sweep's inputs: the snapshot, then a `Died` for every process that was
-/// known before and is absent now. Also returns the new known set.
+/// known before and is absent now. Also returns the new known set, which is
+/// read off `rows` before `rows` moves into the snapshot.
 pub fn sweep_inputs(
     known: &BTreeSet<ProcKey>,
     rows: Vec<ProcessRow>,

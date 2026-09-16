@@ -16,6 +16,8 @@ use crate::model::{Effect, HistoryEntry, ProcKey};
 use crate::paths::{Layout, transcript_path};
 use crate::reduce::default_account;
 
+/// Run until the effects channel closes. `PublishState` never arrives here:
+/// the core consumes it. History is best-effort, offered with `try_send`.
 pub async fn run(
     mut effects: mpsc::UnboundedReceiver<Effect>,
     inbox: mpsc::Sender<Input>,
