@@ -5,6 +5,7 @@
 //! and the transcript repeats what they said. A no-op returns `false` and
 //! publishes nothing.
 
+use std::collections::BTreeMap;
 use std::time::{Instant, UNIX_EPOCH};
 
 use crate::model::{
@@ -17,7 +18,67 @@ use crate::paths::workspace_name;
 use crate::reduce::{Effects, limits_for, route, settle};
 
 pub fn apply_event(board: &mut Board, event: Event) -> Vec<Effect> {
-    todo!("T07")
+    let now = event.at.local;
+    let mut effects = Effects::new();
+    let Some(key) = route(board, event.process, &event.session) else {
+        return effects.finish();
+    };
+
+    if matches!(event.kind, EventKind::Died) {
+        if let Some(agent) = board.agents.remove(&key) {
+            effects.push(Effect::AppendHistory(HistoryEntry::AgentGone {
+                process: key,
+                session: agent.session,
+            }));
+            effects.push(Effect::Forget { process: key });
+        }
+        return effects.finish();
+    }
+
+    let Board { agents, accounts } = board;
+    let Some(agent) = agents.get_mut(&key) else {
+        return effects.finish();
+    };
+
+    let mut changed = false;
+    match &agent.session {
+        // Discovered without a session: the first event names it.
+        None => {
+            agent.session = Some(event.session.clone());
+            changed = true;
+        }
+        // A session the agent does not hold. `SessionStarted` is a rotation
+        // (`/clear`); anything else is a late event for the old one.
+        Some(current) if *current != event.session => {
+            if !matches!(event.kind, EventKind::SessionStarted { .. }) {
+                return effects.finish();
+            }
+            agent.session = Some(event.session.clone());
+            agent.activity = idle(now, None);
+            agent.prompts = Prompts::default();
+            agent.compaction = Compaction::None;
+            agent.waits.clear();
+            agent.subagents = Subagents::default();
+            changed = true;
+        }
+        Some(_) => {}
+    }
+    if changed {
+        effects.push(Effect::WatchTranscript {
+            process: agent.process,
+            session: event.session.clone(),
+            cwd: agent.cwd.clone(),
+        });
+    }
+
+    changed |= transition(agent, &event, now, &mut effects);
+    if changed {
+        agent.last_event = Some(now);
+    }
+    let limits = limits_for(accounts, agent);
+    effects.history(settle(agent, limits, event.cause, event.confidence, now));
+    effects.publish_if(changed);
+    effects.finish()
 }
 
 /// Apply one event to one agent. Returns whether anything changed.
@@ -32,7 +93,78 @@ fn transition(
     now: Instant,
     effects: &mut Effects,
 ) -> bool {
-    todo!("T07 (agent arms) and T08 (route subagent events, then the permission arms)")
+    if let Actor::Subagent(id) = &event.actor {
+        return subagent_transition(agent, id, event, now);
+    }
+    match &event.kind {
+        EventKind::SessionStarted { title, .. } => {
+            let mut changed = false;
+            if title.is_some() && agent.title != *title {
+                agent.title = title.clone();
+                changed = true;
+            }
+            if matches!(agent.activity, Activity::Unobserved { .. }) {
+                agent.activity = idle(now, None);
+                changed = true;
+            }
+            changed
+        }
+        // Not liveness: only `Died` ends an agent.
+        EventKind::SessionEnded { .. } => false,
+        EventKind::TurnStarted { turn, .. } => {
+            let Activity::Turn { key, last_event, .. } = &mut agent.activity else {
+                agent.activity = working(turn.clone(), now);
+                return true;
+            };
+            if *key == *turn {
+                return false;
+            }
+            *key = turn.clone();
+            *last_event = now;
+            true
+        }
+        EventKind::TurnEnded { turn, outcome } => end_turn(agent, turn.as_ref(), outcome, now),
+        EventKind::ToolDispatched { call, tool, hash } => dispatch(agent, call, tool, *hash, now),
+        EventKind::ToolSettled { call, outcome } => {
+            let mut changed = settle_call(agent, call, now);
+            if matches!(outcome, ToolOutcome::Failed { interrupt: true }) {
+                let interrupted = TurnOutcome::Interrupted { killed: None };
+                changed |= end_turn(agent, None, &interrupted, now);
+            }
+            changed
+        }
+        EventKind::CompactionStarted { trigger } => {
+            if matches!(agent.compaction, Compaction::InProgress { .. }) {
+                return false;
+            }
+            agent.compaction = Compaction::InProgress {
+                since: now,
+                trigger: *trigger,
+            };
+            true
+        }
+        EventKind::CompactionEnded => {
+            if agent.compaction == Compaction::None {
+                return false;
+            }
+            agent.compaction = Compaction::None;
+            true
+        }
+        EventKind::CwdChanged { to } => {
+            if agent.cwd == *to {
+                return false;
+            }
+            agent.workspace = workspace_name(to).map(Box::from);
+            agent.cwd = to.clone();
+            true
+        }
+        // Handled in `apply_event` before the agent is borrowed.
+        EventKind::Died => false,
+        EventKind::PermissionAsked { .. }
+        | EventKind::PermissionSettled { .. }
+        | EventKind::SubagentStarted { .. }
+        | EventKind::SubagentEnded { .. } => todo!("T08"),
+    }
 }
 
 /// Apply an event a subagent sent to that subagent's row. Returns whether
@@ -56,11 +188,16 @@ fn subagent_transition(
 }
 
 fn idle(now: Instant, after: Option<TurnOutcome>) -> Activity {
-    todo!("T07")
+    Activity::Idle { since: now, after }
 }
 
 fn working(key: Option<TurnKey>, now: Instant) -> Activity {
-    todo!("T07")
+    Activity::Turn {
+        key,
+        started: now,
+        tools: BTreeMap::new(),
+        last_event: now,
+    }
 }
 
 fn blocked(u: &Unjoined) -> Gate {
@@ -79,7 +216,37 @@ fn end_turn(
     outcome: &TurnOutcome,
     now: Instant,
 ) -> bool {
-    todo!("T07")
+    match &agent.activity {
+        Activity::Turn { key, .. } => {
+            // Both sides keyed and disagreeing: the late close of an
+            // earlier turn, which is not this one.
+            if key.is_some() && turn.is_some() && key.as_ref() != turn {
+                return false;
+            }
+            agent.activity = idle(now, Some(outcome.clone()));
+            clear_unjoined(&mut agent.prompts, &Actor::Agent);
+            true
+        }
+        // The hook's `Stop` and the transcript's interrupt line can land in
+        // either order. An interrupt or failure after a plain completion is
+        // still worth recording; a completion never erases one.
+        Activity::Idle { after, .. } => {
+            let plain = matches!(after, None | Some(TurnOutcome::Completed));
+            if !plain || *outcome == TurnOutcome::Completed {
+                return false;
+            }
+            let Activity::Idle { after, .. } = &mut agent.activity else {
+                return false;
+            };
+            *after = Some(outcome.clone());
+            true
+        }
+        // A replayed line is the first thing this agent ever said.
+        Activity::Unobserved { .. } => {
+            agent.activity = idle(now, Some(outcome.clone()));
+            true
+        }
+    }
 }
 
 fn dispatch(
@@ -89,12 +256,46 @@ fn dispatch(
     hash: InputHash,
     now: Instant,
 ) -> bool {
-    todo!("T07")
+    if !matches!(agent.activity, Activity::Turn { .. }) {
+        agent.activity = working(None, now);
+    }
+    let Activity::Turn {
+        tools, last_event, ..
+    } = &mut agent.activity
+    else {
+        return false;
+    };
+    if tools.contains_key(call) {
+        return false;
+    }
+    let gate = take_unjoined(&mut agent.prompts, &Actor::Agent, tool, hash)
+        .map_or(Gate::Running, |u| blocked(&u));
+    tools.insert(
+        call.clone(),
+        Tool {
+            name: tool.clone(),
+            hash,
+            since: now,
+            gate,
+        },
+    );
+    *last_event = now;
+    true
 }
 
 /// A call finished, by id.
 fn settle_call(agent: &mut crate::model::Agent, call: &ToolUseId, now: Instant) -> bool {
-    todo!("T07")
+    let Activity::Turn {
+        tools, last_event, ..
+    } = &mut agent.activity
+    else {
+        return lift_sole_unjoined(&mut agent.prompts, &Actor::Agent);
+    };
+    if tools.remove(call).is_none() {
+        return lift_sole_unjoined(&mut agent.prompts, &Actor::Agent);
+    }
+    *last_event = now;
+    true
 }
 
 /// A prompt from the agent itself. Three paths: the call id is known, the
@@ -154,16 +355,19 @@ fn take_unjoined(
     tool: &ToolName,
     hash: InputHash,
 ) -> Option<Unjoined> {
-    todo!("T08")
+    // T07 placeholder; T08 joins prompts to calls.
+    None
 }
 
 /// Drop every unjoined prompt held by `actor`. Returns whether any were.
 fn clear_unjoined(prompts: &mut Prompts, actor: &Actor) -> bool {
-    todo!("T08")
+    // T07 placeholder.
+    false
 }
 
 fn lift_sole_unjoined(prompts: &mut Prompts, actor: &Actor) -> bool {
-    todo!("T08")
+    // T07 placeholder.
+    false
 }
 
 /// Anything from a subagent that shows it is moving again lifts its gate.
