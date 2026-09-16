@@ -145,7 +145,7 @@ pub fn discovered(row: ProcessRow, now: Instant) -> Agent {
         life: Life::Alive,
         session: row.session,
         account: default_account(),
-        title: None,
+        title: row.name,
         workspace: workspace_name(&row.cwd).map(Box::from),
         cwd: row.cwd,
         placement: Placement::Unknown,
@@ -164,6 +164,14 @@ pub fn discovered(row: ProcessRow, now: Instant) -> Agent {
 fn discover(board: &mut Board, row: ProcessRow, taken: Instant, effects: &mut Effects) {
     if let Some(agent) = board.agents.get_mut(&row.key) {
         agent.cpu_ticks = row.cpu_ticks;
+        // The session file's `name` and a hook's `session_title` report the
+        // same fact, so the most recent reading wins: a rename lands on the
+        // next sweep. Absent means the file did not say, not that the name
+        // went away.
+        if row.name.is_some() && agent.title != row.name {
+            agent.title = row.name;
+            effects.publish_if(true);
+        }
         // A sweep may name the session before any hook does.
         if let (None, Some(session)) = (&agent.session, row.session) {
             effects.push(Effect::WatchTranscript {

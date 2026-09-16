@@ -11,7 +11,8 @@ use common::FakeProc;
 use switchboard::error::StatError;
 use switchboard::model::{ProcKey, Provider};
 use switchboard::proc::{
-    ancestors, classify, key_of, parent_of, parse_cmdline, parse_stat, session_from_file, sweep,
+    ancestors, classify, key_of, name_from_file, parent_of, parse_cmdline, parse_stat,
+    session_from_file, sweep,
 };
 
 const REAL: &str = "6002 (claude) S 5890 6002 5890 34818 6002 4194560 1311934 0 1085 0 43219 6390 0 0 20 0 19 0 12313 75436916736 125906 18446744073709551615 1 1 0 0 0 0 0 16781312 1024 0 0 0 17 5 0 0 0 0 0\n";
@@ -144,6 +145,30 @@ fn should_trust_a_session_file_only_when_pid_and_proc_start_match() {
     }
 }
 
+/// The session file also carries the display name the operator recognises
+/// (`switchboard-rust-7f`), which no captured hook payload does. It is
+/// trusted under exactly the same guard as the session id.
+#[test]
+fn should_read_the_display_name_from_the_session_file_under_the_same_guard() {
+    let key = ProcKey {
+        pid: 6002,
+        start: 12313,
+    };
+    let good = json!({"pid": 6002, "procStart": "12313", "sessionId": "e550f90b",
+        "name": "switchboard-rust-7f", "nameSource": "derived"});
+    assert_eq!(
+        name_from_file(&good, key).as_deref(),
+        Some("switchboard-rust-7f")
+    );
+
+    let stale = json!({"pid": 6002, "procStart": "99", "sessionId": "e550f90b", "name": "old"});
+    assert_eq!(name_from_file(&stale, key), None, "a recycled pid's file");
+    let blank = json!({"pid": 6002, "procStart": "12313", "sessionId": "e550f90b", "name": "  "});
+    assert_eq!(name_from_file(&blank, key), None);
+    let unnamed = json!({"pid": 6002, "procStart": "12313", "sessionId": "e550f90b"});
+    assert_eq!(name_from_file(&unnamed, key), None);
+}
+
 #[test]
 fn should_sweep_a_fake_proc_for_live_interactive_claude_sessions_in_pid_order() {
     let root = common::scratch_dir("proc_sweep");
@@ -161,12 +186,12 @@ fn should_sweep_a_fake_proc_for_live_interactive_claude_sessions_in_pid_order() 
     std::fs::create_dir_all(proc_root.join("self")).unwrap();
     std::fs::write(
         sessions.join("100.json"),
-        r#"{"pid":100,"procStart":"700","sessionId":"sess-100"}"#,
+        r#"{"pid":100,"procStart":"700","sessionId":"sess-100","name":"switchboard-rust-7f"}"#,
     )
     .unwrap();
     std::fs::write(
         sessions.join("300.json"),
-        r#"{"pid":300,"procStart":"1","sessionId":"stale"}"#,
+        r#"{"pid":300,"procStart":"1","sessionId":"stale","name":"someone-elses"}"#,
     )
     .unwrap();
 
@@ -174,7 +199,9 @@ fn should_sweep_a_fake_proc_for_live_interactive_claude_sessions_in_pid_order() 
     let pids: Vec<u32> = rows.iter().map(|r| r.key.pid).collect();
     assert_eq!(pids, [100, 300]);
     assert_eq!(rows[0].session.as_deref(), Some("sess-100"));
+    assert_eq!(rows[0].name.as_deref(), Some("switchboard-rust-7f"));
     assert_eq!(rows[1].session, None, "stale session file ignored");
+    assert_eq!(rows[1].name, None, "and so is its name");
     assert_eq!(rows[0].cwd, cwd);
     assert_eq!(rows[0].tty, Some(34816));
     assert_eq!(rows[0].cpu_ticks, 300);

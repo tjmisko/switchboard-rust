@@ -11,7 +11,7 @@ use std::path::Path;
 use serde_json::Value;
 
 use crate::error::StatError;
-use crate::ingest::json::{str_at, u64_at};
+use crate::ingest::json::{nonblank_str_at, str_at, u64_at};
 use crate::model::{ProcKey, ProcessRow, Provider, SessionId};
 
 /// The fields of `/proc/<pid>/stat` the daemon uses.
@@ -127,16 +127,31 @@ pub fn classify<S: AsRef<str>>(comm: &str, exe: Option<&Path>, argv: &[S]) -> Op
 /// if it was written by this very process: `procStart` is a string and must
 /// equal the stat start time.
 pub fn session_from_file(v: &Value, key: ProcKey) -> Option<SessionId> {
-    let pid_matches = u64_at(v, "pid") == Some(u64::from(key.pid));
-    let start_matches = str_at(v, "procStart")
-        .and_then(|s| s.parse::<u64>().ok())
-        .is_some_and(|start| start == key.start);
-    if !(pid_matches && start_matches) {
+    if !written_by(v, key) {
         return None;
     }
     str_at(v, "sessionId")
         .filter(|s| !s.is_empty())
         .map(SessionId::from)
+}
+
+/// The same file's `name`: the display name the operator sees in Claude's
+/// own UI (`switchboard-rust-7f`), derived by the harness or set with
+/// `/rename`. Under the same guard as the session, for the same reason.
+pub fn name_from_file(v: &Value, key: ProcKey) -> Option<Box<str>> {
+    if !written_by(v, key) {
+        return None;
+    }
+    nonblank_str_at(v, "name").map(Box::from)
+}
+
+/// Whether a session file was written by the process `key` names.
+fn written_by(v: &Value, key: ProcKey) -> bool {
+    let pid_matches = u64_at(v, "pid") == Some(u64::from(key.pid));
+    let start_matches = str_at(v, "procStart")
+        .and_then(|s| s.parse::<u64>().ok())
+        .is_some_and(|start| start == key.start);
+    pid_matches && start_matches
 }
 
 /// Read and classify one `/proc/<pid>`. `None` for anything that is not a
@@ -154,16 +169,20 @@ pub fn read_process(proc_root: &Path, sessions: &Path, pid: u32) -> Option<Proce
     let cwd = fs::read_link(dir.join("cwd")).ok()?;
     let key = stat.key();
 
-    let session = fs::read_to_string(sessions.join(format!("{pid}.json")))
+    let session_file = fs::read_to_string(sessions.join(format!("{pid}.json")))
         .ok()
-        .and_then(|text| serde_json::from_str::<Value>(&text).ok())
-        .and_then(|v| session_from_file(&v, key));
+        .and_then(|text| serde_json::from_str::<Value>(&text).ok());
+    let session = session_file
+        .as_ref()
+        .and_then(|v| session_from_file(v, key));
+    let name = session_file.as_ref().and_then(|v| name_from_file(v, key));
 
     Some(ProcessRow {
         key,
         provider,
         cwd,
         session,
+        name,
         tty: (stat.tty_nr != 0).then_some(stat.tty_nr),
         cpu_ticks: stat.cpu_ticks,
     })
