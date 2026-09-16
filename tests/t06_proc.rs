@@ -235,3 +235,18 @@ fn should_walk_ancestors_until_the_root_or_the_limit() {
 
     assert_eq!(key_of(&root, 50), Some(ProcKey { pid: 50, start: 10 }));
 }
+
+/// `limit` bounds the whole chain, the starting pid included: `take(0)` on
+/// a sequence that begins with `pid` yields nothing.
+#[test]
+fn should_yield_nothing_when_the_ancestor_limit_is_zero() {
+    let root = common::scratch_dir("proc_ancestors_zero");
+    let fake = FakeProc { root: &root };
+    fake.add(50, "claude", 1, 10, &["claude"], Path::new("/"));
+    fake.add(60, "sh", 50, 20, &["sh"], Path::new("/"));
+
+    let none: Vec<u32> = ancestors(&root, 60, 0).collect();
+    assert!(none.is_empty(), "{none:?}");
+    let one: Vec<u32> = ancestors(&root, 60, 1).collect();
+    assert_eq!(one, [60], "one is the start alone");
+}
