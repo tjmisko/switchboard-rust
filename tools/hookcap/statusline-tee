@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# statusline-tee: record the statusLine payload, then run the real status line
+# with the same bytes. It is on the render path, so it records a compact subset
+# and always execs the wrapped command, even if recording fails.
+#
+#   "statusLine": {"type": "command", "command": "<this> bash ~/.claude/claude-status"}
+
+input=$(cat)
+root="${HOOKCAP_DIR:-$HOME/.local/state/switchboard/hookcap}"
+printf -v day '%(%F)T' -1
+if mkdir -p "$root/$day" 2>/dev/null; then
+    printf '%s' "$input" | jq -c --argjson ts "$EPOCHREALTIME" --argjson ppid "$PPID" '
+        {ts: $ts, kind: "statusline", ppid: $ppid, session_id, version,
+         model: .model.id, keys: keys,
+         api_ms: .cost.total_api_duration_ms, duration_ms: .cost.total_duration_ms,
+         context_pct: .context_window.used_percentage,
+         rate_limits}' 2>/dev/null | flock "$root/$day/statusline.jsonl.lock" tee -a "$root/$day/statusline.jsonl" >/dev/null
+fi
+exec "$@" <<<"$input"

@@ -1,0 +1,116 @@
+#!/usr/bin/env bash
+# switchboard-hookcap: record one hook invocation for the signal-capture experiment.
+#
+#   hookcap claude <Event>    payload on stdin, wired in ~/.claude/settings.json
+#   hookcap codex  <Event>    payload on stdin, wired in ~/.codex/hooks.json
+#   hookcap mark   <text...>  annotate the recording ("declining a prompt now")
+#
+# Runs synchronously so a record can never be lost to a killed background job,
+# which would bias "did event X fire?". Prints nothing: hook stdout can steer the
+# harness. Always exits 0.
+
+set -u
+root="${HOOKCAP_DIR:-$HOME/.local/state/switchboard/hookcap}"
+printf -v day '%(%F)T' -1
+dir="$root/$day"
+mkdir -p "$dir" 2>/dev/null || exit 0
+ts=$EPOCHREALTIME
+
+# One record per line, whole. A record can exceed the kernel's atomic append
+# size, so two hooks firing together can interleave chunks and tear both lines.
+append() { flock "$1.lock" tee -a "$1" >/dev/null; }
+
+if [[ ${1:-} == mark ]]; then
+    shift
+    jq -cn --argjson ts "$ts" --arg text "$*" '{ts: $ts, kind: "mark", text: $text}' | append "$dir/hooks.jsonl"
+    echo "hookcap: marked \"$*\" at $(printf '%(%T)T' -1)"
+    exit 0
+fi
+
+provider=${1:-unknown}
+event=${2:-unknown}
+payload=$(cat)
+
+# The nearest ancestor that is the agent itself. Hooks may run under `sh -c`.
+chain=()
+agent_pid=""
+pid=$PPID
+for _ in 1 2 3 4 5 6 7 8; do
+    [[ -r /proc/$pid/stat ]] || break
+    stat=$(</proc/$pid/stat)
+    comm=${stat#*(}
+    comm=${comm%)*}
+    read -r -a fields <<<"${stat##*) }"
+    chain+=("$pid:$comm")
+    if [[ $comm == claude || $comm == codex ]]; then
+        agent_pid=$pid
+        agent_state=${fields[0]}
+        agent_cpu=$((fields[11] + fields[12]))
+        agent_start=${fields[19]}
+        break
+    fi
+    pid=${fields[1]}
+    [[ $pid -le 1 ]] && break
+done
+
+probe='null'
+if [[ -n $agent_pid ]]; then
+    kids=""
+    for kid in $(cat "/proc/$agent_pid/task/$agent_pid/children" 2>/dev/null); do
+        [[ -r /proc/$kid/comm ]] && kids+="$(</proc/$kid/comm) "
+    done
+    flags=$(tr '\0' '\n' <"/proc/$agent_pid/cmdline" 2>/dev/null | grep -E '^-' | tr '\n' ' ')
+    env_sid=$(tr '\0' '\n' <"/proc/$agent_pid/environ" 2>/dev/null | grep -m1 '^CLAUDE_SESSION_ID=' | cut -d= -f2)
+    sfile="$HOME/.claude/sessions/$agent_pid.json"
+    session_file='null'
+    [[ -r $sfile ]] && session_file=$(jq -c '{sessionId, kind, status, waitingFor, tempo, state, needs, name, nameSource, statusUpdatedAt, procStart}' "$sfile" 2>/dev/null || echo null)
+    probe=$(jq -cn \
+        --argjson pid "$agent_pid" --arg state "$agent_state" --argjson cpu "$agent_cpu" --argjson start "$agent_start" \
+        --arg kids "$kids" --arg flags "$flags" --arg env_sid "$env_sid" --argjson session_file "$session_file" \
+        '{pid: $pid, start: $start, state: $state, cpu_ticks: $cpu,
+          children: ($kids | split(" ") | map(select(. != ""))),
+          flags: ($flags | split(" ") | map(select(. != ""))),
+          env_session_id: (if $env_sid == "" then null else $env_sid end),
+          session_file: $session_file}')
+fi
+
+# tool_input is joined across hooks by hash, so hash it before scrubbing content.
+input_hash=$(printf '%s' "$payload" | jq -cS '.tool_input // empty' 2>/dev/null | sha256sum | cut -c1-16)
+[[ $input_hash == e3b0c44298fc1c14 ]] && input_hash=""   # sha256 of empty input
+# Codex PermissionRequest adds a `description` to tool_input, so the whole-input
+# hash never matches its PreToolUse. The command alone does.
+command_hash=$(printf '%s' "$payload" | jq -r '.tool_input.command // empty | if type == "string" then . else tojson end' 2>/dev/null | sha256sum | cut -c1-16)
+[[ $command_hash == 01ba4719c80b6fe9 || $command_hash == e3b0c44298fc1c14 ]] && command_hash=""   # empty or a bare newline
+
+# Keep structure, ids, enums and short fields. Content fields keep their shape
+# but every leaf becomes a type marker, so no prompt or tool text is stored.
+printf '%s' "$payload" | jq -c \
+    --argjson ts "$ts" --arg provider "$provider" --arg event "$event" \
+    --arg chain "${chain[*]}" --argjson probe "$probe" --arg input_hash "$input_hash" --arg command_hash "$command_hash" '
+    def shape:
+        if type == "object" then with_entries(.value |= shape)
+        elif type == "array" then map(shape)
+        elif type == "string" then "<str:\(length)>"
+        else . end;
+    def content_keys: ["prompt", "last_assistant_message", "tool_input", "tool_response",
+        "message", "title", "custom_instructions", "requested_schema", "error_details",
+        "command", "description", "content", "text", "url", "task_description", "task_subject",
+        "error", "stderr", "stdout"];
+    def enumish: type == "string" and length <= 40 and test("^[A-Za-z][A-Za-z0-9_.-]*$");
+    def scrub:
+        if type == "object" then with_entries(
+            if .key == "error" and (.value | enumish) then .
+            elif (.key as $k | content_keys | index($k)) then .value |= shape
+            else .value |= scrub end)
+        elif type == "array" then map(scrub)
+        elif type == "string" and length > 200 then "<str:\(length)>"
+        else . end;
+    {ts: $ts, kind: "hook", provider: $provider, event: $event,
+     input_hash: (if $input_hash == "" then null else $input_hash end),
+     command_hash: (if $command_hash == "" then null else $command_hash end),
+     chain: ($chain | split(" ")), agent: $probe, payload: scrub}
+' 2>/dev/null | append "$dir/hooks.jsonl" || \
+    jq -cn --argjson ts "$ts" --arg provider "$provider" --arg event "$event" \
+        '{ts: $ts, kind: "hook", provider: $provider, event: $event, payload: "<unparseable>"}' | append "$dir/hooks.jsonl"
+
+exit 0

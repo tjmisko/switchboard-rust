@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# subagent-statusline: record the agent-panel payload and print nothing.
+#
+# Claude parses stdout as JSON lines of {id, content}. Empty output means "no
+# decorations", so the panel renders its default rows unchanged.
+
+input=$(cat)
+root="${HOOKCAP_DIR:-$HOME/.local/state/switchboard/hookcap}"
+printf -v day '%(%F)T' -1
+mkdir -p "$root/$day" 2>/dev/null || exit 0
+printf '%s' "$input" | jq -c --argjson ts "$EPOCHREALTIME" --argjson ppid "$PPID" '
+    {ts: $ts, kind: "subagent_statusline", ppid: $ppid, session_id, columns,
+     tasks: [.tasks[]? | {id, type, status, name, startTime, model, tokenCount,
+                          label: (.label | if type == "string" then "<str:\(length)>" else . end)}]}' 2>/dev/null \
+    | flock "$root/$day/subagents.jsonl.lock" tee -a "$root/$day/subagents.jsonl" >/dev/null
+exit 0
