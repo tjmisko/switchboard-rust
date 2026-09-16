@@ -25,20 +25,20 @@ macro_rules! id_impls {
     ($($name:ident),* $(,)?) => {$(
         impl $name {
             pub fn as_str(&self) -> &str {
-                todo!("T01")
+                &self.0
             }
         }
 
         impl Deref for $name {
             type Target = str;
             fn deref(&self) -> &str {
-                todo!("T01")
+                &self.0
             }
         }
 
         impl AsRef<str> for $name {
             fn as_ref(&self) -> &str {
-                todo!("T01")
+                &self.0
             }
         }
 
@@ -46,26 +46,26 @@ macro_rules! id_impls {
         // type meet it? (T01 kata territory.)
         impl Borrow<str> for $name {
             fn borrow(&self) -> &str {
-                todo!("T01")
+                &self.0
             }
         }
 
         impl fmt::Display for $name {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-                todo!("T01")
+                f.write_str(&self.0)
             }
         }
 
         impl From<&str> for $name {
             fn from(s: &str) -> Self {
-                todo!("T01")
+                $name(Box::from(s))
             }
         }
 
         /// Must reuse the `String`'s allocation.
         impl From<String> for $name {
             fn from(s: String) -> Self {
-                todo!("T01")
+                $name(s.into_boxed_str())
             }
         }
     )*};
@@ -81,13 +81,19 @@ impl SubagentId {
     /// exactly once: a subagent genuinely named `agent-x` lives at
     /// `agent-agent-x`, and stripping twice would call it `x`.
     pub fn from_file_stem(stem: &str) -> Option<SubagentId> {
-        todo!("T01")
+        stem.strip_prefix("agent-")
+            .filter(|rest| !rest.is_empty())
+            .map(SubagentId::from)
     }
 
     /// The hook `agent_id` field is already the bare id. Taken as-is, with
     /// surrounding whitespace removed; blank means "not a subagent".
     pub fn from_hook(raw: &str) -> Option<SubagentId> {
-        todo!("T01")
+        let trimmed = raw.trim();
+        if trimmed.is_empty() {
+            return None;
+        }
+        Some(SubagentId::from(trimmed))
     }
 }
 
