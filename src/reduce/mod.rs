@@ -14,6 +14,25 @@
 //! After any change to an agent, the truth is recomputed and handed to
 //! `Shown::settle`, which is the one place the cost model decides what the
 //! operator sees.
+//!
+//! Three conclusions of `docs/02-session-machine.md` shape everything here:
+//!
+//! 1. **The turn holds a map, not a value.** Tool hooks fire concurrently
+//!    for parallel calls, so `Activity::Turn` carries `tools: BTreeMap<
+//!    ToolUseId, Tool>`, and "thinking" is not a state: it is a turn whose
+//!    map is empty.
+//! 2. **Phase is a fold, not a field.** Nothing stores a status. Gates,
+//!    limits, the last turn's outcome, the activity, the subagents and the
+//!    waits are independent axes, and `Agent::phase` folds them in a fixed
+//!    order on demand, so two transitions can never disagree about it.
+//! 3. **A child raises attention and never lowers it.** A subagent's gate
+//!    renders in the agent's terminal, so it reaches the agent's chip; the
+//!    agent's own `Stop` must never clear it. That is why every helper that
+//!    lifts prompts takes an `Actor`.
+//!
+//! That document argues in its own vocabulary. Translating to this code:
+//! `Root` is `Agent`, `Child` is `Subagent`, `Writer` is `Actor`, and
+//! `stale_after` is `TURN_STALE` below.
 
 use std::collections::BTreeMap;
 use std::time::{Duration, Instant};

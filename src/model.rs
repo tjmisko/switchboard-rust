@@ -44,8 +44,8 @@
 //! | 7. The derived view | T04 | `Shown` |
 //! | 4. The board, part one | T05 | `Limits`, `LimitStatus`, `LimitWindow` |
 //! | 5. Agent, part two | T06 | `ProcessRow` |
-//! | 4. The board, 5. Agent | T07 | `Board`, `Account`, `Agent`, `Activity`, `Tool`, `Gate`, `Prompts`, `Unjoined`, `Compaction` |
-//! | 6. Subagent | T07, T08 | `Subagents`, `Subagent`, `SubagentSource`, `SubagentStatus`; `Lamp` from section 7 in T08 |
+//! | 4. The board, 5. Agent | T07 | `Board`, `Account`, `Agent`, `Activity`, `Tool`, `Gate`, `Prompts`, `Unjoined`, `Compaction`; `Lamp` from section 7; `Agent::phase` and `has_unowned_gate` at the end of T07 |
+//! | 6. Subagent | T07, T08 | `Subagents`, `Subagent`, `SubagentSource`, `SubagentStatus` (read in T07 for the reset on `/clear`; worked in T08) |
 //! | 5. Agent, part three | T09 | `Life`, `Wait`, `Beat`; `Placement` from section 4; `SubagentRow` from section 6 |
 //! | 9. Tests | any time | the model's own unit tests, provided |
 //! | 10. Federation | no task | |
@@ -906,13 +906,17 @@ pub struct Beat {
 /// no hook emits. So `rows` is replaced wholesale, and absence from the newest
 /// snapshot is itself a fact.
 ///
-/// Events refine a row between snapshots. They may never create or remove one.
+/// Who owns the rows depends on `source`. Under `Panel`, events refine a row
+/// between snapshots (its status, its gate) and may never create or remove
+/// one. Under `EventsOnly`, the events are all there is: `SubagentStarted`
+/// creates the row and `SubagentEnded` removes it.
 ///
-/// Time may. A row whose `last_seen` is older than `reduce::SUBAGENT_STALE`
-/// is a claim nothing supports any more: 54 of 168 captured children started
-/// and never reported a stop. Every panel refresh and every child hook
-/// refreshes `last_seen`, so a live child never expires; a row holding an
-/// open gate is exempt, because a tick never clears a live gate.
+/// Time may remove a row whoever owns it. A row whose `last_seen` is older
+/// than `reduce::SUBAGENT_STALE` is a claim nothing supports any more: 54 of
+/// 168 captured children started and never reported a stop. Every panel
+/// refresh and every child hook refreshes `last_seen`, so a live child never
+/// expires; a row holding an open gate is exempt, because a tick never
+/// clears a live gate.
 #[derive(Debug, Clone, Default)]
 pub struct Subagents {
     pub rows: BTreeMap<SubagentId, Subagent>,
@@ -927,7 +931,11 @@ pub enum SubagentSource {
     /// `subagents/` directory scan. Cannot see `Failed` or `Killed`, so rows
     /// from here do need the stale cap.
     DirScan,
-    /// Neither is configured: rows exist only while events keep arriving.
+    /// Neither is configured, so events own the table. `SubagentStarted`
+    /// adds a row, `SubagentEnded` removes it (and drops any prompt that
+    /// child left parked), and a child that never reports a stop is
+    /// forgotten by `tick` after `reduce::SUBAGENT_STALE`. The table is
+    /// replaced by `Panel` the moment a panel snapshot arrives.
     #[default]
     EventsOnly,
 }

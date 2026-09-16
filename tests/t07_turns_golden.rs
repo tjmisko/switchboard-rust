@@ -1,8 +1,12 @@
 //! T07 (golden, hidden) — the reducer, part I: routing, sessions, turns, tools.
 //! The learner writes their own version of these in `t07_turns.rs`.
+//!
+//! Groups are labelled by half: T07a is routing, sessions, death and cwd;
+//! T07b is turns, tools and the `phase` reorder.
 
 mod common;
 
+use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 use serde_json::json;
@@ -11,7 +15,7 @@ use common::*;
 use switchboard::model::*;
 
 // ---------------------------------------------------------------------------
-// Routing and identity
+// T07a — Routing and identity
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -76,6 +80,23 @@ fn should_ignore_a_late_event_for_the_previous_session_after_clear() {
     assert_eq!(truth(&b, 100), Phase::Idle);
 }
 
+/// The pid wins the routing, and then the session is checked against the
+/// agent it named: an event from a tracked pid carrying a session that
+/// agent does not hold is dropped, not rerouted to whichever agent does.
+#[test]
+fn should_drop_an_event_whose_tracked_pid_disagrees_with_its_session() {
+    let t = Clock::new();
+    let mut b = board_with(&[(100, "s1"), (200, "s2")], t.at(0));
+    let to = PathBuf::from("/home/u/Projects/elsewhere");
+    let fx = apply(
+        &mut b,
+        hook(100, "s2", t.at(1), EventKind::CwdChanged { to: to.clone() }),
+    );
+    assert!(fx.is_empty(), "{fx:?}");
+    assert_ne!(agent(&b, 100).cwd, to);
+    assert_ne!(agent(&b, 200).cwd, to, "not rerouted to s2's agent");
+}
+
 #[test]
 fn should_reset_the_conversation_and_watch_the_new_transcript_when_the_session_rotates() {
     let t = Clock::new();
@@ -109,7 +130,7 @@ fn should_reset_the_conversation_and_watch_the_new_transcript_when_the_session_r
 }
 
 // ---------------------------------------------------------------------------
-// Discovery and the first event
+// T07a — Discovery and the first event
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -143,7 +164,7 @@ fn should_go_idle_on_session_start() {
 }
 
 // ---------------------------------------------------------------------------
-// Turns
+// T07b — Turns
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -365,7 +386,7 @@ fn should_leave_unobserved_for_idle_when_a_replayed_turn_ends() {
 }
 
 // ---------------------------------------------------------------------------
-// Tools
+// T07b — Tools
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -472,7 +493,48 @@ fn should_keep_the_turn_when_a_tool_merely_fails() {
 }
 
 // ---------------------------------------------------------------------------
-// Death, cwd, bookkeeping
+// T07b — The fold: an unowned gate mid-turn
+// ---------------------------------------------------------------------------
+
+/// A gate nobody owns, held by a call mid-turn, folds to `Unknown` (grey),
+/// not `Working` and never `Attention`. The state is built by hand because
+/// the reducer path that creates such a gate (`ask`) is T08's; this pins
+/// `Agent::phase` alone, and `t08_join` tells the same story through hooks.
+#[test]
+fn should_render_an_unowned_gate_grey_never_red_even_mid_turn() {
+    let t = Clock::new();
+    let mut b = board_with(&[(1, "s")], t.at(0));
+    apply(&mut b, hook(1, "s", t.at(1), turn_started("p")));
+
+    let mut tools = BTreeMap::new();
+    tools.insert(
+        ToolUseId::from("call-1"),
+        Tool {
+            name: ToolName::from("exec_command"),
+            hash: InputHash([0; 8]),
+            since: t.at(2),
+            gate: Gate::Blocked {
+                kind: GateKind::Approval,
+                since: t.at(2),
+                owner: Ownership::Unknown,
+                req: None,
+            },
+        },
+    );
+    let a = b.agents.get_mut(&key(1)).unwrap();
+    a.activity = Activity::Turn {
+        key: Some(TurnKey::Prompt("p".into())),
+        started: t.at(1),
+        tools,
+        last_event: t.at(2),
+    };
+
+    assert_eq!(truth(&b, 1), Phase::Unknown);
+    assert_eq!(truth(&b, 1).lamp(), Lamp::Grey);
+}
+
+// ---------------------------------------------------------------------------
+// T07a — Death, cwd, bookkeeping
 // ---------------------------------------------------------------------------
 
 #[test]
