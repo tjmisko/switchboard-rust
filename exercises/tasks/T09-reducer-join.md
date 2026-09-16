@@ -1,8 +1,8 @@
-# T08 — Reducer II: gates, the join, subagents
+# T09 — Reducer II: gates, the join, subagents
 
 **Core: 1h15** · Gaps: `position` + `Vec::remove` to take ownership out of a
 collection, `retain`, `find` on `values_mut`, `entry().or_insert_with`,
-`Option::take` · Test: `cargo test --test t08_join`
+`Option::take` · Test: `cargo test --test t09_join`
 
 Claude's `PermissionRequest` carries no `tool_use_id`, so a prompt has to be
 joined to its call on `(actor, tool_name, input_hash)`, from whichever side
@@ -57,15 +57,15 @@ The helpers:
   pins all three cases.
 - `blocked` and `hash_admits`, the two small ones.
 
-Replace the T07 placeholders with these bodies and nothing else moves: the
+Replace the T08 placeholders with these bodies and nothing else moves: the
 calls to `clear_unjoined` in `end_turn` (first thing, every path, idle
 included) and in `TurnStarted` (after the duplicate check) are already
-there from T07. Two tests check that they were placed right:
+there from T08. Two tests check that they were placed right:
 `should_lift_every_agent_prompt_when_the_turn_ends_or_a_new_one_starts`
 parks a prompt on an *idle* agent and then sends `Stop`, and
 `should_keep_a_prompt_parked_between_the_hooks_and_the_transcripts_report_of_one_prompt`
 sends the same `TurnStarted` twice around a park. If either fails, the
-call is on the wrong side of a `return` in T07's code.
+call is on the wrong side of a `return` in T08's code.
 
 ## Katas
 
@@ -89,4 +89,4 @@ call is on the wrong side of a `return` in T07's code.
 
 ## Done when
 
-`t08_join` passes, and `t07_turns` still passes.
+`t09_join` passes, and `t08_turns` still passes.

@@ -1,4 +1,4 @@
-//! T05 — the transcript adapter and usage accounting.
+//! T07 — the transcript adapter and usage accounting.
 
 mod common;
 

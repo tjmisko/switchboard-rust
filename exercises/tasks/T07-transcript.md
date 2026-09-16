@@ -1,8 +1,8 @@
-# T05 — The transcript adapter and usage
+# T07 — The transcript adapter and usage
 
 **Core: 45m · Stretch: 30m** · Gaps: `flat_map`, `filter_map`, `chain`,
 `bool::then`, collecting borrowed keys, operator traits · Test:
-`cargo test --test t05_transcript`
+`cargo test --test t07_transcript`
 
 The transcript carries the user-caused edges that no hook reports, Escape
 during generation above all. It also repeats a response's usage once per
@@ -78,4 +78,4 @@ with `inference_geo: "not_available"`.
 
 ## Done when
 
-The core tests in `t05_transcript` pass. The pricing tests are the stretch.
+The core tests in `t07_transcript` pass. The pricing tests are the stretch.

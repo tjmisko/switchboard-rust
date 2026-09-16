@@ -1,8 +1,8 @@
-//! T07 (golden, hidden) — the reducer, part I: routing, sessions, turns, tools.
-//! The learner writes their own version of these in `t07_turns.rs`.
+//! T08 (golden, hidden) — the reducer, part I: routing, sessions, turns, tools.
+//! The learner writes their own version of these in `t08_turns.rs`.
 //!
-//! Groups are labelled by half: T07a is routing, sessions, death and cwd;
-//! T07b is turns, tools and the `phase` reorder.
+//! Groups are labelled by half: T08a is routing, sessions, death and cwd;
+//! T08b is turns, tools and the `phase` reorder.
 
 mod common;
 
@@ -15,7 +15,7 @@ use common::*;
 use switchboard::model::*;
 
 // ---------------------------------------------------------------------------
-// T07a — Routing and identity
+// T08a — Routing and identity
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -130,7 +130,7 @@ fn should_reset_the_conversation_and_watch_the_new_transcript_when_the_session_r
 }
 
 // ---------------------------------------------------------------------------
-// T07a — Discovery and the first event
+// T08a — Discovery and the first event
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -164,7 +164,7 @@ fn should_go_idle_on_session_start() {
 }
 
 // ---------------------------------------------------------------------------
-// T07b — Turns
+// T08b — Turns
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -386,7 +386,7 @@ fn should_leave_unobserved_for_idle_when_a_replayed_turn_ends() {
 }
 
 // ---------------------------------------------------------------------------
-// T07b — Tools
+// T08b — Tools
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -493,13 +493,13 @@ fn should_keep_the_turn_when_a_tool_merely_fails() {
 }
 
 // ---------------------------------------------------------------------------
-// T07b — The fold: an unowned gate mid-turn
+// T08b — The fold: an unowned gate mid-turn
 // ---------------------------------------------------------------------------
 
 /// A gate nobody owns, held by a call mid-turn, folds to `Unknown` (grey),
 /// not `Working` and never `Attention`. The state is built by hand because
-/// the reducer path that creates such a gate (`ask`) is T08's; this pins
-/// `Agent::phase` alone, and `t08_join` tells the same story through hooks.
+/// the reducer path that creates such a gate (`ask`) is T09's; this pins
+/// `Agent::phase` alone, and `t09_join` tells the same story through hooks.
 #[test]
 fn should_render_an_unowned_gate_grey_never_red_even_mid_turn() {
     let t = Clock::new();
@@ -534,7 +534,7 @@ fn should_render_an_unowned_gate_grey_never_red_even_mid_turn() {
 }
 
 // ---------------------------------------------------------------------------
-// T07a — Death, cwd, bookkeeping
+// T08a — Death, cwd, bookkeeping
 // ---------------------------------------------------------------------------
 
 #[test]

@@ -1,4 +1,4 @@
-//! T11 — the socket: one handler per connection, generic over its halves.
+//! T12 — the socket: one handler per connection, generic over its halves.
 
 mod common;
 

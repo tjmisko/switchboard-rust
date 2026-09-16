@@ -1,9 +1,9 @@
-# T09 — Snapshots and time
+# T10 — Snapshots and time
 
 **Core: 1h** · Gaps: `mem::take` to move a field out through `&mut`,
 `BTreeMap::remove` returning ownership, `flat_map` over several
 `Option`/iterator sources, `min` on an iterator of `Instant`s ·
-Test: `cargo test --test t09_snapshot_tick`
+Test: `cargo test --test t10_snapshot_tick`
 
 Events and snapshots merge by opposite rules. An event is applied once. A
 snapshot replaces a whole scope, unless an event has spoken since the snapshot
@@ -32,7 +32,7 @@ start. Six green tests at the outset is not a sign you wrote something.
     `Stop`'s snapshot to be stale against. It replaces outright, via
     `replace_waits`, then publishes and settles.
   - `Processes` (with `discover` / `discovered`), `Beat` and `Placements` are
-    provided. Discovery ships early because every test harness from T07 on
+    provided. Discovery ships early because every test harness from T08 on
     builds boards through it.
 - `replace_panel(old: &Subagents, rows, taken) -> Subagents`: keep each
   surviving row's gate (and its `parent`, which the panel does not carry);
@@ -83,4 +83,4 @@ the same order as `Agent::phase`.
 
 ## Done when
 
-`t09_snapshot_tick` passes, along with everything before it.
+`t10_snapshot_tick` passes, along with everything before it.

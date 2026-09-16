@@ -52,7 +52,7 @@
    ends each loop iteration. `new(file)` moves `file` into the writer, which is
    a temporary, so the file is closed at the end of that statement.
 
-## T05
+## T07
 1. Keys would borrow from `Value`s created inside the function, which die when
    it returns. To take `&[String]` the return type would have to own its keys
    (`BTreeMap<String, Usage>`).
@@ -61,7 +61,7 @@
 3. `then` takes a closure and evaluates lazily. `then_some` takes a value, so
    `event(..)` runs, and allocates, even when the condition is false.
 
-## T06
+## T05
 1. The closure passed to `successors` captures `proc_root: &Path`, so the
    iterator borrows it. `'_` names that borrow in the return type.
 2. Every test except `should_split_cmdline_on_nul_and_borrow_when_valid_utf8`
@@ -70,7 +70,7 @@
 3. `comm: &str`, by deref of `&String`. `exe: Option<&Path>`, via `as_deref`.
    `argv: &[Cow<'_, str>]`, by deref of `&Vec<_>`. `S = Cow<'_, str>`.
 
-## T07
+## T08
 1. NLL ends the borrow at its last use. If `tools` is not used after the
    assignment, the borrow has already ended and the assignment is legal. If
    `tools.len()` comes after, the borrow is still live across the assignment,
@@ -88,7 +88,7 @@
    ties the result only to `accounts`, so the borrow of `agent` ends when
    `limits_for` returns.
 
-## T08
+## T09
 1. `find` returns `&Unjoined`, a shared borrow of the vector. While that
    borrow is live you can neither `remove` from the vector nor move out of the
    reference. `position` returns a `usize` (`Copy`), which ends the borrow, and
@@ -100,7 +100,7 @@
    held by `Actor::Agent`. Subagent gates live on `subagents.rows`, which
    `end_turn` never touches.
 
-## T09
+## T10
 1. `agent` is `&mut Agent`, and you cannot move a field out from behind a
    reference (E0507). `mem::take` swaps in `Default::default()` and hands you
    the owned original.
@@ -110,7 +110,7 @@
    A pending escalation to the same phase keeps the `promote_at` it was given
    when the snapshot arrived.
 
-## T10
+## T11
 1. The deadline can move with every input. A future built once keeps the old
    deadline, so it can fire late or not at all. There's a second problem: a
    `Sleep` that has already completed resolves immediately on every later
@@ -122,7 +122,7 @@
    the latest view. `watch` makes a growing backlog of stale views impossible,
    which suits state as opposed to events.
 
-## T11
+## T12
 1. The generic halves let the tests use `tokio::io::duplex` pipes, with no
    socket and no filesystem. The extension methods (`read`, `write_all`) take
    `&mut Self` and require `Self: Unpin`. Without `Unpin` you would need
@@ -137,7 +137,7 @@
    `try_send` drops one input and replies immediately, and the transcript
    backfills most of what was dropped.
 
-## T12
+## T13
 1. Two things get worse. The lock would be held across blocking I/O, and you
    would need `Arc` clones and poison handling, all for state only one task
    ever touches. The exclusive access that the type system proved in the

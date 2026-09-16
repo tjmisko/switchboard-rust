@@ -1,4 +1,4 @@
-//! T12 — tasks that own things: watchers, the effect runner, the scanner diff.
+//! T13 — tasks that own things: watchers, the effect runner, the scanner diff.
 
 mod common;
 
