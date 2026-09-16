@@ -72,7 +72,85 @@ impl Tail {
 
     /// Read whatever has been appended since the last poll.
     pub fn poll<R: Read + Seek>(&mut self, file: &mut R) -> io::Result<Polled> {
-        todo!("T04")
+        let mut polled = Polled::default();
+
+        let len = file.seek(SeekFrom::End(0))?;
+        if len < self.offset {
+            // Shrunk under us: whatever we were carrying belongs to a file
+            // that no longer exists.
+            self.offset = 0;
+            self.carry.clear();
+            self.skipping = false;
+            polled.truncated = true;
+        }
+        file.seek(SeekFrom::Start(self.offset))?;
+
+        // Bound the read to what existed when we measured, so a writer that
+        // keeps appending cannot keep us here forever.
+        let mut reader = BufReader::new(file.take(len - self.offset));
+        let mut chunk = Vec::new();
+        loop {
+            chunk.clear();
+            let read = reader.read_until(b'\n', &mut chunk)?;
+            if read == 0 {
+                break;
+            }
+            self.offset += read as u64;
+
+            let complete = chunk.last() == Some(&b'\n');
+            if !complete {
+                self.hold(&chunk, &mut polled);
+                continue;
+            }
+            chunk.pop();
+            if chunk.last() == Some(&b'\r') {
+                chunk.pop();
+            }
+            self.finish(&chunk, &mut polled);
+        }
+        Ok(polled)
+    }
+
+    /// A fragment with no newline yet: carry it, unless the line is already
+    /// too long to ever be wanted.
+    fn hold(&mut self, fragment: &[u8], polled: &mut Polled) {
+        if self.skipping {
+            return;
+        }
+        if self.carry.len() + fragment.len() > self.max_line {
+            self.skipping = true;
+            self.carry.clear();
+            polled.skipped += 1;
+            return;
+        }
+        self.carry.extend_from_slice(fragment);
+    }
+
+    /// The end of a line: join it to the carry and decide what it is.
+    fn finish(&mut self, rest: &[u8], polled: &mut Polled) {
+        if self.skipping {
+            // The oversized line was counted when the skip began.
+            self.skipping = false;
+            return;
+        }
+        let whole: Vec<u8> = if self.carry.is_empty() {
+            rest.to_vec()
+        } else {
+            let mut joined = std::mem::take(&mut self.carry);
+            joined.extend_from_slice(rest);
+            joined
+        };
+        if whole.iter().all(u8::is_ascii_whitespace) {
+            return;
+        }
+        if whole.len() > self.max_line {
+            polled.skipped += 1;
+            return;
+        }
+        match String::from_utf8(whole) {
+            Ok(line) => polled.lines.push(line),
+            Err(_) => polled.skipped += 1,
+        }
     }
 }
 
@@ -82,13 +160,38 @@ impl Tail {
 /// the window starts mid-line, the partial line is skipped; when it covers the
 /// whole file, the answer is zero.
 pub fn tail_start<R: Read + Seek>(file: &mut R, window: u64) -> io::Result<u64> {
-    todo!("T04")
+    let len = file.seek(SeekFrom::End(0))?;
+    if window >= len {
+        return Ok(0);
+    }
+    let start = len - window;
+
+    // Is the byte just before the window a newline? Then the window begins
+    // on a line boundary and the first line is whole.
+    file.seek(SeekFrom::Start(start - 1))?;
+    let mut before = [0u8; 1];
+    file.read_exact(&mut before)?;
+    if before[0] == b'\n' {
+        return Ok(start);
+    }
+
+    // Mid-line: the first whole line begins after the next newline, or
+    // nowhere in this file yet.
+    let mut reader = BufReader::new(file.take(window));
+    let mut rest = Vec::new();
+    let read = reader.read_until(b'\n', &mut rest)?;
+    match rest.last() {
+        Some(b'\n') => Ok(start + read as u64),
+        _ => Ok(len),
+    }
 }
 
 /// Every non-blank line of a finite reader, with its 1-based line number.
 /// Invalid UTF-8 surfaces as an `io::Error` of kind `InvalidData`.
 pub fn numbered_lines<R: BufRead>(reader: R) -> impl Iterator<Item = (usize, io::Result<String>)> {
-    todo!("T04");
-    #[allow(unreachable_code)]
-    std::iter::empty()
+    reader
+        .lines()
+        .enumerate()
+        .map(|(index, line)| (index + 1, line))
+        .filter(|(_, line)| !line.as_ref().is_ok_and(|l| l.trim().is_empty()))
 }

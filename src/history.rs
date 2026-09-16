@@ -86,17 +86,73 @@ impl Record {
     }
 
     pub fn to_json(&self) -> Value {
-        todo!("T04")
+        let mut v = json!({
+            "ts": format_rfc3339(self.at),
+            "type": self.type_name(),
+            "pid": self.pid,
+        });
+        if let Some(session) = &self.session {
+            v["session_id"] = json!(session.as_str());
+        }
+        match &self.kind {
+            RecordKind::SessionStart { cwd } => {
+                v["cwd"] = json!(cwd.to_string_lossy());
+            }
+            RecordKind::SessionEnd => {}
+            RecordKind::Shown { from, to, held } => {
+                v["from"] = json!(from.as_str());
+                v["to"] = json!(to.as_str());
+                v["held_ms"] = json!(held.as_millis() as u64);
+            }
+        }
+        v
     }
 
     /// `Ok(None)` for a line of a type this crate does not write.
     pub fn from_json(v: &Value) -> Result<Option<Record>, RecordError> {
-        todo!("T04")
+        let ty = str_at(v, "type").ok_or(RecordError::Missing("type"))?;
+        let kind = match ty {
+            "session_start" => {
+                let cwd = str_at(v, "cwd").ok_or(RecordError::Missing("cwd"))?;
+                RecordKind::SessionStart {
+                    cwd: PathBuf::from(cwd),
+                }
+            }
+            "session_end" => RecordKind::SessionEnd,
+            "shown" => RecordKind::Shown {
+                from: phase_at(v, "from")?,
+                to: phase_at(v, "to")?,
+                held: Duration::from_millis(
+                    u64_at(v, "held_ms").ok_or(RecordError::Missing("held_ms"))?,
+                ),
+            },
+            _ => return Ok(None),
+        };
+
+        let stamp = str_at(v, "ts").ok_or(RecordError::Missing("ts"))?;
+        let at = parse_rfc3339(stamp).ok_or_else(|| RecordError::BadValue {
+            field: "ts",
+            value: stamp.into(),
+        })?;
+        let pid = u64_at(v, "pid").ok_or(RecordError::Missing("pid"))?;
+        let pid = u32::try_from(pid).map_err(|_| RecordError::BadValue {
+            field: "pid",
+            value: pid.to_string().into(),
+        })?;
+        let session = str_at(v, "session_id").map(SessionId::from);
+
+        Ok(Some(Record {
+            at,
+            pid,
+            session,
+            kind,
+        }))
     }
 }
 
 fn phase_at(v: &Value, field: &'static str) -> Result<Phase, RecordError> {
-    todo!("T04")
+    let name = str_at(v, field).ok_or(RecordError::Missing(field))?;
+    Ok(name.parse::<Phase>()?)
 }
 
 /// Appends records, one per line.
@@ -113,7 +169,9 @@ impl<W: Write> HistoryWriter<W> {
     /// written with a single `write_all`, so an appender sharing the file
     /// never interleaves inside a line.
     pub fn append(&mut self, record: &Record) -> io::Result<()> {
-        todo!("T04")
+        let mut line = record.to_json().to_string();
+        line.push('\n');
+        self.out.write_all(line.as_bytes())
     }
 
     pub fn flush(&mut self) -> io::Result<()> {
@@ -144,7 +202,29 @@ pub struct DayFile {
 /// recorded the same way, and ends the read, because nothing after it can be
 /// trusted to be where it claims.
 pub fn read_day<R: BufRead>(reader: R) -> DayFile {
-    todo!("T04")
+    let mut day = DayFile::default();
+    for (number, line) in numbered_lines(reader) {
+        let text = match line {
+            Ok(text) => text,
+            Err(e) if e.kind() == io::ErrorKind::InvalidData => {
+                day.errors.push((number, RecordError::Io(e)));
+                continue;
+            }
+            Err(e) => {
+                day.errors.push((number, RecordError::Io(e)));
+                break;
+            }
+        };
+        let parsed = serde_json::from_str::<Value>(&text)
+            .map_err(RecordError::from)
+            .and_then(|v| Record::from_json(&v));
+        match parsed {
+            Ok(Some(record)) => day.records.push(record),
+            Ok(None) => day.foreign += 1,
+            Err(e) => day.errors.push((number, e)),
+        }
+    }
+    day
 }
 
 /// `<dir>/<YYYY-MM-DD>.jsonl` for a UTC day.
