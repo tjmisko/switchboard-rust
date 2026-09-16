@@ -10,7 +10,10 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::SystemTime;
 
-use tokio::io::{AsyncBufReadExt, AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, BufReader};
+use tokio::io::{
+    AsyncBufRead, AsyncBufReadExt, AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, BufReader,
+    Lines,
+};
 use tokio::net::UnixListener;
 use tokio::sync::{mpsc, watch};
 
@@ -44,9 +47,10 @@ pub async fn serve(
 /// `tokio::io::duplex` pair instead of a socket.
 ///
 /// `subscribe` is the last request a connection makes: from then on the
-/// handler only writes, once now and once per view change, and ignores any
-/// further lines. A peer that hangs up is noticed on the next write, which is
-/// the next view change.
+/// handler writes once now and once per view change, and reads only to
+/// notice the peer going away. A further line from the peer is ignored; the
+/// peer closing its side ends the handler at once, even while the view is
+/// quiet. See `next_change`.
 ///
 /// A `watch::Ref` from `view.borrow()` is not `Send`, so it must never live
 /// across an `.await` here: take what is needed into a local first.

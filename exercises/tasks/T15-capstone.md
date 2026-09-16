@@ -254,17 +254,11 @@ couple of hours each; the last two are weekend items.
 - **`switchboard explain <pid>`.** A ring buffer of the last N inputs per
   agent, re-folded step by step to print why the lamp is the colour it is.
   The buffer goes in the core you wrote in T11.
-- **A subscriber that hangs up.** `handle`'s `Subscribe` arm notices a
-  closed peer only on the next write. Make it a `select!` between
-  `view.changed()` and `lines.next_line()`; both are cancel-safe, so the
-  race is legal (T11). Write the test that pins it first: subscribe, drop
-  the client's halves, and expect the handler task to finish before the
-  view changes.
-- **Transcript replacement.** T13's kata 4 made real: a transcript deleted
-  and recreated leaves `poll_once` reading a dead inode forever. Compare the
-  open file's `MetadataExt::ino` against the path's each tick, or every Nth
-  tick, and reopen at the tail when they differ. Test it with a rename over
-  the watched file.
+- **Transcript replacement** (T14's stretch, if you skipped it). T13's
+  kata 4 made real: a transcript deleted and recreated leaves `poll_once`
+  reading a dead inode forever. Compare the open file's `MetadataExt::ino`
+  against the path's each tick, or every Nth tick, and reopen at the tail
+  when they differ. Test it with a rename over the watched file.
 - **inotify instead of polling** (weekend). Add `rustix` and replace the
   watcher's ticker with `AsyncFd` on an inotify descriptor. Readiness-based
   I/O the course has not touched: an `EAGAIN` loop, `clear_ready`, and an
