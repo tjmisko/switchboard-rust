@@ -5,7 +5,7 @@
 //! | hook                     | input                                   | cause            |
 //! |--------------------------|-----------------------------------------|------------------|
 //! | SessionStart{source}     | SessionStarted                          | User if `clear`  |
-//! | UserPromptSubmit         | TurnStarted{prompt_id}                  | User unless machine source |
+//! | UserPromptSubmit         | TurnStarted{prompt_id}                  | User only when `source` says human |
 //! | PreToolUse               | ToolDispatched, or PermissionAsked{Question} for a question tool | Agent |
 //! | PermissionRequest        | PermissionAsked{call: None}             | Agent            |
 //! | PermissionDenied         | PermissionSettled{Denied}               | Agent            |
@@ -20,6 +20,18 @@
 //! | Elicitation              | PermissionAsked{Question}               | Agent            |
 //!
 //! Every hook is `Confidence::Confirmed`: it is the harness saying so.
+//!
+//! Every event's actor is the subagent `agent_id` names, when present. That
+//! is the common case, not the exception: on a machine that delegates, 97%
+//! of tool hooks and most `StopFailure`s come from a child. The reducer
+//! applies each event to the actor it names, so a child's failed turn lands
+//! on the child's row and never on the agent's activity.
+//!
+//! Two documented fields have never been captured on 2.1.269/2.1.270 and are
+//! read only as tolerance for other builds: `SessionStart.session_title`
+//! (the name comes from the session file instead, see `proc::name_from_file`)
+//! and `UserPromptSubmit.source` (absent means the origin is unknown, not
+//! that a person typed it).
 
 use std::path::PathBuf;
 
@@ -292,11 +304,14 @@ fn prompt_key(p: &Value) -> Option<TurnKey> {
     nonblank_str_at(p, "prompt_id").map(|id| TurnKey::Prompt(id.into()))
 }
 
-/// `UserPromptSubmit.source`. Absent means an older harness, whose prompts
-/// were all typed.
+/// `UserPromptSubmit.source`. Absent on every captured payload (83 of 83),
+/// so absent means the hook cannot say: a machine wake-up and a typed prompt
+/// look identical here, and only the transcript's `origin.kind` separates
+/// them. Claiming `Human` would make every wake-up user-caused.
 fn prompt_origin(source: Option<&str>) -> Origin {
     match source {
-        None | Some("user") => Origin::Human,
+        None => Origin::Unknown,
+        Some("user") => Origin::Human,
         Some("system") => Origin::TaskNotification,
         Some(_) => Origin::Machine,
     }
@@ -321,7 +336,9 @@ fn frame_hash(p: &Value) -> Option<InputHash> {
 /// carries either key. Absent keys mean an older harness or forwarder that
 /// cannot report waits, which is not the same as reporting none.
 ///
-/// Element shapes are inferred from the bundle, not recorded.
+/// A task element is `{id, type, status, description}` plus `name` on a
+/// workflow and `command` on a shell, as captured. The cron element shape is
+/// still inferred: none has ever been captured.
 fn waits(p: &Value) -> Option<Vec<WaitRow>> {
     if p.get("background_tasks").is_none() && p.get("session_crons").is_none() {
         return None;
@@ -330,13 +347,9 @@ fn waits(p: &Value) -> Option<Vec<WaitRow>> {
         .filter(|t| matches!(str_at(t, "status"), None | Some("running" | "pending")))
         .filter_map(|t| {
             let id = str_at(t, "id")?;
-            let kind = match str_at(t, "type") {
-                Some(ty) if ty.contains("monitor") => WaitKind::Monitor,
-                _ => WaitKind::BackgroundShell,
-            };
             Some(WaitRow {
                 id: WaitId(id.into()),
-                kind,
+                kind: wait_kind(str_at(t, "type")),
             })
         });
     let crons = array_at(p, "session_crons").filter_map(|c| {
@@ -346,4 +359,16 @@ fn waits(p: &Value) -> Option<Vec<WaitRow>> {
         })
     });
     Some(tasks.chain(crons).collect())
+}
+
+/// `background_tasks[].type`. The captured vocabulary is `shell`, `monitor`
+/// and `workflow`; anything else is carried as `Other` rather than guessed
+/// at, so a new task type still counts as a wait.
+fn wait_kind(ty: Option<&str>) -> WaitKind {
+    match ty {
+        Some("shell") => WaitKind::BackgroundShell,
+        Some("monitor") => WaitKind::Monitor,
+        Some("workflow") => WaitKind::Workflow,
+        _ => WaitKind::Other,
+    }
 }
