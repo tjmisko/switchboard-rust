@@ -144,9 +144,11 @@ fn should_return_none_when_the_last_component_is_not_utf8() {
 
 #[test]
 fn should_prefer_title_then_workspace_then_cwd_when_naming_an_agent() {
+    // Built by the provided `discovered` constructor, not by the reducer,
+    // so this test passes long before T07 exists.
     let t = common::Clock::new();
-    let mut board = common::board_with(&[(1, "s")], t.at(0));
-    let a = board.agents.get_mut(&common::key(1)).unwrap();
+    let mut agent = switchboard::reduce::discovered(common::row(1, Some("s")), t.at(0));
+    let a = &mut agent;
 
     a.title = Some("my-title".into());
     a.workspace = Some("ws".into());
