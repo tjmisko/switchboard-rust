@@ -35,8 +35,8 @@
 //!
 //! | Section | First needed | Types it brings in |
 //! |---|---|---|
-//! | 1. Identity | T01 | the `id!` types (`SessionId`, `PromptId`, `TurnId`, `ToolUseId`, `SubagentId`, `ToolName`, `Host`, and the rest); `InputHash`, `WaitId`, `Actor` in T03; `ProcKey` in T04; `Provider` in T06 |
-//! | 3. Inputs, the wire enums | T01 | `StartSource`, `Origin`, `ErrorClass`, `Denier`: their wire names and display, alongside `Phase` from section 7 |
+//! | 1. Identity | T01 | the `id!` types (`SessionId`, `PromptId`, `TurnId`, `ToolUseId`, `SubagentId`, `ToolName`, `Host`, and the rest), and `Agent` only as the argument of `paths::display_name`; `InputHash`, `WaitId`, `Actor` in T03; `ProcKey` in T04; `Provider` in T06 |
+//! | 3. Inputs, the wire enums | T02 | `StartSource` and `Denier`, whose wire names are in their doc comments and whose `FromStr` T02 writes; `Phase` from section 7, the same way. `Origin` and `ErrorClass` come with their parsers already written |
 //! | 3. Inputs, the rest | T03 | `Event`, `EventKind`, `Cause`, `Confidence`, `TurnKey`, `Snapshot`, `SnapshotKind`, and the small enums an adapter fills in: `TurnOutcome`, `ToolOutcome`, `Decision`, `Ownership`, `SubagentKind`, `SubagentOutcome`, `Trigger` |
 //! | 2. Time | T03 | `Moment`; `AsOf` (in section 3) waits for T09 |
 //! | 5. Agent, part one | T03 | `GateKind`, `WaitKind`, `WaitRow`, and `Agent` as a value the adapter never builds |
@@ -350,6 +350,11 @@ pub enum TurnKey {
     Turn(TurnId),
 }
 
+/// Claude `SessionStart.source`. The wire names, as `FromStr` reads them:
+/// `startup`, `resume`, `clear`, `compact`. Only `clear` is something the
+/// operator did on purpose, so the hook adapter marks that one `Cause::User`
+/// and everything else `Cause::Agent`. An unrecognised or absent source is
+/// read as `Startup`: the session did start, whatever the harness called it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StartSource {
     Startup,
