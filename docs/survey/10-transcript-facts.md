@@ -294,7 +294,9 @@ Facts:
 - **A turn ends** with `system/stop_hook_summary` (74–116 ms after the last block),
   then `turn_duration` (+5 ms) when present. The last assistant line alone is *not*
   sufficient: in root files `stop_reason:"end_turn"` is already on the thinking block
-  32 s before the final text lands. Rule: turn end = `stop_hook_summary`, else
+  32 s before the final text lands in that corpus. **Measured against hooks on
+  2026-09-15: `Stop` followed the transcript's last `end_turn` by a median of 60 ms
+  and at most 101 ms across 30 pairs; the 32 s early close did not reproduce.** Rule: turn end = `stop_hook_summary`, else
   `turn_duration`, else `end_turn` text block with no newer line after a grace period.
   `stop_hook_summary` is missing from 10 of 148 human sessions (older versions, or
   sessions ended by `cost-state`); `turn_duration` from 32.
@@ -363,7 +365,7 @@ duration is not on disk.
 | awaiting permission vs tool running | not on disk | — | — | hook only |
 | turn ended (Stop) | `system.subtype=="stop_hook_summary"` | exact when present | 74–116 ms after last block | no (hook) |
 | turn wall time | `system.subtype=="turn_duration"` `.durationMs,.messageCount` | exact | +5 ms | no |
-| request will end the turn | `stop_reason=="end_turn"` on any block | exact but early (up to 32 s) | per block | yes |
+| request will end the turn | `stop_reason=="end_turn"` on any block | exact; early by 60 ms median, 101 ms max against the `Stop` hook (30 pairs, 2026-09-15). The 32 s figure came from block timestamps within one request | per block | yes |
 | user interrupted | `[Request interrupted by user…]` text + `interruptedMessageId` | exact | 0 ms | yes (marker) |
 | all agents killed | `system.subtype=="agents_killed"` | exact | 0 ms | no |
 | usage-limit block | `assistant.isApiErrorMessage` + `error=="rate_limit"` + `quotaLimits.resetsAt` | exact | per retry (~5 min) | no |

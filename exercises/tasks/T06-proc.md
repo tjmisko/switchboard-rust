@@ -20,6 +20,14 @@ Test: `cargo test --test t06_proc`
   takes `&[String]`, `&[&str]` and `&[Cow<str>]` alike.
 - `session_from_file(v: &Value, key: ProcKey) -> Option<SessionId>`.
   `procStart` is a **string**.
+- `name_from_file(v, key) -> Option<Box<str>>`: the same file's `name`, the
+  display name the operator recognises (`switchboard-rust-7f`), non-blank,
+  under the same guard. Share the guard as `written_by(v, key) -> bool`. No
+  captured hook carries a title, so this is where the chip's name comes from.
+- `name_from_file(v, key) -> Option<Box<str>>`: the same file's `name`, the
+  display name the operator recognises (`switchboard-rust-7f`), non-blank,
+  under the same guard. Share the guard as `written_by(v, key) -> bool`. No
+  captured hook carries a title, so this is where the chip's name comes from.
 - `parent_of` and `ancestors(root, pid, limit) -> impl Iterator<Item = u32> + '_`:
   one `successors` call and one `take`.
 
