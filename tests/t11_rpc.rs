@@ -130,8 +130,10 @@ async fn should_ignore_bytes_beyond_the_connection_cap() {
         r#"{{"cmd":"list","pad":"{}"}}"#,
         "x".repeat(switchboard::daemon::rpc::MAX_CONNECTION_BYTES as usize)
     );
-    // The handler stops reading at the cap and drops its read half, so the
-    // tail of this write may fail with a broken pipe. That is the point.
+    // The handler stops reading at the cap: `Take` reports EOF, the truncated
+    // line fails to decode, `next_line` then yields `None` and the handler
+    // returns, dropping both halves. So the tail of this write may fail with
+    // a broken pipe. That is the point.
     let _ = c.to_daemon.write_all(huge.as_bytes()).await;
     let _ = c.to_daemon.write_all(b"\n").await;
     // Whatever it got was not a complete request, so the connection ends
