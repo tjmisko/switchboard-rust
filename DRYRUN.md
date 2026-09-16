@@ -417,3 +417,264 @@ says, after the task already passed; probes are counted separately.
   9. Add a one-line comment to the test's `sentinel()` saying that abort is
      observable only as the future being dropped, which is what the flag
      records.
+
+### T13 — Capstone: run it on your own agents
+
+- **Effort:** 1 clippy after deleting `#![allow(unused)]` (zero warnings,
+  zero errors), 1 release build (7.5 s), 2 daemon runs of 40 s and 45 s each
+  under `timeout`, plus a handful of socket probes with a 30-line Python
+  client. Difficulty 1/5 for the steps I could do; the step I could not do
+  (5, hooks) is where the capstone's substance lives, see below. Time split:
+  almost none on Rust, most on checking that what the daemon reported
+  matched the machine (session files, `procStart`, transcript tails).
+- **Prerequisites assumed:**
+  - Step 1 assumes `#![allow(unused)]` is hiding something. Once every
+    stub is filled it hid nothing: clippy was clean the moment I deleted
+    it. `model.rs` carries its own `#![allow(dead_code)]`, which still
+    hides whatever is unused there (section 10 Federation, `PaneKey`,
+    `Fleet`, and friends the header lists as "no task touches"). The sheet
+    should say whether that one stays, because the step as written implies
+    a cleanup that does not exist.
+  - Step 4 assumes `socat`. Not installed here. The sheet anticipates a
+    `python3` fallback but does not give it, and "one line, then read
+    forever" over `AF_UNIX` with a retry-on-connect is about thirty lines
+    once you handle the subscribe stream. Give the snippet.
+  - Where output lands. The sheet says to watch the socket, but the more
+    convincing artefacts are `state.json` and the history file, and it
+    never says where they are (`$XDG_CACHE_HOME/switchboard-rust/state.json`
+    and `$XDG_STATE_HOME/switchboard-rust/history/<day>.jsonl`, both
+    defaulting under `$HOME`). I found them by reading
+    `Layout::from_env`.
+  - Two other dry-run copies share this machine. The sheet's socket name
+    `$XDG_RUNTIME_DIR/sbr.sock` would collide between them (`bind` refuses
+    to steal a live socket, so the second learner would get "a daemon is
+    already listening"), and all three would write the same `state.json`
+    under `~/.cache`. I used `sbr-dryrun-c.sock` and pointed
+    `XDG_CACHE_HOME` and `XDG_STATE_HOME` at my scratch directory. A solo
+    learner will not hit this, but the instruction "on its own socket so it
+    can't collide with the Go daemon" should extend to the state and
+    history paths for the same reason.
+- **Sheet accuracy:**
+  - "Within a second it should discover every running `claude` and replay
+    each transcript tail." True. The first `list` after two seconds showed
+    three agents with names and session ids read from
+    `~/.claude/sessions/<pid>.json` (I checked `procStart` against field 22
+    of `/proc/<pid>/stat` by hand: all three matched). The history file
+    shows the replay: three `session_start` rows at the same millisecond,
+    then `shown` rows `unknown -> working -> idle` per agent as the
+    transcript tails were folded. Thirty history rows over two runs.
+  - `state.json` was written and no `state.json.tmp` was left behind.
+    `list` and `subscribe` both worked; `subscribe` sent one snapshot and
+    then nothing for twelve seconds because nothing changed, which is the
+    R6 behaviour. A bad line got `{"ok":false,"error":"malformed JSON:
+    ..."}` and the connection stayed up. The socket was mode 0600.
+    SIGTERM from `timeout` produced a clean exit and removed the socket
+    both times (`timeout` reports 124 regardless of the child's status,
+    which will confuse a learner who expects 0; worth a sentence).
+  - "Then watch the chip go from green to red and back." There is no chip.
+    The Rust daemon writes its own `state.json` and serves its own socket;
+    nothing on the machine renders either. What the learner can watch is
+    the `phase` field in the subscribe stream or `lamp` in `state.json`.
+    The sheet should say that, or ship a ten-line watcher that prints
+    `name phase reason` per change, because "see it work" currently means
+    "read JSON".
+  - One observation about truth versus reality: the lead session on this
+    machine (the one orchestrating three teammates) showed `idle` after
+    replay, because its last transcript lines were assistant text with no
+    open tool call. It is in fact mid-turn, waiting on teammates. That is
+    exactly the "transcript alone cannot see a turn that is waiting on
+    something external" gap the hooks exist to close, and it is a nice
+    thing for the sheet to point at: "compare `truth` with what you know
+    the agent is doing, before hooks and after".
+  - Step 5, skipped, and what I would do. The instructions for this
+    dry-run forbid reconfiguring any Claude session's hooks or starting a
+    new `claude`, and the machine's Go daemon already owns the real hooks.
+    What I would do: write a settings file
+    `~/.cache/sbr-hooks.json` whose `hooks` map registers, for each of
+    `UserPromptSubmit`, `PreToolUse`, `PermissionRequest`, `PostToolUse`,
+    `PostToolUseFailure`, `Stop`, `StopFailure`, `SubagentStart` and
+    `SubagentStop`, one `command` hook whose command is the absolute path
+    `<worktree>/target/release/switchboard-hook <Event>`; then start
+    `SWITCHBOARD_RUST_SOCKET=$XDG_RUNTIME_DIR/sbr-dryrun-c.sock claude
+    --settings ~/.cache/sbr-hooks.json` in a scratch directory, with the
+    daemon running in another shell and the subscribe client in a third.
+    Expected: on the first prompt a `UserPromptSubmit` frame arrives with
+    the forwarder's parent pid, `resolve` walks `claude -> sh ->
+    switchboard-hook` to the tracked ancestor, and the agent's `phase`
+    goes `idle -> working`; asking it to run a `Bash` command produces
+    `PreToolUse` then `PermissionRequest`, and `phase` goes to `blocked`
+    with `lamp: red` until I approve, then back to `working`; Escape
+    during a turn produces `Stop` with a stop reason that becomes
+    `Reason::Interrupted` and an amber lamp; the end of the turn produces
+    `Stop` and `idle`. Each of those would also be a `shown` row in the
+    history file. Two things I would check that the sheet does not mention:
+    that the hook binary is reached by absolute path (the Go daemon's hooks
+    use `switchboard-ctl`, so there is no name clash, but `switchboard-hook`
+    is not on `PATH`), and that `SWITCHBOARD_RUST_SOCKET` is inherited by
+    hook processes (Claude spawns hooks with the session's environment, so
+    setting it on the `claude` command line is enough; the sheet says "set
+    it in that session's environment", which is correct but could be shown
+    as the one-liner above).
+- **Where I got stuck:** on my own client, not the daemon: I printed a
+  `session` key and the view emits `session_id`, so my first listing showed
+  `None` for every session and I spent five minutes checking session files
+  and `procStart` before reading `View::to_json`. A learner who knows their
+  own `to_json` will not do this; a learner who wrote it nine tasks ago
+  might. A printed field list on the sheet would have saved it.
+- **What this drilled:** nothing new in Rust. It drilled reading the
+  daemon's outputs against the machine: session files, `/proc` stat
+  fields, transcript tails, the history log. That is the right capstone
+  content, and it is the first time the learner sees their T04 history
+  writer, T05 transcript adapter, T06 sweep and T09 settle all produce
+  visible artefacts at once. Incidental complexity: the missing `socat`,
+  the unstated output paths, the shared-machine collisions.
+- **Ordering:** T13 must be last and is. Inside it, steps 1 to 4 are ten
+  minutes and steps 5 is the capstone; the sheet's "Core: 30m" is only
+  true if step 5 goes smoothly, and step 5 is the least specified step in
+  the whole course. Two things would move it forward: give the settings
+  file verbatim, and give the subscribe watcher verbatim, so the learner's
+  30 minutes go to watching transitions rather than to writing tooling.
+- **Confidence after:** high on "it runs and discovers real agents". A
+  learner who completes step 5 will have seen every layer fire end to
+  end. A learner who cannot (no spare Claude session, or a machine like
+  this one where the hooks are spoken for) has seen the transcript path
+  only, and will not know whether `resolve`, `offer` or the hook adapter
+  work outside the tests. The sheet could offer a fallback: replay a
+  captured hook sequence from `docs/product/survey/09-signal-fixtures.md`
+  into the socket with the Python client and watch the phases move. That
+  exercises T03, T10 and T11 against the release binary without touching
+  any real session.
+- **Stretch assessment** (not attempted; judged on scope and fit for a
+  learner who has just finished T12):
+  - *Limit reset expiry.* Well scoped and the right size (a couple of
+    hours). It is a design question about `tick` and the core, which is
+    T09 and T10 material, and both options the sheet names are workable.
+    Best first stretch.
+  - *A late replayed `TurnStarted` after `Stop`.* Well scoped, model plus
+    reducer, and a good follow-on to T07/T08. It needs step 5 working to
+    reproduce, so it is second, not first.
+  - *`subagentStatusLine` -> `Snapshot::Subagents`.* A pure adapter in the
+    T03 style with a documented payload. This is the easiest item on the
+    list and the most self-contained; it is listed fifth and should be
+    listed first or second.
+  - *`switchboard explain <pid>`.* Well scoped and genuinely useful (a
+    ring buffer of inputs per agent, re-folded). It touches the core (T10)
+    and the reducer, and a learner who just wrote `run_until_closed` will
+    know exactly where the buffer goes. The reference to "open item C1" is
+    to the owner's notes that the README told the learner to ignore; drop
+    it.
+  - *inotify* and *pidfd*. Both are the right direction (each replaces a
+    polling loop the learner just wrote) but they are not "a couple of
+    hours". They add a crate (`rustix`), and `AsyncFd` is readiness-based
+    I/O with `EAGAIN` loops, `clear_ready`, and for inotify an overflow
+    protocol, none of which the course has touched. They are a weekend
+    each and need a reading pointer (the `AsyncFd` docs and `inotify(7)`
+    or `pidfd_open(2)`). They belong at the end of the list, marked as
+    such.
+  - *Codex hooks.* The README says the course is frozen Claude-only until
+    T13 is graded and the Codex adapter is "the material for what comes
+    after". Listing it as a T13 stretch contradicts that. Move it to a
+    "what comes after" section.
+  - Two stretches the journal for T11 and T12 suggest and the sheet does
+    not list: prompt detection of a subscriber hanging up (`select!` on
+    `changed()` and `next_line()`), and transcript file replacement
+    (detect that the open `File` no longer matches the path). Both are
+    two-hour items that reuse exactly what T11 and T12 taught.
+- **Suggestions:**
+  1. Step 1: say what `#![allow(unused)]` is expected to hide at this
+     point (probably nothing if every task was completed), and say
+     whether `model.rs`'s `#![allow(dead_code)]` stays.
+  2. Step 3: list the three output paths and say that `bind` refuses a
+     live socket, so a second copy of the daemon on the same socket name
+     fails with "already listening" rather than stealing it.
+  3. Step 4: give the `python3` subscribe client inline, printing
+     `name phase reason` per snapshot, and note that `timeout` exits 124
+     on SIGTERM.
+  4. Step 5: give the settings JSON verbatim with the absolute hook path,
+     and the single command line that sets the socket variable and passes
+     `--settings`.
+  5. Add a fallback for step 5: replay the captured hook sequence from the
+     signal fixtures through the socket with the Python client and watch
+     the phases.
+  6. Reorder the stretch list: `subagentStatusLine` adapter, limit reset
+     expiry, late `TurnStarted`, `explain`, subscriber hang-up detection,
+     transcript replacement, then inotify and pidfd marked as weekend
+     items with reading pointers, and Codex moved to "what comes after".
+
+## Overall
+
+**Shape of the ramp.** Flat, then a step down. T09 (reducer, snapshots,
+time) is the peak of the course for a learner: T10 is a breather (one
+function, everything signposted by imports), T11 is a modest step up (more
+surface, two ownership lessons whose errors surface far from their cause),
+T12 is level with T11 (widest surface but each piece is small and the
+central idea is on the sheet), and T13 is ten minutes of running things
+plus an unspecified step 5. Measured by my cycle counts it is 2, 1, 1
+real compile cycles with zero compiler errors, and the four probes I ran to
+find the errors a first-timer would hit found exactly the classes the sheets
+already name (a `Send` future in T11, `'static` in T11, use-after-move in
+T12) plus one they do not (`Arc<View>` double deref in T10). For a course
+whose stated goal is "solidify fundamentals early before harder exercises",
+the async range succeeds at the second half: nothing here is harder than
+T07-T09. What it does not do is drill. Each task presents each async idea
+exactly once, and a learner who copies the shape from the provided
+`scanner::run` or `daemon/mod.rs` can finish T10-T12 in an afternoon
+without ever having been forced to hold `select!`, `'static` or `Send` in
+their head. The katas are where the drilling happens, and they are good;
+they should carry more weight (see problem 2).
+
+**The three biggest pedagogical problems.**
+
+1. *Cancellation safety is never mentioned.* T10's loop is correct only
+   because `mpsc::Receiver::recv` is cancel-safe, and T11's subscribe loop
+   is correct only because `watch::Receiver::changed` is. The sheets say
+   `select!` is a gap and then never say the one thing that makes
+   `select!` dangerous. A learner leaves T10-T12 able to write a `select!`
+   loop and unable to say when one loses data.
+2. *The errors that teach are reported far from where they are caused, and
+   the sheets do not warn.* The `watch::Ref`-across-await error shows up at
+   `tokio::spawn` in `serve`, not in `handle`. The `spec.path` move shows
+   up on "previous iteration of loop". `E0521` only appears after rustc's
+   own `move` suggestion has been applied. These are the best Rust lessons
+   in the range, and a learner who does not hit them (because they read the
+   sheet carefully) learns nothing from them, while a learner who does hit
+   them gets no help from the sheet. Either turn each one into a kata
+   ("this does not compile; where is the error reported and why") or put
+   the probe in the sheet as a worked wrong answer.
+3. *T13's payoff depends on the least specified step.* Steps 1-4 verify
+   that the daemon runs; only step 5 verifies that the learner's T03, T10
+   and T11 code works against a real harness. It has no settings file, no
+   watcher, no fallback, and on a machine where the hooks are already in
+   use it cannot be done. The capstone should be the most carefully
+   scripted sheet in the course and it is the least.
+
+**Can T10-T12 be done in any order?** Technically yes: each compiles and
+tests on its own against T09. Pedagogically no. T10 introduces the two
+channels (`mpsc` inbox, `watch` view) from the owner's side; T11 uses both
+from the other side (`offer` into the inbox, `subscribe` off the watch);
+T12 spawns the tasks that feed the inbox and reads the effects the core
+emits. Doing T12 before T10 means writing `Watchers` and the effect runner
+for a core that does not exist yet, and doing T11 before T10 means writing
+`subscribe` against a `watch` nobody publishes to. The README's "any order"
+claim is true of the build graph and false of the ideas. Recommended order:
+**T10, T11, T12**, as numbered, with these changes to the ramp:
+
+- Pull `resolve` to the top of the T11 sheet ("hardest lesson first, and it
+  needs no socket") and `write_atomic` plus `sweep_inputs` to the top of
+  the T12 sheet ("two green tests in fifteen minutes"), so each task opens
+  with a small win and closes with its real lesson rather than the reverse.
+- Add the cancellation-safety paragraph and kata to T10, and reference it
+  from T11's subscribe bullet and T12's watcher bullet.
+- Add the four "worked wrong answers" (T10 `Arc<View>`, T11 `Ref` across
+  await, T11 `'static` two-step, T12 move in loop) as katas on their sheets.
+- Rewrite T13 step 4 and 5 with verbatim tooling and a fixture-replay
+  fallback, reorder the stretch list easiest-first, and move Codex to a
+  "what comes after" section as the README already promises.
+
+If the range were to gain a task, the right one is a fourth async task
+between T12 and T13 that changes something already working: for example,
+replace the watcher's ticker with a `select!` between the ticker and a
+shutdown `watch`, or make the subscribe arm notice a peer hanging up. That
+is the drill the range lacks: a second pass over `select!`, `'static` and
+`Send` in code the learner already owns, with the compiler as the only
+signpost.
