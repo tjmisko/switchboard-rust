@@ -273,3 +273,147 @@ says, after the task already passed; probes are counted separately.
      `FakeProc::add` agree on `start = 1000` on purpose, or make
      `FakeProc::add` take a `ProcKey` so the agreement is visible at the
      call site.
+
+### T12 — async III: tasks that own things
+
+- **Effort:** 1 real cycle (passed on the first attempt), 1 clippy, 1 full
+  suite, plus 1 combined probe that produced 2 errors (both E0382, use after
+  move). Zero compiler errors on the real attempt. Difficulty 3/5: four
+  files and the widest surface of the three async tasks, but each piece is
+  short and the central idea (move state into `spawn_blocking`, get it back
+  in the return value) is stated plainly on the sheet. About 65% reading:
+  `tail.rs` and `LineCtx` from T04/T05 (to remember my own API), `paths.rs`
+  for `transcript_path` and `temp_sibling`, the provided `scanner::run` and
+  `history::run` as worked examples, and the test's `sentinel()` helper.
+  Same caveat as before on what my cycle count measures.
+- **Prerequisites assumed:**
+  - `tokio::time::interval` and `MissedTickBehavior::Delay`. The imports
+    hint at both and `scanner::run` is a complete worked example of the loop
+    shape (interval, `spawn_blocking` with an owned clone, `let .. else`),
+    but the sheet does not say "copy the shape of `scanner::run`". It
+    should; that one sentence turns the watcher from a design problem into
+    a transcription.
+  - `mpsc::Sender::is_closed`. The sheet says "Check at the top of the
+    loop" without naming the method.
+  - That the watcher is where JSON is parsed: the transcript adapter takes
+    `&Value`, and the tail yields `String`s, so `serde_json::from_str` sits
+    between them and a line that fails to parse is skipped. Nothing says
+    this; you find it by reading `line`'s signature.
+  - `HashMap::drain` for `abort_all`, and that `insert` and `remove` return
+    the previous value (the sheet says so for `insert`).
+  - Dropping a `spawn_blocking` `JoinHandle` detaches rather than cancels.
+    Only kata 2 touches it, and a learner who has not met it will guess
+    wrong.
+  - `tokio::fs` versus `std::fs` inside `spawn_blocking` for `write_atomic`.
+    The `fs` feature is on, so `tokio::fs` works, but the sheet does not say
+    which to use and the provided `history::run` uses `std::fs` inside
+    `spawn_blocking`, which points the other way.
+  - `temp_sibling` returns `Option`, so `write_atomic` needs an
+    `ok_or_else(|| io::Error::new(..))`. A small combinator lesson the sheet
+    does not mention.
+  - The `sentinel()` test helper: a task whose guard sets a flag on drop, so
+    "aborted" is observed as "dropped". Clever and worth a comment in the
+    test explaining that `abort` is observable only as the future being
+    dropped.
+- **Sheet accuracy:**
+  - "moves it into `spawn_blocking(move || poll_once(taken, &path,
+    replay))`". The snippet elides where `path` comes from. Written
+    literally as `&spec.path` inside the `move` closure, it moves
+    `spec.path` into the closure and fails with E0382 "value moved into
+    closure here, in previous iteration of loop" (probe D). The learner
+    needs a per-tick `clone()` of the `PathBuf` or an `Arc<Path>` held
+    outside the loop. This is the one real ownership lesson in the watcher
+    and the sheet skips over it.
+  - "The first successful read replays the tail at `Confidence::Inferred`.
+    Everything after that is `Confirmed`." Ambiguous on whether a
+    successful read with zero lines counts. I said yes (an empty file at
+    discovery has nothing to replay). The tests do not distinguish.
+  - "`run` maps `WatchTranscript`, `Forget` and `AppendHistory`". The match
+    must also cover `PublishState`, which never arrives (the core consumes
+    it). Say so, or the learner wonders whether their T10 `dispatch` is
+    wrong.
+  - The `WatchSpec` needs an `account`; the sheet does not say what to put
+    there. `default_account` is imported, which is the hint.
+  - "`write_atomic`. Write to `temp_sibling`, then `rename`." The test
+    writes to `nested/state.json` inside a fresh scratch dir, so the parent
+    directory must be created first. Not on the sheet.
+  - "Stop when the inbox is closed. Check at the top of the loop: a quiet
+    transcript never sends, so a failed send would never tell it." True and
+    well reasoned. But the only test for it drops the receiver *before* the
+    task starts, so a watcher that checks `is_closed` only once, or one
+    that only ever notices a failed send, passes as long as the first tick
+    sends something. The test does not pin the behaviour the sentence
+    describes.
+  - "`sweep_inputs` ... Return the snapshot first, then one `Died` per key
+    in `known.difference(&seen)`. The ordering is load-bearing; the module
+    comment says why." Accurate, and the module comment does say why.
+    Missing: "collect `seen` before moving `rows` into the snapshot", which
+    is the borrow-before-move ordering probe C hit (E0382 "borrow of moved
+    value: `rows`").
+  - "Done when `t12_tasks` passes, and `cargo test` is green across the
+    whole crate." Cannot be true in this copy because the three
+    learner-written test files are stubs, but that is the starting state,
+    not the sheet.
+  - The `Drop` guard comment in `effects.rs` ("Keep or remove the guard once
+    `abort_all` is implemented") is accurate and I removed it: `abort` does
+    not panic.
+  - Test names match behaviour throughout.
+- **Where I got stuck:** nowhere on the real attempt. Probes C and D above
+  are the two errors I would expect a first-timer to see, and both are
+  E0382 with a clear compiler message, so they cost one cycle each, not
+  more.
+- **What this drilled:** ownership handed into a blocking closure and
+  handed back through its return value (the task's thesis, and it lands),
+  `JoinHandle::abort` as the lifecycle primitive with `Drop` as the
+  backstop, `HashMap` insert/remove returning the old value, `BTreeSet`
+  difference, and two ordering lessons (borrow before move; clone before
+  move into a loop closure). Incidental complexity: remembering the T04
+  `Tail` API (`tail_start` then `Tail::starting_at`), the T05 `LineCtx`
+  shape, the JSON parse step nobody mentions, and the `interval` API. None
+  of those are Rust lessons; they are "read your own earlier code"
+  lessons, which is fine for a course but should be budgeted.
+- **Ordering:** T12 should be the last of the three async tasks. It reaches
+  back to T04, T05, T06 and T09 and forward-references nothing, and its
+  `Watchers` and `write_atomic` pieces are the smallest self-contained
+  units in the whole range. Inside the task, the sheet's order (watcher,
+  effects, scanner, publish) is hardest-first. Reversing it (`write_atomic`
+  in five minutes, `sweep_inputs` in ten, `Watchers` in ten, then the
+  watcher) gives a learner three green tests before the one piece that
+  needs thought. The watcher itself could also be split: `open_at_tail`
+  and `poll_once` are synchronous and testable with a real file, and
+  `run` is the async shell around them.
+- **Confidence after:** solid on the by-value round trip through
+  `spawn_blocking`, and on `abort` plus `Drop` as the cleanup pair. Shaky
+  on what `abort` does to blocking work already running (only kata 2 asks),
+  on whether `is_closed` is really needed (the test does not prove it), and
+  on file replacement: if the transcript is deleted and recreated, the
+  open `File` follows the old inode, its length never grows, and the
+  watcher goes quiet forever. Never mentioned anywhere.
+- **Suggestions:**
+  1. Open the sheet with "`scanner::run` and `history::run` are provided
+     and are the two shapes you need: a ticking loop that moves an owned
+     clone into `spawn_blocking`, and a receive loop that does the same.
+     Read both before writing the watcher."
+  2. Under the watcher bullet: "The closure needs an owned path. Clone
+     `spec.path` each tick, or hold it as an `Arc<Path>` outside the loop.
+     `&spec.path` inside `move ||` moves the field and fails on the second
+     iteration."
+  3. Say who parses: "`Tail::poll` yields `String`s and `claude::line`
+     takes a `&Value`. Parse each line with `serde_json::from_str`; a line
+     that does not parse is skipped, not fatal."
+  4. Name `Sender::is_closed` in the "check at the top of the loop" bullet,
+     and add a test that drops the receiver while the watcher is following
+     a quiet file, so the guard is actually pinned.
+  5. `write_atomic`: "create the parent directory first; map
+     `temp_sibling`'s `None` to an `io::Error`; `tokio::fs` is fine here,
+     or use `spawn_blocking` as `history::run` does. Say which you chose."
+  6. `sweep_inputs`: "collect `seen` from `rows` before `rows` moves into
+     the snapshot."
+  7. Reorder the sheet's Implement list: `publish.rs`, `scanner.rs`,
+     `effects.rs`, then `watcher.rs`.
+  8. Add a kata or stretch on file replacement: "The transcript is deleted
+     and recreated. What does `poll_once` see? What would you compare to
+     notice, and where would you do it?"
+  9. Add a one-line comment to the test's `sentinel()` saying that abort is
+     observable only as the future being dropped, which is what the flag
+     records.

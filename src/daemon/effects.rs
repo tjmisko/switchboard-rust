@@ -23,7 +23,35 @@ pub async fn run(
     layout: Arc<Layout>,
     settings: Settings,
 ) {
-    todo!("T12")
+    let mut watchers = Watchers::default();
+    while let Some(effect) = effects.recv().await {
+        match effect {
+            // The core publishes itself; this never arrives.
+            Effect::PublishState => {}
+            // Best effort: a full history channel loses an entry, not the
+            // board.
+            Effect::AppendHistory(entry) => {
+                let _ = history.try_send(entry);
+            }
+            Effect::WatchTranscript {
+                process,
+                session,
+                cwd,
+            } => {
+                let spec = WatchSpec {
+                    path: transcript_path(&layout.claude_projects, &cwd, &session),
+                    process,
+                    session,
+                    account: default_account(),
+                    poll: settings.transcript_poll,
+                    replay_bytes: settings.replay_bytes,
+                };
+                let task = tokio::spawn(watcher::run(spec, inbox.clone()));
+                watchers.start(process, task);
+            }
+            Effect::Forget { process } => watchers.stop(&process),
+        }
+    }
 }
 
 /// Watcher tasks by process. Aborts every task it still holds when dropped,
@@ -36,16 +64,22 @@ pub struct Watchers {
 impl Watchers {
     /// Start a watcher, aborting any previous one for the same process.
     pub fn start(&mut self, process: ProcKey, task: JoinHandle<()>) {
-        todo!("T12")
+        if let Some(previous) = self.tasks.insert(process, task) {
+            previous.abort();
+        }
     }
 
     pub fn stop(&mut self, process: &ProcKey) {
-        todo!("T12")
+        if let Some(task) = self.tasks.remove(process) {
+            task.abort();
+        }
     }
 
     /// Abort every task still held.
     pub fn abort_all(&mut self) {
-        todo!("T12")
+        for (_, task) in self.tasks.drain() {
+            task.abort();
+        }
     }
 
     pub fn len(&self) -> usize {
@@ -59,13 +93,6 @@ impl Watchers {
 
 impl Drop for Watchers {
     fn drop(&mut self) {
-        // Scaffold guard: a panic inside `drop` while a failing test is
-        // already unwinding aborts the whole test binary, so the `todo!()` in
-        // `abort_all` is only reached when it can fail cleanly. Keep or remove
-        // the guard once `abort_all` is implemented.
-        if std::thread::panicking() {
-            return;
-        }
         self.abort_all();
     }
 }

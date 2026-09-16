@@ -31,5 +31,11 @@ pub async fn run(mut view: watch::Receiver<Arc<View>>, path: PathBuf, coalesce: 
 /// Write to a sibling temporary file, then rename over the target. A reader
 /// sees the old file or the new one, never half of either.
 pub async fn write_atomic(path: &Path, bytes: &[u8]) -> io::Result<()> {
-    todo!("T12")
+    let temp = temp_sibling(path)
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "path has no file name"))?;
+    if let Some(dir) = path.parent() {
+        tokio::fs::create_dir_all(dir).await?;
+    }
+    tokio::fs::write(&temp, bytes).await?;
+    tokio::fs::rename(&temp, path).await
 }

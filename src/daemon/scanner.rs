@@ -56,7 +56,13 @@ pub fn sweep_inputs(
     rows: Vec<ProcessRow>,
     at: Instant,
 ) -> (Vec<Input>, BTreeSet<ProcKey>) {
-    todo!("T12")
+    let seen: BTreeSet<ProcKey> = rows.iter().map(|row| row.key).collect();
+    let mut inputs = vec![Input::Snapshot(Snapshot {
+        taken: at,
+        kind: SnapshotKind::Processes(rows),
+    })];
+    inputs.extend(known.difference(&seen).map(|&process| died(process, at)));
+    (inputs, seen)
 }
 
 fn died(process: ProcKey, at: Instant) -> Input {
