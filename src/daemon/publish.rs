@@ -29,7 +29,8 @@ pub async fn run(mut view: watch::Receiver<Arc<View>>, path: PathBuf, coalesce: 
 }
 
 /// Write to a sibling temporary file, then rename over the target. A reader
-/// sees the old file or the new one, never half of either.
+/// sees the old file or the new one, never half of either. Creates the
+/// parent directory; a path with no file name is `InvalidInput`.
 pub async fn write_atomic(path: &Path, bytes: &[u8]) -> io::Result<()> {
     todo!("T12")
 }

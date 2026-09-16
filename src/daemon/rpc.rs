@@ -42,6 +42,14 @@ pub async fn serve(
 ///
 /// Generic over the two halves so a test can drive it with an in-memory
 /// `tokio::io::duplex` pair instead of a socket.
+///
+/// `subscribe` is the last request a connection makes: from then on the
+/// handler only writes, once now and once per view change, and ignores any
+/// further lines. A peer that hangs up is noticed on the next write, which is
+/// the next view change.
+///
+/// A `watch::Ref` from `view.borrow()` is not `Send`, so it must never live
+/// across an `.await` here: take what is needed into a local first.
 pub async fn handle<R, W>(
     read: R,
     mut write: W,
@@ -70,8 +78,15 @@ fn offer(inbox: &mpsc::Sender<Input>, inputs: Vec<Input>) {
     todo!("T11")
 }
 
-/// The tracked agent a hook came from: the nearest ancestor of the
-/// forwarder's parent that the board knows.
+/// The tracked agent a hook came from: the nearest tracked ancestor of
+/// `pid`, `pid` itself included. `HookFrame.pid` is the forwarder's parent,
+/// and a hook runs as `claude -> sh -> switchboard-hook`, so the agent is
+/// usually a step or two up.
+///
+/// Ancestors are matched by pid against the tracked keys, not by full
+/// `ProcKey`: each step of the walk already reads one `stat`, and the tracked
+/// set is at most one scan interval old, so a reused pid is corrected by the
+/// next sweep's `Died`.
 ///
 /// Reading `/proc` is blocking file I/O, so it runs on the blocking pool. The
 /// closure must be `'static`, which is why it receives an owned `Arc` and an

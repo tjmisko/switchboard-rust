@@ -16,6 +16,8 @@ use crate::model::{Effect, HistoryEntry, ProcKey};
 use crate::paths::{Layout, transcript_path};
 use crate::reduce::default_account;
 
+/// Run until the effects channel closes. `PublishState` never arrives here:
+/// the core consumes it. History is best-effort, offered with `try_send`.
 pub async fn run(
     mut effects: mpsc::UnboundedReceiver<Effect>,
     inbox: mpsc::Sender<Input>,
@@ -61,8 +63,8 @@ impl Drop for Watchers {
     fn drop(&mut self) {
         // Scaffold guard: a panic inside `drop` while a failing test is
         // already unwinding aborts the whole test binary, so the `todo!()` in
-        // `abort_all` is only reached when it can fail cleanly. Keep or remove
-        // the guard once `abort_all` is implemented.
+        // `abort_all` is only reached when it can fail cleanly. Remove the
+        // guard once `abort_all` is real: `JoinHandle::abort` never panics.
         if std::thread::panicking() {
             return;
         }
