@@ -100,3 +100,6 @@ The loop is `scanner::run`'s shape.
 
 `t13_tasks` passes, all ten tests, and `cargo test` is green across the whole
 crate.
+
+T14 changes this: `run`'s loop moves into a `run_until` that stops on a
+signal, and `run` becomes a delegation to it.
