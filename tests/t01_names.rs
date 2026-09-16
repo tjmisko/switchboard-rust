@@ -109,6 +109,14 @@ fn should_slug_every_non_alphanumeric_character_when_naming_a_project_dir() {
     }
 }
 
+/// `é` is one `char` and two bytes. The slug replaces characters, so it
+/// becomes one `-`, not two.
+#[test]
+fn should_replace_a_multibyte_character_with_one_dash_when_slugging_a_cwd() {
+    assert_eq!(cwd_slug(Path::new("/home/u/café")), "-home-u-caf-");
+    assert_eq!(cwd_slug(Path::new("/home/u/日本")), "-home-u---");
+}
+
 #[test]
 fn should_place_a_transcript_under_the_slugged_cwd() {
     let path = transcript_path(
