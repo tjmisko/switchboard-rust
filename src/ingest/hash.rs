@@ -17,18 +17,20 @@ const FNV_PRIME: u64 = 0x0000_0100_0000_01b3;
 
 /// FNV-1a over a byte slice.
 pub fn fnv1a(bytes: &[u8]) -> u64 {
-    todo!("T03")
+    bytes
+        .iter()
+        .fold(FNV_OFFSET, |hash, byte| (hash ^ u64::from(*byte)).wrapping_mul(FNV_PRIME))
 }
 
 /// Hash of the canonical JSON form of a tool input.
 pub fn input_hash(input: &Value) -> InputHash {
-    todo!("T03")
+    InputHash(fnv1a(input.to_string().as_bytes()).to_be_bytes())
 }
 
 impl InputHash {
     /// Sixteen lowercase hex digits, as the wire carries it.
     pub fn to_hex(self) -> String {
-        todo!("T03")
+        format!("{:016x}", u64::from_be_bytes(self.0))
     }
 
     /// Inverse of `to_hex`. Exactly sixteen hex digits, either case.
@@ -36,7 +38,11 @@ impl InputHash {
     /// The digit check is not redundant: `u8::from_str_radix` accepts a
     /// leading `+`, so `"+f"` would otherwise parse as `0x0f`.
     pub fn from_hex(s: &str) -> Option<InputHash> {
-        todo!("T03")
+        let well_formed = s.len() == 16 && s.bytes().all(|b| b.is_ascii_hexdigit());
+        well_formed
+            .then(|| u64::from_str_radix(s, 16).ok())
+            .flatten()
+            .map(|n| InputHash(n.to_be_bytes()))
     }
 }
 

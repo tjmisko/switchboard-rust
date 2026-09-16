@@ -29,7 +29,31 @@ pub const CONTENT_FIELDS: [&str; 7] = [
 /// own `hook_event_name` is the fallback. A payload that is not an object
 /// still yields a frame, with nothing in it but the command and event.
 pub fn scrub(raw: Value, argv_event: Option<&str>, pid: u32) -> Value {
-    todo!("T03")
+    let mut map = match raw {
+        Value::Object(map) => map,
+        _ => Map::new(),
+    };
+
+    let event = argv_event
+        .map(String::from)
+        .or_else(|| map.get("hook_event_name").and_then(Value::as_str).map(String::from));
+
+    if let Some(input) = map.remove("tool_input") {
+        map.insert(
+            "tool_input_hash".into(),
+            Value::String(input_hash(&input).to_hex()),
+        );
+    }
+    for field in CONTENT_FIELDS {
+        map.remove(field);
+    }
+
+    map.insert("cmd".into(), "hook".into());
+    if let Some(event) = event {
+        map.insert("event".into(), event.into());
+    }
+    map.insert("pid".into(), pid.into());
+    Value::Object(map)
 }
 
 /// Classify the daemon's one-line reply.

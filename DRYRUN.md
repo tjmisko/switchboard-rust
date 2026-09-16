@@ -207,3 +207,118 @@ branches. A "cycle" below is one `cargo test` or `cargo check`/`clippy` run.
   6. Delete the "you need something to talk to" paragraph or rewrite it as
      "the helpers `socket` and `one_shot` are provided; read them and notice
      what `None` does after 400 ms".
+
+### T03 — JSON navigation and the hook adapter
+
+- **Effort:** 4 cycles (1 run of `t03_hook`, 31 of 31 green on the first
+  build; 1 clippy, clean; 1 run of the `json::`, `hash::`, `forward::`
+  unit tests; 1 regression run of T01 and T02). 0 compiler errors, 0 clippy
+  warnings. Difficulty **3/5**: no single line is hard, but the surface is
+  three modules, fourteen hook arms, twenty-one fixtures, and about six
+  product decisions that neither the sheet nor the tests make. Roughly 25%
+  Rust (`try_fold` with an `Option` accumulator, `Option<&Vec<_>>` as an
+  iterator, `bool::then` under the no-`match` rule, `zip`, a closure that
+  captures `frame` and `ctx` to build events), 75% reading and deciding:
+  the mapping table, every fixture, survey 14, and `docs/03`, which the
+  reading list requires before this task and which contributed nothing to it.
+- **Prerequisites assumed:**
+  - `serde_json::Value::get` takes any `Index`, including `&&str`, which is
+    what the `try_fold` closure receives from `path.iter()`. Not in any
+    listed reading.
+  - `Option::zip`, `bool::then`, `Option::flatten`, `Iterator::try_fold`
+    with `Option` as the short-circuit type. The sheet names `try_fold` and
+    `zip`; the no-`match` rule in `hash.rs` forces `then` or
+    `Option::filter` for `from_hex`, and neither is named.
+  - `u64::to_be_bytes` / `from_be_bytes`, `wrapping_mul`, `{:016x}`.
+  - `serde_json::Map`: `remove` returns the owned value, keys are `String`,
+    `"hook".into()` makes a `Value`. `match raw { Value::Object(m) => m,
+    _ => Map::new() }` to take the map out by value.
+  - `std::iter::once(event).chain(option)` for "one event plus maybe a
+    snapshot", relying on `Option: IntoIterator`.
+  - `&*frame.event` to match a `Box<str>` against literals.
+  - Domain: which hooks exist and which fields each carries. The README's
+    reference list names survey 14 for T03; the T03 sheet itself never
+    points at it. I found the field table by following the README, not the
+    sheet.
+- **Sheet accuracy:**
+  - Sheet: "`t03_hook` passes: 30 tests". The file has 31.
+  - `hook.rs` module comment: "Every event's actor is the subagent
+    `agent_id` names, when present." The test
+    `should_attribute_subagent_lifecycle_to_the_agent_and_name_the_child`
+    requires `Actor::Agent` for `SubagentStart` and `SubagentStop`, both of
+    whose fixtures carry `agent_id`. The rule has an exception the comment
+    does not state. I caught it by reading the test before writing, not by
+    failing it.
+  - Reading list: "`docs/03-types-and-transitions.md` before T03: which
+    harness signal drives each transition." That file is 587 lines; half
+    is Codex, app-server and statusline material, its type sketches use
+    names the model has since replaced (`AgentId`, `RootKey`, `Leveled`,
+    `EdgeKind`), and its transition sections (§4, §13) are reducer
+    material for T07 and T08. The one thing T03 needs, the hook-to-event
+    table, is in the `hook.rs` module comment already. This is the
+    biggest misdirect in T01 to T04: twenty minutes of reading that
+    changed nothing I wrote.
+  - Decisions with no test and no guidance, and what I chose:
+    `SubagentStop` has no outcome field (chose `Completed`);
+    `PermissionDenied.reason` is an open string per survey 14, not the
+    `toolDenialKind` vocabulary `Denier: FromStr` parses (chose: parse,
+    fall back to `AutoMode` because the survey says the event fires on
+    auto-mode denials); `Elicitation` has no `tool_name` (chose
+    `mcp_server_name`, else `"Elicitation"`); `SessionEnd` without
+    `reason` (chose `"unknown"` rather than dropping the event);
+    `SessionStart` with an unrecognised `source` (chose to drop, since
+    `source` is not optional on the event and guessing `Startup` would be a
+    claim); `agent_type` to `SubagentKind` (every captured value is
+    `general-purpose`; chose `Task` with guessed spellings for the other
+    two); which `background_tasks[].status` values are live (the test
+    only has `completed`; chose to drop `completed`, `failed`, `killed`);
+    `PreToolUse` with no `tool_input` at all (chose to drop, since
+    `ToolDispatched.hash` is not optional). Eight decisions. A learner
+    cannot know whether any of them match the golden until grading.
+  - Sheet: "`frame_hash` ... one chain with `or_else`" and
+    "`call_and_tool` is a single `zip`": both accurate and both good.
+  - The `from_hex` trap the sheet promises ("the test has a trap in it")
+    is real but arrives from two directions: `"ééééééé00"` has byte length
+    16, so a length check alone passes it; `"+f00..."` is the
+    `from_str_radix` trap the doc comment already explains. The sheet
+    points only at the second.
+- **Where I got stuck:** not on Rust. Time went to the eight decisions
+  above, to reading `docs/03` for nothing, and to noticing the lifecycle
+  actor exception. The one Rust wrinkle was `from_hex` without `match` or
+  `if`, solved with `then(..).flatten()`.
+- **What this drilled:** `Option` flow, for real: `str_at` into `parse`
+  into `map_or`, `zip`, `or_else`, `try_fold`, `into_iter().flatten()`;
+  `let ... else`; variant constructors as functions; borrowed returns with
+  an explicit lifetime (`str_at`). Incidental: twenty-one fixtures, the
+  hook vocabulary, `Map` surgery in `scrub`, and the eight product
+  decisions.
+- **Ordering:** after T02 is right; the end-to-end tests need
+  `decode_request` and `scrub`. Inside, the task is two tasks: `json.rs` +
+  `hash.rs` + `scrub` is an hour of pure combinators with tests that
+  fully specify them; `hook.rs` is an hour of domain mapping where the
+  tests specify half. Splitting them would make the T02 to T03 jump, the
+  first real one in the range, a step instead of a wall.
+- **Confidence after:** good on `Option` chains and `let-else`, and would
+  feel it. Shaky: `try_fold` (one use, could be memorised rather than
+  understood), why `Option<&Vec<_>>` iterates, and whether their eight
+  guesses are right, which they have no way to check.
+- **Suggestions:**
+  1. Remove `docs/03` from the pre-T03 reading and move it to before T07.
+     Replace it with "survey 14 §1.1 (the field table) and the `hook.rs`
+     module comment".
+  2. Fix "30 tests" to 31. Add to the `hook.rs` module comment: "except
+     `SubagentStart` and `SubagentStop`, where `agent_id` names the child
+     and the actor is the agent that spawned it".
+  3. Add a "decisions the tests do not make" block to the sheet listing
+     the eight cases above with the intended answer for each, or add a
+     fixture and a test per case. Either fixes the same problem; the
+     second is better pedagogy.
+  4. Next to the no-`match` constraint, name `bool::then` and
+     `Option::filter` as the tools for `from_hex`.
+  5. Split the sheet into T03a (helpers, hash, scrub; `cargo test --test
+     t03_hook -- should_read should_walk should_iterate should_return
+     should_hash should_round should_drop should_fall should_still`) and
+     T03b (the adapter), or at least put a "checkpoint" line between them.
+  6. Add a test for `Stop` with `"background_tasks": []` and no crons:
+     the sheet says `Some(vec![])` and `None` differ and the reducer
+     cares, but no test pins the `Some(vec![])` side.
