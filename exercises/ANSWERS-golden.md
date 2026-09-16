@@ -51,6 +51,14 @@
 3. `new(&mut file)` mutably borrows `file` for the life of that writer, which
    ends each loop iteration. `new(file)` moves `file` into the writer, which is
    a temporary, so the file is closed at the end of that statement.
+4. An unsized coercion: `&io::Error` to `&dyn Error` is a coercion site
+   inside `Some(..)` because the expected type is known from the return
+   type, so no `as` is needed. The `'static` is on the trait object, not
+   the reference: it says the error value owns everything it holds and
+   borrows nothing from `self` beyond the reference itself. It refuses a
+   variant like `Wrapped<'a>(&'a str)` that implements `Error` with a
+   borrowed field, which is why every error in `error.rs` owns its data
+   (`Box<str>`, not `&str`).
 
 ## T05
 1. The closure passed to `successors` captures `proc_root: &Path`, so the
