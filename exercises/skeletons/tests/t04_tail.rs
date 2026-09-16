@@ -4,6 +4,11 @@
 //! not complete. Read the three hazards in the `tail.rs` module comment and add
 //! at least three tests for cases it doesn't name. The hidden golden suite has
 //! several.
+//!
+//! Every expected offset in this file is a byte count. Compute each one from
+//! the data (`len(b"…")`, below) instead of counting by hand: a miscounted
+//! expectation fails exactly like a wrong `poll`, and you cannot tell them
+//! apart from the assertion message.
 
 mod common;
 
@@ -18,6 +23,12 @@ fn append(file: &mut Cursor<Vec<u8>>, bytes: &[u8]) {
     file.seek(SeekFrom::End(0)).unwrap();
     file.write_all(bytes).unwrap();
     file.set_position(pos);
+}
+
+/// The length of some bytes as an offset, so an expectation is derived from
+/// the data it describes: `assert_eq!(t.offset(), len(b"one\ntw"))`.
+fn len(bytes: &[u8]) -> u64 {
+    bytes.len() as u64
 }
 
 // ---------------------------------------------------------------------------

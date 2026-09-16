@@ -123,6 +123,46 @@ fn should_skip_an_oversized_line_whole_even_when_it_spans_polls() {
     assert_eq!(p.skipped, 0, "one long line is counted once");
 }
 
+/// The limit measures the line including its terminator: with `max_line = 8`,
+/// `1234567\n` is eight bytes and kept; `12345678\n` is nine and skipped.
+#[test]
+fn should_count_the_terminator_when_measuring_a_line_against_max_line() {
+    let mut f = Cursor::new(b"1234567\n12345678\nok\n".to_vec());
+    let p = Tail::new().with_max_line(8).poll(&mut f).unwrap();
+    assert_eq!(p.lines, ["1234567", "ok"]);
+    assert_eq!(p.skipped, 1);
+}
+
+/// The file shrinks while the rest of an oversized line is being discarded.
+/// The skip ends with the truncation, so the new file's first line arrives.
+#[test]
+fn should_stop_skipping_when_the_file_shrinks_mid_oversized_line() {
+    let mut t = Tail::new().with_max_line(8);
+    let p = t
+        .poll(&mut Cursor::new(b"0123456789abcdef".to_vec()))
+        .unwrap();
+    assert_eq!(p.skipped, 1);
+    let p = t.poll(&mut Cursor::new(b"tiny\n".to_vec())).unwrap();
+    assert!(p.truncated);
+    assert_eq!(p.lines, ["tiny"]);
+    assert_eq!(p.skipped, 0);
+}
+
+/// `é` is `\xc3\xa9`. Its two bytes can land in different polls, and the
+/// line must still decode: the carry is bytes, and decoding waits for `\n`.
+#[test]
+fn should_reassemble_a_multibyte_character_split_across_polls() {
+    let mut f = Cursor::new(b"caf\xc3".to_vec());
+    let mut t = Tail::new();
+    let p = t.poll(&mut f).unwrap();
+    assert!(p.lines.is_empty());
+    assert_eq!(p.skipped, 0, "an incomplete line is not yet invalid");
+    append(&mut f, b"\xa9\n");
+    let p = t.poll(&mut f).unwrap();
+    assert_eq!(p.lines, ["café"]);
+    assert_eq!(p.skipped, 0);
+}
+
 #[test]
 fn should_resume_from_a_saved_offset() {
     let mut f = Cursor::new(b"one\ntwo\nthree\n".to_vec());

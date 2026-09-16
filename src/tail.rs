@@ -9,13 +9,21 @@
 //!   * A single line can be enormous, or not UTF-8. Neither may stall the
 //!     tail: oversized lines are skipped whole, invalid ones dropped.
 //!
+//! And one that follows from the first: a multibyte character can be split
+//! across two polls. The carry is bytes, not text, and a line is decoded
+//! only once its `\n` has arrived, so `caf` + `\xc3` in one poll and `\xa9`
+//! in the next reassemble into `café`.
+//!
 //! Generic over `Read + Seek`, so tests drive it with `Cursor<Vec<u8>>` and
-//! the daemon with `File`.
+//! the daemon with `File`. `seek(SeekFrom::End(0))` returns the new
+//! position, which is how both `poll` and `tail_start` learn the length.
 
 use std::io::{self, BufRead, BufReader, Read, Seek, SeekFrom};
 
-/// Lines longer than this are skipped. A transcript line with a large tool
-/// result can reach hundreds of KiB; nothing the adapters read is that big.
+/// Lines longer than this are skipped. The measure is the line's bytes
+/// including its terminator: with a limit of 8, `1234567\n` is kept and
+/// `12345678\n` is not. A transcript line with a large tool result can reach
+/// hundreds of KiB; nothing the adapters read is that big.
 pub const DEFAULT_MAX_LINE: usize = 1 << 20;
 
 /// A cursor into an append-only file.
@@ -39,10 +47,16 @@ impl Default for Tail {
 /// What one `poll` found.
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Polled {
+    /// Complete lines, without their terminators. Blank and whitespace-only
+    /// lines are left out and not counted as skipped.
     pub lines: Vec<String>,
     /// The file was shorter than our offset, so reading restarted at zero.
+    /// This also abandons any carried partial line and any skip in progress.
     pub truncated: bool,
-    /// Lines dropped for being oversized or not UTF-8.
+    /// Lines dropped for being oversized or not UTF-8. An oversized line is
+    /// counted in the poll where its bytes first exceed `max_line`, which
+    /// can be before its `\n` arrives; the rest of it is then discarded
+    /// silently, however many polls that takes.
     pub skipped: usize,
 }
 
@@ -131,9 +145,12 @@ impl Tail {
 
 /// The offset of the first complete line within the last `window` bytes.
 ///
-/// Used to replay only the recent end of a long transcript on discovery. When
-/// the window starts mid-line, the partial line is skipped; when it covers the
-/// whole file, the answer is zero.
+/// Used to replay only the recent end of a long transcript on discovery.
+/// When the window covers the whole file, the answer is zero. When it starts
+/// exactly on a line boundary, the answer is that boundary. When it starts
+/// mid-line, the partial line is skipped and the answer is the byte after
+/// its `\n`. When the window holds no `\n` at all, nothing in it is a whole
+/// line and the answer is the file's length.
 pub fn tail_start<R: Read + Seek>(file: &mut R, window: u64) -> io::Result<u64> {
     let len = file.seek(SeekFrom::End(0))?;
     if len <= window {
@@ -150,7 +167,10 @@ pub fn tail_start<R: Read + Seek>(file: &mut R, window: u64) -> io::Result<u64> 
 }
 
 /// Every non-blank line of a finite reader, with its 1-based line number.
-/// Invalid UTF-8 surfaces as an `io::Error` of kind `InvalidData`.
+/// Invalid UTF-8 surfaces as an `io::Error` of kind `InvalidData`, and the
+/// iteration continues past it: `BufRead::lines` consumes the bad line's
+/// bytes before reporting them, which is what lets `history::read_day` keep
+/// going.
 pub fn numbered_lines<R: BufRead>(reader: R) -> impl Iterator<Item = (usize, io::Result<String>)> {
     reader
         .lines()
