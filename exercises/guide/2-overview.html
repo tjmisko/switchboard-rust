@@ -1,0 +1,91 @@
+
+<!-- ===================== 0 · OVERVIEW ===================== -->
+<div class="panel" id="p1" role="tabpanel" aria-labelledby="tab-1">
+
+<p class="prose">The course is the rewrite itself. Every function you write ships in the daemon, and every task leaves the next one something real to stand on. The scaffold on <code>main</code> has all the types, doc comments and signatures. The bodies you write are <code>todo!("T0N")</code>, and pure plumbing is provided whole.</p>
+
+<div class="meter" aria-hidden="true"><i id="meter-all"></i></div>
+<button class="resetbtn" type="button" id="reset-all">clear all checkpoints</button>
+
+<h2>Five phases</h2>
+<p class="prose">Each phase ends with something you can observe, not just a passing suite. Phases 1–3 are strictly ordered. Phase 4's three tasks depend only on phase 3 and can be done in any order.</p>
+
+<div class="flow">
+  <div class="box"><b>01 · vocabulary</b><span>T01–T02 · 2¼ h. Identifiers pass for strings, and every boundary has an error type that says what went wrong. <em>Ends with:</em> a malformed socket line gets a precise, typed reply.</span></div>
+  <div class="box"><b>02 · reading the world</b><span>T03–T06 · 5 h. Hooks, transcripts, a tailing reader and <code>/proc</code> each become inputs. <em>Ends with:</em> any fixture payload or live process turns into the exact <code>Event</code>s the model expects.</span></div>
+  <div class="box"><b>03 · the reducer</b><span>T07–T09 · 4¼ h. Events, snapshots and time fold into a board, and the cost model decides what is shown. <em>Ends with:</em> a scripted story of an agent's life produces the right chip at every step.</span></div>
+  <div class="box"><b>04 · the runtime</b><span>T10–T12 · 3 h. One task owns the board, a socket feeds it, and watchers follow transcripts. <em>Ends with:</em> a dwell promoting itself with nothing sent.</span></div>
+  <div class="box"><b>05 · ship it</b><span>T13 · ½ h plus stretch. Warnings off, release build, and your own agents on the socket. <em>Ends with:</em> the chip going red when you're asked to approve a call, and amber when you press Escape.</span></div>
+</div>
+
+<h2>The loop, for every task</h2>
+<ol class="prose">
+  <li><b>Read the sheet</b> in <code>exercises/tasks/T0N-*.md</code>, then the module comment of each file you'll touch. The spec lives in the doc comments.</li>
+  <li><b>Take the checkpoints in order.</b> Each one is a <code>cargo test</code> filter. Run it first and watch it fail on <code>todo!</code>. Implement until it passes, then tick it here.</li>
+  <li><b>On test-first tasks</b> (T02, T04, T07), the first checkpoint is writing the tests. A test counts as written when it compiles, exercises the behaviour its name promises, and fails inside the code under test. Failing in its own setup doesn't count: a socket that never bound, or a typo in a fixture path.</li>
+  <li><b>Answer the katas</b> in <code>exercises/answers/T0N.md</code> before looking anything up.</li>
+  <li><b>Commit</b> with the suggested message, then say <em>"grade T0N"</em>. Grading runs the hidden suite for that task and clippy, then reviews your diff against the golden.</li>
+</ol>
+
+<div class="note"><b>Done means all of these, for every task.</b>
+  <ul>
+    <li>Every checkpoint passes, and so does the whole test file.</li>
+    <li>Everything before it still passes: <code>cargo test</code> shows no regressions in earlier tasks.</li>
+    <li><code>cargo clippy --all-targets</code> adds no warnings in the files you touched.</li>
+    <li>No public signature changed. The hidden tests compile against them, so if you think one is wrong, raise it.</li>
+    <li>No <code>unwrap</code> or <code>expect</code> in library code outside tests, except where a comment proves it can't fail.</li>
+  </ul>
+</div>
+
+<h2>Where each gap gets drilled</h2>
+<div class="tbl"><table class="cover">
+  <thead><tr><th>gap</th><th>T01</th><th>T02</th><th>T03</th><th>T04</th><th>T05</th><th>T06</th><th>T07</th><th>T08</th><th>T09</th><th>T10</th><th>T11</th><th>T12</th></tr></thead>
+  <tbody>
+    <tr><td>Option / Result type flow</td><td></td><td><i class="dot a"></i></td><td><i class="dot a"></i></td><td><i class="dot e"></i></td><td><i class="dot a"></i></td><td><i class="dot a"></i></td><td><i class="dot e"></i></td><td><i class="dot e"></i></td><td><i class="dot e"></i></td><td></td><td><i class="dot e"></i></td><td></td></tr>
+    <tr><td>Ownership in real APIs</td><td><i class="dot e"></i></td><td></td><td><i class="dot e"></i></td><td><i class="dot e"></i></td><td><i class="dot e"></i></td><td></td><td><i class="dot a"></i></td><td><i class="dot a"></i></td><td><i class="dot a"></i></td><td><i class="dot e"></i></td><td><i class="dot e"></i></td><td><i class="dot a"></i></td></tr>
+    <tr><td>Deref · as_ref · as_deref</td><td><i class="dot a"></i></td><td></td><td><i class="dot e"></i></td><td></td><td></td><td><i class="dot a"></i></td><td><i class="dot e"></i></td><td></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td>Error architecture</td><td></td><td><i class="dot a"></i></td><td><i class="dot e"></i></td><td><i class="dot a"></i></td><td></td><td><i class="dot a"></i></td><td></td><td></td><td></td><td></td><td><i class="dot e"></i></td><td></td></tr>
+    <tr><td>Read · BufRead · Write</td><td></td><td><i class="dot e"></i></td><td></td><td><i class="dot a"></i></td><td></td><td></td><td></td><td></td><td></td><td></td><td><i class="dot e"></i></td><td><i class="dot a"></i></td></tr>
+    <tr><td>Iterator adapters</td><td><i class="dot e"></i></td><td></td><td><i class="dot a"></i></td><td><i class="dot e"></i></td><td><i class="dot a"></i></td><td><i class="dot a"></i></td><td></td><td><i class="dot a"></i></td><td><i class="dot a"></i></td><td></td><td></td><td><i class="dot e"></i></td></tr>
+    <tr><td>async · tokio</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td><i class="dot a"></i></td><td><i class="dot a"></i></td><td><i class="dot a"></i></td></tr>
+  </tbody>
+</table></div>
+<div class="legend"><span><i class="dot a"></i> the main exercise</span><span><i class="dot e"></i> recurs</span></div>
+
+<h2>The model you are making real</h2>
+<p class="prose">Every behaviour in phases 3 and 4 serves two ideas from the design. The truth is computed, and what the chip shows lags the truth in one direction only.</p>
+
+<div class="ladder">
+  <div class="rung r-alert"><i class="lamp"></i><b>alert</b><span><span class="ph">Attention</span>: a person has to answer something</span></div>
+  <div class="rung r-notice"><i class="lamp"></i><b>notice</b><span><span class="ph">Stopped</span> · <span class="ph">Blocked</span>: worth knowing, not worth interrupting for</span></div>
+  <div class="rung r-calm"><i class="lamp"></i><b>calm</b><span><span class="ph">Working</span> · <span class="ph">Delegating</span> · <span class="ph">Waiting</span> · <span class="ph">Idle</span></span></div>
+  <div class="rung r-grey"><i class="lamp"></i><b>grey</b><span><span class="ph">Unknown</span>: calm severity, and no claim of calm</span></div>
+</div>
+
+<div class="costgrid">
+  <div class="hd"></div><div class="hd">You caused it</div><div class="hd">The agent caused it</div>
+  <div class="rh">Escalate</div>
+  <div class="cell"><em>Immediate.</em><small>Confirmation, never news.</small></div>
+  <div class="cell wait"><em>Wait</em>, unless the evidence is confirmed.<small>10 s when inferred, 6 s when read from a snapshot.</small></div>
+  <div class="rh">De-escalate</div>
+  <div class="cell"><em>Immediate.</em></div>
+  <div class="cell"><em>Immediate.</em></div>
+</div>
+
+<h2>Changes to the model since your sketch</h2>
+<p class="prose">These are listed in full, with reasons, in <code>exercises/README.md</code>. The ones every task depends on:</p>
+<ul class="prose">
+  <li><code>Event</code> carries <code>process: Option&lt;ProcKey&gt;</code> for routing, and <code>confidence</code> for <code>settle</code>.</li>
+  <li><code>Agent::session</code> is optional, because a sweep finds processes before any hook names their session.</li>
+  <li>Turn keys are optional on both <code>TurnStarted</code> and <code>TurnEnded</code>.</li>
+  <li>Permission asks and parked prompts carry a <code>GateKind</code>.</li>
+  <li><code>SnapshotKind::Waits</code> exists, and it's the only source for <code>Waiting</code>.</li>
+  <li>After the September 2026 capture: <code>WaitKind</code> gained <code>Workflow</code> and <code>Other</code>, <code>Origin</code> gained <code>Unknown</code>, <code>ProcessRow</code> carries the session file's <code>name</code>, and <code>SUBAGENT_STALE</code> bounds a subagent row nothing mentions.</li>
+  <li>The reducer lives in <code>src/reduce/</code>. Its effects are publish, append history, watch transcript, and forget.</li>
+</ul>
+
+<footer style="margin-top:40px">
+  <p>Ticked checkpoints are stored in this browser's local storage under <code>sbr-course</code>. They are a record for you; grading only looks at your commit.</p>
+</footer>
+
+</div>

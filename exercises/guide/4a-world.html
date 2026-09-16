@@ -1,0 +1,176 @@
+
+<!-- ===================== 2 · READING THE WORLD ===================== -->
+<div class="panel" id="p3" role="tabpanel" aria-labelledby="tab-3" hidden>
+
+<p class="prose">Each source of evidence becomes the model's inputs through a function that has no state and holds no opinion about phases. This phase builds four of them: the hook adapter, a reader for files another process is still writing, the transcript adapter, and <code>/proc</code>. Each one's behaviour is fully fixed by fixtures captured from real payloads.</p>
+
+<div class="tier-head"><span class="k">phase 02</span><h2>Reading the world</h2><p>T03–T06 · about 5 hours. When this phase is done, any fixture payload, transcript line or live process turns into exactly the <code>Event</code>s and <code>Snapshot</code>s the model expects, and nothing you don't track produces anything at all.</p></div>
+
+<!-- T03 -->
+<section class="sig" id="t03">
+  <header><h3>T03 · JSON navigation and the hook adapter</h3><span class="pill">2 h</span><span class="pill out">t03_hook</span><span class="pill prog" data-task="t03"></span></header>
+  <dl class="meta">
+    <div><dt>you write</dt><dd><code>ingest/json.rs</code> (7 helpers), <code>ingest/hash.rs</code>, <code>forward::scrub</code>, and <code>claude::hook</code> with its helpers (including <code>wait_kind</code>)</dd></div>
+    <div><dt>provided</dt><dd><code>ErrorClass::from_wire</code>, <code>Origin::from_kind</code>, the question-tool list, fixtures in <code>tests/fixtures/claude/hooks/</code></dd></div>
+    <div><dt>gaps</dt><dd>Option/Result type flow: <code>and_then</code>, <code>filter</code>, <code>zip</code>, <code>try_fold</code>, Option as an iterator</dd></div>
+    <div><dt>depends on</dt><dd>T01, T02 (frames)</dd></div>
+  </dl>
+
+  <h4>Desired behaviour · reading JSON</h4>
+  <ul class="prose">
+    <li>Typed reads (string, non-blank string, unsigned integer, bool) return <code>None</code> when the key is absent <em>or</em> holds another type. A negative number is not a <code>u64</code>, and a whitespace-only string is blank.</li>
+    <li>A path walk descends one key at a time and stops at the first missing or non-object step. Array elements are not reachable by key. An empty path returns the value you started from.</li>
+    <li>"The elements of this key" yields each element of an array, and nothing at all for a string, an object or a missing key.</li>
+    <li>A returned <code>&amp;str</code> lives as long as the JSON it came from, even when the key was a temporary.</li>
+  </ul>
+
+  <h4>Desired behaviour · the input hash</h4>
+  <ul class="prose">
+    <li>Two inputs that differ only in key order hash equal, at every depth. Arrays keep their order.</li>
+    <li>A hook's <code>tool_input</code> and the transcript's <code>tool_use.input</code> for the same call hash equal.</li>
+    <li>FNV-1a 64 over the canonical bytes: <code>""</code> → <code>cbf29ce484222325</code>, <code>"a"</code> → <code>af63dc4c8601ec8c</code>.</li>
+    <li>On the wire the hash is exactly 16 lowercase hex digits. Parsing accepts either case and rejects any other length, any non-hex character, and a leading <code>+</code>.</li>
+  </ul>
+
+  <h4>Desired behaviour · scrubbing (the forwarder)</h4>
+  <ul class="prose">
+    <li>These fields never leave: <code>tool_input</code>, <code>tool_response</code>, <code>prompt</code>, <code>last_assistant_message</code>, <code>message</code>, <code>custom_instructions</code>, <code>requested_schema</code>.</li>
+    <li>When <code>tool_input</code> was present, <code>tool_input_hash</code> takes its place. Ids such as <code>session_id</code>, <code>tool_use_id</code> and <code>agent_id</code> survive.</li>
+    <li>The frame gains <code>cmd: "hook"</code>, <code>pid</code>, and <code>event</code>, taken from argv, else from <code>hook_event_name</code>, else empty.</li>
+    <li>Stdin that isn't an object still yields a frame, with exactly <code>cmd</code>, <code>event</code> and <code>pid</code>.</li>
+  </ul>
+
+  <h4>Desired behaviour · hook → input</h4>
+  <p class="prose">Every hook input is <code>Confidence::Confirmed</code>. The actor is the subagent named by <code>agent_id</code> when it's present, and the agent otherwise. A hook missing a field that its row marks <em>required</em> produces nothing.</p>
+  <div class="tbl"><table class="spec">
+    <thead><tr><th>hook</th><th>input</th><th>cause</th><th>details that are easy to get wrong</th></tr></thead>
+    <tbody>
+      <tr><td>SessionStart</td><td class="out">SessionStarted</td><td><span class="tag user">user</span> iff <code>clear</code></td><td>source defaults to startup; title only if non-blank. No captured payload carries <code>session_title</code>: the name comes from the session file (T06).</td></tr>
+      <tr><td>UserPromptSubmit</td><td class="out">TurnStarted</td><td><span class="tag user">user</span> iff human</td><td>key from non-blank <code>prompt_id</code>; <code>source</code> <b>absent → unknown</b> (it is absent on every captured payload, and unknown is not human), <code>user</code> → human, <code>system</code> → task-notification, anything else → machine</td></tr>
+      <tr><td>PreToolUse, question tool</td><td class="out">PermissionAsked</td><td><span class="tag agent">agent</span></td><td><code>AskUserQuestion</code>, <code>ExitPlanMode</code>: call id present, kind Question, owner Human. Requires id and name.</td></tr>
+      <tr><td>PreToolUse, other</td><td class="out">ToolDispatched</td><td><span class="tag agent">agent</span></td><td>hash: the frame's, else a raw input's, else the hash of null. Requires id and name.</td></tr>
+      <tr><td>PermissionRequest</td><td class="out">PermissionAsked</td><td><span class="tag agent">agent</span></td><td>call id only if present (Claude has none); owner Human; Question for question tools, else Approval. Requires name.</td></tr>
+      <tr><td>PermissionDenied</td><td class="out">PermissionSettled</td><td><span class="tag agent">agent</span></td><td>outcome Denied by permission rule. Who denied is the transcript's job.</td></tr>
+      <tr><td>PostToolUse</td><td class="out">ToolSettled · Ok</td><td><span class="tag agent">agent</span></td><td>duration only if it fits a <code>u32</code>. Requires id.</td></tr>
+      <tr><td>PostToolUseFailure</td><td class="out">ToolSettled · Failed</td><td><span class="tag user">user</span> iff interrupt</td><td><code>is_interrupt</code> absent means false. Requires id.</td></tr>
+      <tr><td>Stop</td><td class="out">TurnEnded · Completed<br>+ Snapshot · Waits</td><td><span class="tag agent">agent</span></td><td>the snapshot is sent only if <code>background_tasks</code> <em>or</em> <code>session_crons</code> is a key; present-and-empty still sends one</td></tr>
+      <tr><td>StopFailure</td><td class="out">TurnEnded · Failed</td><td><span class="tag agent">agent</span></td><td>class from <code>error</code>; absent → Other. Fires inside a child with <code>agent_id</code> set (47 of 56 captured), so the actor is that subagent.</td></tr>
+      <tr><td>SubagentStart · Stop</td><td class="out">SubagentStarted · Ended</td><td><span class="tag agent">agent</span></td><td>the actor is the <em>agent</em>, even though <code>agent_id</code> is present; that id names the child. Requires it.</td></tr>
+      <tr><td>PreCompact · PostCompact</td><td class="out">CompactionStarted · Ended</td><td><span class="tag user">user</span> iff manual</td><td>anything but <code>manual</code> is Auto</td></tr>
+      <tr><td>CwdChanged</td><td class="out">CwdChanged</td><td><span class="tag agent">agent</span></td><td>requires <code>new_cwd</code></td></tr>
+      <tr><td>SessionEnd</td><td class="out">SessionEnded</td><td><span class="tag agent">agent</span></td><td>reason defaults to <code>other</code></td></tr>
+      <tr><td>Elicitation</td><td class="out">PermissionAsked</td><td><span class="tag agent">agent</span></td><td>no call id; tool is the MCP server name, else <code>mcp</code>; Question, Human</td></tr>
+      <tr><td>Notification, anything new</td><td><span class="tag none">nothing</span></td><td></td><td>not an error</td></tr>
+    </tbody>
+  </table></div>
+  <p class="prose" style="margin-top:12px"><b>Waits from Stop.</b> A background task counts while its status is <code>running</code>, <code>pending</code>, or absent. Its kind follows the captured <code>type</code> vocabulary exactly: <code>shell</code> → BackgroundShell, <code>monitor</code> → Monitor, <code>workflow</code> → Workflow, and anything else (or no type) → Other, carried rather than guessed. Every cron counts, as Cron. Entries without an <code>id</code> are skipped. Tasks come before crons.</p>
+
+  <h4>Definition of done</h4>
+  <ol class="dod">
+    <li><label><input type="checkbox" data-k="t03-1"><b>JSON helpers.</b></label>
+      <span class="cmd">cargo test --test t03_hook -- scalars walk iterate borrows_from &amp;&amp; cargo test --lib -- json::</span></li>
+    <li><label><input type="checkbox" data-k="t03-2"><b>Hash and hex.</b></label>
+      <span class="cmd">cargo test --test t03_hook -- hash_the hash_nested hex &amp;&amp; cargo test --lib -- hash::</span></li>
+    <li><label><input type="checkbox" data-k="t03-3"><b>Scrub.</b> No content survives.</label>
+      <span class="cmd">cargo test --test t03_hook -- scrubbing hook_event_name stdin</span></li>
+    <li><label><input type="checkbox" data-k="t03-4"><b>Sessions and prompts</b>, with cause derived correctly.</label>
+      <span class="cmd">cargo test --test t03_hook -- session prompt</span></li>
+    <li><label><input type="checkbox" data-k="t03-5"><b>Tools and gates.</b></label>
+      <span class="cmd">cargo test --test t03_hook -- dispatch question permission duration interrupted call_id</span></li>
+    <li><label><input type="checkbox" data-k="t03-6"><b>Stop, waits, lifecycle, silence.</b></label>
+      <span class="cmd">cargo test --test t03_hook -- stop_reports stop_carries stop_failure background_task subagent_lifecycle cwd does_not_track</span></li>
+    <li class="gate"><label><input type="checkbox" data-k="t03-7"><b>Whole task green, within the constraints.</b> No <code>unwrap</code>, <code>expect</code> or <code>match</code> on an Option outside the test modules of <code>json.rs</code> and <code>hash.rs</code>.</label>
+      <span class="cmd">cargo test --test t03_hook &amp;&amp; rg -n 'unwrap\(|expect\(|match ' src/ingest/json.rs src/ingest/hash.rs</span>
+      <span class="why">Every <code>rg</code> hit must fall below <code>#[cfg(test)]</code>.</span></li>
+  </ol>
+  <div class="note trap"><b>Watch for</b>
+    <ul>
+      <li>A hex test that looks trivially right, then fails. Read the docs of the integer parser you reach for, all the way to the end.</li>
+      <li>"Neither key present" and "present and empty" are different facts for Waits. The reducer treats a missing snapshot and an empty snapshot very differently.</li>
+      <li>Two hooks whose <code>agent_id</code> doesn't name the actor.</li>
+      <li>A prompt with no <code>source</code>. It is not a typed prompt; it is a prompt you know nothing about.</li>
+    </ul>
+  </div>
+  <p class="commit">commit: <code>feat(ingest): json helpers, input hash, scrub, claude hook adapter</code></p>
+</section>
+
+<!-- T04 -->
+<section class="sig" id="t04">
+  <header><h3>T04 · Line-oriented I/O: tail and history</h3><span class="pill">1½ h</span><span class="pill out">t04_history</span><span class="pill tdd">you write t04_tail</span><span class="pill prog" data-task="t04"></span></header>
+  <dl class="meta">
+    <div><dt>you write</dt><dd><code>Tail::poll</code>, <code>tail_start</code>, <code>numbered_lines</code>; <code>Record::to_json</code> / <code>from_json</code>, <code>HistoryWriter::append</code>, <code>read_day</code></dd></div>
+    <div><dt>provided</dt><dd><code>Tail</code>'s fields and constructors, <code>Record</code> types, <code>day_path</code>, <code>time.rs</code>, <code>tests/fixtures/history/mixed.jsonl</code></dd></div>
+    <div><dt>gaps</dt><dd><code>Read</code> / <code>BufRead</code> / <code>Write</code>, <code>R: BufRead</code>, why <code>BufReader</code>, <code>Cursor</code> and <code>Vec&lt;u8&gt;</code> as doubles</dd></div>
+    <div><dt>depends on</dt><dd>T02 (<code>RecordError</code>, <code>Phase</code> names)</dd></div>
+  </dl>
+
+  <h4>Desired behaviour · following an appended file</h4>
+  <div class="tbl"><table class="spec">
+    <thead><tr><th>situation</th><th>a poll returns</th></tr></thead>
+    <tbody>
+      <tr><td>complete lines appended</td><td>each line, in order, without its newline; the offset is at the end</td></tr>
+      <tr><td>nothing appended</td><td>no lines</td></tr>
+      <tr><td>a line without its <code>\n</code> yet</td><td>nothing for it, over as many polls as it takes. Then the whole line, once. Its bytes count as consumed, and are not reread.</td></tr>
+      <tr><td>the file is now shorter than the offset</td><td><code>truncated</code>, reading from zero; a partial line held from before is discarded</td></tr>
+      <tr><td>rewritten to the same length</td><td>not truncated, and nothing new: a tail can't see that</td></tr>
+      <tr><td><code>\r\n</code> endings</td><td>lines without the <code>\r</code></td></tr>
+      <tr><td>blank or whitespace-only lines</td><td>not returned, and not counted as skipped</td></tr>
+      <tr><td>a line that isn't UTF-8</td><td>not returned; <code>skipped</code> +1; the lines around it are unaffected</td></tr>
+      <tr><td>a line longer than the maximum, spanning polls</td><td>discarded whole, counted once; the next line comes back normally</td></tr>
+      <tr><td>resumed at a saved offset</td><td>only what follows it</td></tr>
+    </tbody>
+  </table></div>
+  <p class="prose" style="margin-top:12px"><b>Where replay starts.</b> For a window of <em>w</em> bytes, the result is 0 when the file is no longer than <em>w</em>, including when it's empty. When the window begins exactly on a line boundary, it is that offset. When it begins mid-line, it is the start of the next line. When no line starts within the window, it is the end of the file.</p>
+  <p class="prose"><b>Numbered lines.</b> Numbers start at 1. Blank lines are not yielded, but they still take up a number. A line that isn't UTF-8 comes back as an error of kind <code>InvalidData</code>.</p>
+
+  <h4>Desired behaviour · the history day file</h4>
+  <ul class="prose">
+    <li>One JSON object per line, written with a single call. Every line carries <code>ts</code> (UTC, milliseconds, <code>Z</code>), <code>type</code> and <code>pid</code>. <code>session_id</code> appears only when known.</li>
+    <li><code>session_start</code> adds <code>cwd</code>. <code>shown</code> adds <code>from</code>, <code>to</code> and <code>held_ms</code>. <code>session_end</code> adds nothing.</li>
+    <li>Writing then reading any record gives back an equal record.</li>
+    <li>Reading never fails as a whole. The fixture reads like this:</li>
+  </ul>
+  <div class="tbl"><table class="spec">
+    <thead><tr><th>mixed.jsonl</th><th>outcome</th></tr></thead>
+    <tbody>
+      <tr><td>1 · 3 · 7</td><td>foreign types (<code>activity</code>, <code>focus</code>, <code>transition</code>): counted, not errors</td></tr>
+      <tr><td>2 · 4 · 6 · 12</td><td>records; line 6's <code>-07:00</code> timestamp is the same instant as <code>15:40Z</code></td></tr>
+      <tr><td>5</td><td>blank: skipped silently</td></tr>
+      <tr><td>8</td><td><span class="tag err">name</span> the Go vocabulary's <code>permission</code> is not a phase</td></tr>
+      <tr><td>9</td><td><span class="tag err">missing pid</span></td></tr>
+      <tr><td>10</td><td><span class="tag err">json</span></td></tr>
+      <tr><td>11</td><td><span class="tag err">bad value ts</span></td></tr>
+      <tr><td>13</td><td><span class="tag err">missing type</span></td></tr>
+    </tbody>
+  </table></div>
+  <p class="prose" style="margin-top:12px">A line that isn't UTF-8 is an error on that line, and reading continues. Any other read error is recorded and ends the read. Fields are checked in the order: type, the type's own fields, <code>ts</code>, then <code>pid</code>.</p>
+
+  <h4>Definition of done</h4>
+  <ol class="dod">
+    <li class="gate"><label><input type="checkbox" data-k="t04-1"><b>Tail tests written first.</b> The 11 stubs plus at least 3 of your own compile and fail inside <code>tail.rs</code>.</label>
+      <span class="cmd">cargo test --test t04_tail</span>
+      <span class="why">The "not named" list to hunt for: rewrites of the same length, and a line too long for one poll.</span></li>
+    <li><label><input type="checkbox" data-k="t04-2"><b>Polling basics.</b></label>
+      <span class="cmd">cargo test --test t04_tail -- complete_line several_polls carriage utf8 saved_offset</span></li>
+    <li><label><input type="checkbox" data-k="t04-3"><b>Shrinking files and a real file.</b></label>
+      <span class="cmd">cargo test --test t04_tail -- shrinks real_file</span></li>
+    <li><label><input type="checkbox" data-k="t04-4"><b>Replay window.</b></label>
+      <span class="cmd">cargo test --test t04_tail -- window</span></li>
+    <li><label><input type="checkbox" data-k="t04-5"><b>Numbered lines.</b></label>
+      <span class="cmd">cargo test --test t04_tail -- number_lines</span></li>
+    <li><label><input type="checkbox" data-k="t04-6"><b>History writes.</b></label>
+      <span class="cmd">cargo test --test t04_history -- write_one omit</span></li>
+    <li><label><input type="checkbox" data-k="t04-7"><b>History reads, tolerantly.</b></label>
+      <span class="cmd">cargo test --test t04_history -- round_trip foreign z_and_offset invalid_utf8</span></li>
+    <li class="gate"><label><input type="checkbox" data-k="t04-8"><b>Whole task green.</b> <code>poll</code> uses one buffered reader over a bounded view of the file.</label>
+      <span class="cmd">cargo test --test t04_tail --test t04_history</span>
+      <span class="why">Grading adds a hidden suite of 17 tail tests.</span></li>
+  </ol>
+  <div class="note trap"><b>Watch for</b>
+    <ul>
+      <li>An offset that only counts lines you returned. The offset is what you've consumed, including the start of a line you're still holding.</li>
+      <li>A buffered reader reads ahead of what it hands you. Trust your own offset, never the file's position after a poll.</li>
+    </ul>
+  </div>
+  <p class="commit">commit: <code>feat(io): tail follower and history day file</code></p>
+</section>

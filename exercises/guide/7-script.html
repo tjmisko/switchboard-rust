@@ -1,0 +1,232 @@
+
+<script>
+(function () {
+  var tabs  = Array.prototype.slice.call(document.querySelectorAll('[role="tab"]'));
+  var rail  = document.querySelector('nav.rail .railbody');
+  var spy   = null;
+  var KEY   = 'sbr-course';
+
+  // ---- checkpoint state -------------------------------------------------
+  // Remembered per browser. Storage can be absent (private windows, file://
+  // policies), so every access is guarded and the page works without it.
+  function load() {
+    try { return JSON.parse(localStorage.getItem(KEY) || '{}') || {}; }
+    catch (e) { return {}; }
+  }
+  function save(state) {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+  }
+  var state = load();
+  var boxes = Array.prototype.slice.call(document.querySelectorAll('ol.dod input[type="checkbox"]'));
+
+  // Draw each checkbox as a numbered tile; the native input stays focusable.
+  boxes.forEach(function (b) {
+    var tick = document.createElement('span');
+    tick.className = 'tick';
+    tick.setAttribute('aria-hidden', 'true');
+    b.insertAdjacentElement('afterend', tick);
+  });
+
+  // ---- copyable commands --------------------------------------------------
+  var COPY_ICON = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">' +
+    '<rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 3.5v-.5A1.5 1.5 0 0 0 9 1.5H3A1.5 1.5 0 0 0 1.5 3v6A1.5 1.5 0 0 0 3 10.5h.5"/></svg>';
+
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(text).catch(function () { return legacyCopy(text); });
+    }
+    return legacyCopy(text);
+  }
+  function legacyCopy(text) {
+    return new Promise(function (resolve, reject) {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none';
+      document.body.appendChild(ta);
+      ta.select();
+      var ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) {}
+      ta.remove();
+      ok ? resolve() : reject(new Error('copy failed'));
+    });
+  }
+
+  document.querySelectorAll('.cmd').forEach(function (cmd) {
+    var text = cmd.textContent.trim();
+    cmd.textContent = '';
+    var span = document.createElement('span');
+    span.className = 'cmdtext';
+    span.textContent = text;
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'copy';
+    btn.setAttribute('aria-label', 'Copy command');
+    btn.innerHTML = COPY_ICON + '<span>copy</span>';
+    var label = btn.querySelector('span');
+    var timer = null;
+    btn.addEventListener('click', function () {
+      copyText(text).then(function () {
+        btn.classList.add('ok'); label.textContent = 'copied';
+      }, function () {
+        label.textContent = 'select';
+        var r = document.createRange(); r.selectNodeContents(span);
+        var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      });
+      clearTimeout(timer);
+      timer = setTimeout(function () { btn.classList.remove('ok'); label.textContent = 'copy'; }, 1400);
+    });
+    cmd.appendChild(span);
+    cmd.appendChild(btn);
+  });
+
+  function count(nodes) {
+    var done = nodes.filter(function (b) { return b.checked; }).length;
+    return { done: done, total: nodes.length };
+  }
+
+  function refresh() {
+    boxes.forEach(function (b) { b.closest('li').classList.toggle('done', b.checked); });
+
+    document.querySelectorAll('.pill.prog[data-task]').forEach(function (p) {
+      var sec = p.closest('section');
+      var c = count(Array.prototype.slice.call(sec.querySelectorAll('ol.dod input')));
+      p.textContent = c.done + '/' + c.total;
+      p.classList.toggle('full', c.total > 0 && c.done === c.total);
+    });
+
+    document.querySelectorAll('.tp[data-phase]').forEach(function (s) {
+      var panel = document.getElementById(s.getAttribute('data-phase'));
+      var c = count(Array.prototype.slice.call(panel.querySelectorAll('ol.dod input')));
+      s.textContent = c.done + '/' + c.total;
+      s.classList.toggle('full', c.total > 0 && c.done === c.total);
+    });
+
+    var all = count(boxes);
+    var total = document.getElementById('rail-total');
+    if (total) total.textContent = all.done + '/' + all.total;
+    var meter = document.getElementById('meter-all');
+    if (meter) meter.style.width = (all.total ? 100 * all.done / all.total : 0) + '%';
+  }
+
+  boxes.forEach(function (b) {
+    b.checked = !!state[b.getAttribute('data-k')];
+    b.addEventListener('change', function () {
+      state[b.getAttribute('data-k')] = b.checked;
+      if (!b.checked) delete state[b.getAttribute('data-k')];
+      save(state);
+      refresh();
+    });
+  });
+
+  var reset = document.getElementById('reset-all');
+  if (reset) reset.addEventListener('click', function () {
+    state = {};
+    save(state);
+    boxes.forEach(function (b) { b.checked = false; });
+    refresh();
+  });
+
+  // ---- tabs and rail ------------------------------------------------------
+  function anchorFor(el, panel, i) {
+    var owner = el.closest('[id]');
+    if (owner && owner !== panel && owner.id) return owner;
+    if (!el.id) {
+      var t = (el.textContent || '').toLowerCase().replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-|-$/g, '').slice(0, 44);
+      el.id = (t || 'section') + '-' + i;
+    }
+    return el;
+  }
+
+  function buildRail(panel) {
+    rail.textContent = '';
+    if (spy) { spy.disconnect(); spy = null; }
+    var heads = Array.prototype.slice.call(panel.querySelectorAll('h2, h3'));
+    if (!heads.length) return;
+    var links = {}, targets = [];
+    heads.forEach(function (h, i) {
+      var target = anchorFor(h, panel, i);
+      var id = target.id;
+      if (links[id]) return;
+      var a = document.createElement('a');
+      a.href = '#' + id;
+      a.textContent = h.textContent;
+      if (h.tagName === 'H3') a.className = 'lvl3';
+      a.addEventListener('click', function (e) {
+        e.preventDefault();
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        history.replaceState(null, '', '#' + id);
+      });
+      rail.appendChild(a);
+      links[id] = a;
+      targets.push(target);
+    });
+
+    if (!('IntersectionObserver' in window)) return;
+    spy = new IntersectionObserver(function () {
+      var current = null;
+      for (var i = 0; i < targets.length; i++) {
+        if (targets[i].getBoundingClientRect().top <= 120) current = targets[i].id;
+        else break;
+      }
+      if (!current) current = targets[0].id;
+      Object.keys(links).forEach(function (k) {
+        links[k].classList.toggle('here', k === current);
+      });
+    }, { rootMargin: '-60px 0px -70% 0px', threshold: [0, 1] });
+    targets.forEach(function (t) { spy.observe(t); });
+  }
+
+  function select(i) {
+    var panel = null;
+    tabs.forEach(function (t, j) {
+      var on = i === j;
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+      t.tabIndex = on ? 0 : -1;
+      var el = document.getElementById(t.getAttribute('aria-controls'));
+      el.hidden = !on;
+      if (on) panel = el;
+    });
+    if (panel) buildRail(panel);
+    try { sessionStorage.setItem(KEY + '-tab', String(i)); } catch (e) {}
+  }
+
+  tabs.forEach(function (t, i) {
+    t.addEventListener('click', function () {
+      select(i);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+    t.addEventListener('keydown', function (e) {
+      var d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+      if (!d) return;
+      e.preventDefault();
+      var n = (i + d + tabs.length) % tabs.length;
+      select(n); tabs[n].focus();
+    });
+  });
+
+  document.querySelectorAll('[data-goto]').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      e.preventDefault();
+      var n = parseInt(a.getAttribute('data-goto'), 10) - 1;
+      select(n); tabs[n].focus(); window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
+
+  // Open the tab holding a #t07-style anchor, else the last tab viewed.
+  var start = 0;
+  var hash = location.hash && document.getElementById(location.hash.slice(1));
+  if (hash) {
+    var owner = hash.closest('[role="tabpanel"]');
+    tabs.forEach(function (t, j) { if (owner && t.getAttribute('aria-controls') === owner.id) start = j; });
+  } else {
+    try { start = parseInt(sessionStorage.getItem(KEY + '-tab') || '0', 10) || 0; } catch (e) {}
+  }
+  refresh();
+  select(start);
+  if (hash) hash.scrollIntoView({ block: 'start' });
+})();
+</script>
+</body>
+</html>

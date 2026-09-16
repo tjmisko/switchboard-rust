@@ -1,0 +1,162 @@
+
+<!-- T08 -->
+<section class="sig" id="t08">
+  <header><h3>T08 · Reducer II: gates, the join, subagents</h3><span class="pill">1¼ h</span><span class="pill out">t08_join</span><span class="pill prog" data-task="t08"></span></header>
+  <dl class="meta">
+    <div><dt>you write</dt><dd><code>ask</code>, <code>park</code>, <code>take_unjoined</code>, <code>clear_unjoined</code>, <code>lift_sole_unjoined</code>, <code>lift_subagent</code>, <code>answer</code>, <code>blocked</code>, <code>hash_admits</code>, <code>ask_subagent</code>; <code>subagent_transition</code> and the permission arms of <code>transition</code>; the <code>unowned_gate_anywhere</code> stub in <code>model.rs</code>, which then becomes <code>has_unowned_gate</code></dd></div>
+    <div><dt>provided</dt><dd>the T07 structure you already built</dd></div>
+    <div><dt>gaps</dt><dd>taking ownership out of a <code>Vec</code>, <code>retain</code>, <code>entry</code>, <code>Option::take</code></dd></div>
+    <div><dt>depends on</dt><dd>T07</dd></div>
+  </dl>
+
+  <h4>Desired behaviour · the join</h4>
+  <p class="prose">Claude's permission prompt has no call id, so it's matched to a call on (actor, tool name, input hash), from whichever side arrives second. A prompt without a hash matches on name alone.</p>
+  <div class="tbl"><table class="spec">
+    <thead><tr><th>story</th><th>expected</th></tr></thead>
+    <tbody>
+      <tr><td>call running, then a matching prompt</td><td>that call is Blocked (Approval, Human); nothing parked; Attention shown at once (confirmed)</td></tr>
+      <tr><td>prompt first</td><td>parked; truth is already Attention</td></tr>
+      <tr><td>…then the matching call is dispatched</td><td>parked list empty; the call is Blocked, and the gate's <em>since</em> is the prompt's arrival</td></tr>
+      <tr><td>prompt for a different input · a different tool</td><td>no join; the call stays Running; the prompt stays parked</td></tr>
+      <tr><td>two identical calls running, one prompt</td><td>exactly one of them is gated</td></tr>
+      <tr><td>the same prompt parked twice</td><td>no effects; one parked</td></tr>
+      <tr><td>a question gated by its <code>PreToolUse</code>, then the call-less <code>PermissionRequest</code> for the same input</td><td>no effects, nothing parked: the same prompt said twice. When the call settles, Working, not a stale red.</td></tr>
+      <tr><td>two identical questions, each gated by its own id; one is answered</td><td>the other still waits: a running match takes a call-less prompt, a blocked match makes it a duplicate</td></tr>
+    </tbody>
+  </table></div>
+
+  <h4>Desired behaviour · lifting (liberal)</h4>
+  <div class="tbl"><table class="spec">
+    <thead><tr><th>story</th><th>expected</th></tr></thead>
+    <tbody>
+      <tr><td>the gated call settles, 30 s later</td><td>Working at once</td></tr>
+      <tr><td>an unseen call settles; <em>exactly one</em> prompt parked for that actor</td><td>that prompt lifted; publish</td></tr>
+      <tr><td>an unseen call settles; two parked</td><td>both kept: too ambiguous to lift</td></tr>
+      <tr><td>turn ends · the next turn starts</td><td>every prompt the agent itself parked is lifted</td></tr>
+      <tr><td>prompt answered <em>Allowed</em>, with a call id</td><td>that call Running again; other gates stay</td></tr>
+      <tr><td>answered <em>Denied</em> or <em>Abandoned</em></td><td>that call removed</td></tr>
+      <tr><td>answered without a call id</td><td>the sole parked prompt lifted, as for an unseen settle</td></tr>
+    </tbody>
+  </table></div>
+
+  <h4>Desired behaviour · questions, ownership, subagents</h4>
+  <div class="tbl"><table class="spec">
+    <thead><tr><th>story</th><th>expected</th></tr></thead>
+    <tbody>
+      <tr><td>a question tool asks, with a call id never dispatched</td><td>the call is created already Blocked (Question, Human); Attention</td></tr>
+      <tr><td>…with a call id already dispatched</td><td>gated; publish. Asked again: no effects.</td></tr>
+      <tr><td>an <em>unowned</em> gate on a call, mid-turn</td><td>Unknown, grey. Never Attention (R3), and not Working either.</td></tr>
+      <tr><td>subagent started (events own the table)</td><td>a Running row; Delegating. Duplicate start: no effects.</td></tr>
+      <tr><td>subagent ended</td><td>row removed; Idle. Duplicate end: no effects.</td></tr>
+      <tr><td>a subagent asks a question</td><td>its row is gated; Attention</td></tr>
+      <tr><td>…the agent's own Stop arrives</td><td>still Attention: a subagent's gate is not the agent's to clear</td></tr>
+      <tr><td>…the subagent settles a call · answers its permission</td><td>its gate lifts; Delegating</td></tr>
+      <tr><td>a subagent's turn fails (<code>StopFailure</code> with <code>agent_id</code>)</td><td>the agent keeps Working; the row is marked Failed and its gate cleared; published. The agent's own Stop still ends the agent's turn.</td></tr>
+      <tr><td>a subagent's tool is interrupted · its session, compaction, cwd or turn events</td><td>the agent's turn is untouched · no effects: an event applies to the actor it names</td></tr>
+      <tr><td>prompt from a subagent with no row</td><td>parked under that subagent; Attention; survives the agent's Stop; lifted when that subagent ends</td></tr>
+      <tr><td>a prompt parked before its subagent had a row; the row appears; the subagent dispatches the matching call</td><td>the gate moves from the parked list onto that row</td></tr>
+      <tr><td>table owned by the panel: subagent started</td><td>no effects, no row: events refine rows and never add them</td></tr>
+      <tr><td>table owned by the panel: subagent ended</td><td>row marked completed and its gate cleared; not removed</td></tr>
+    </tbody>
+  </table></div>
+
+  <h4>Definition of done</h4>
+  <ol class="dod">
+    <li><label><input type="checkbox" data-k="t08-1"><b>The join, both directions.</b></label>
+      <span class="cmd">cargo test --test t08_join -- gate_the_running park_a_prompt_that different_input different_tool identical_parallel duplicate_parked hashless same_prompt identical_questions</span></li>
+    <li><label><input type="checkbox" data-k="t08-2"><b>Lifting.</b></label>
+      <span class="cmd">cargo test --test t08_join -- lift_attention lift_the_sole lift_every release ambiguously</span></li>
+    <li><label><input type="checkbox" data-k="t08-3"><b>Questions and unowned gates.</b> <code>unowned_gate_anywhere</code> becomes the body of <code>has_unowned_gate</code> (stub deleted), so it sees calls and subagents, and is checked before Working.</label>
+      <span class="cmd">cargo test --test t08_join -- question already_dispatched unowned</span></li>
+    <li><label><input type="checkbox" data-k="t08-4"><b>Subagents.</b></label>
+      <span class="cmd">cargo test --test t08_join -- subagent panel</span></li>
+    <li class="gate"><label><input type="checkbox" data-k="t08-5"><b>Whole task green, with no regression.</b> The T07 placeholders are gone.</label>
+      <span class="cmd">cargo test --test t07_turns --test t08_join &amp;&amp; rg -n 'todo!|unowned_gate_anywhere' src/reduce/event.rs src/model.rs</span>
+      <span class="why"><code>rg</code> should find nothing.</span></li>
+  </ol>
+  <div class="note trap"><b>Watch for</b>
+    <ul>
+      <li>"Find it, then remove it" on a vector: the find's borrow is still alive when you try to remove.</li>
+      <li>An agent's Stop clearing <em>every</em> parked prompt, including subagents'.</li>
+      <li>A child's <code>StopFailure</code> ending the parent's turn. Route by actor before you match on the kind.</li>
+    </ul>
+  </div>
+  <p class="commit">commit: <code>feat(reduce): permission join, lifting, subagent gates</code></p>
+</section>
+
+<!-- T09 -->
+<section class="sig" id="t09">
+  <header><h3>T09 · Snapshots and time</h3><span class="pill">1 h</span><span class="pill out">t09_snapshot_tick</span><span class="pill prog" data-task="t09"></span></header>
+  <dl class="meta">
+    <div><dt>you write</dt><dd>the Limits, Subagents and Waits arms of <code>apply_snapshot</code>; <code>replace_panel</code>, <code>replace_waits</code>; <code>tick</code>, <code>expire</code>, <code>stale_turn_deadline</code>, <code>stale_subagent_deadline</code>, <code>next_deadline</code>, <code>deadlines</code></dd></div>
+    <div><dt>provided</dt><dd>discovery (the Processes arm), the Beat and Placements arms, <code>view.rs</code></dd></div>
+    <div><dt>gaps</dt><dd><code>mem::take</code>, <code>BTreeMap::remove</code> returning ownership, chaining Options and iterators, <code>min</code></dd></div>
+    <div><dt>depends on</dt><dd>T07, T08</dd></div>
+  </dl>
+
+  <h4>Desired behaviour · time</h4>
+  <div class="tbl"><table class="spec">
+    <thead><tr><th>story</th><th>expected</th></tr></thead>
+    <tbody>
+      <tr><td>a turn with an open call and no gate, then silence</td><td>a tick 1 ms before <code>last_event + 10 min</code>: no effects. At exactly that time: Idle, published.</td></tr>
+      <tr><td>a turn parked on a gate, silent for 30 min</td><td>still Attention: staleness never clears a gate</td></tr>
+      <tr><td>an inferred escalation pending from <em>t</em></td><td>the next deadline is <em>t</em> + 10 s. A tick 1 ms early: no effects. A tick at the deadline: shown moves, one history entry.</td></tr>
+      <tr><td>idle agents only</td><td>no next deadline</td></tr>
+      <tr><td>two turns started at 10 s and 3 s</td><td>next deadline 3 s + 10 min: the earliest across all agents</td></tr>
+      <tr><td>a subagent row with no signal for 30 min (<code>SUBAGENT_STALE</code>)</td><td>a tick 1 ms early: no effects. At the cap: the row is gone, published; Idle. Any signal from the child, or a panel refresh, moves the deadline. A row holding a gate never expires.</td></tr>
+      <tr><td>deadline sources</td><td>pending promotions; stale turns (not gated, not compacting); compactions after 10 min; each wait's expiry; each parked prompt after 30 min; each ungated subagent row after 30 min</td></tr>
+    </tbody>
+  </table></div>
+
+  <h4>Desired behaviour · snapshots</h4>
+  <div class="tbl"><table class="spec">
+    <thead><tr><th>story</th><th>expected</th></tr></thead>
+    <tbody>
+      <tr class="grp"><td colspan="2">discovery (provided, green once T07 is)</td></tr>
+      <tr><td>a sweep with two new processes, one with a session</td><td>two agents, two <code>AgentFound</code>, one watch. The same sweep again: no effects.</td></tr>
+      <tr><td>a later sweep names a session · a process missing from a sweep</td><td>adopted and watched · kept: only <code>Died</code> removes</td></tr>
+      <tr><td>a sweep row carries a name · the same name again · a different name · no name</td><td>the title · no effects · renamed and published · the title stays</td></tr>
+      <tr class="grp"><td colspan="2">limits: account-wide</td></tr>
+      <tr><td>rejected, for an account with two idle agents</td><td>both truths Blocked; both still show Idle; a tick at +6 s shows Blocked on both</td></tr>
+      <tr><td>a snapshot taken earlier than the one held · an unchanged value</td><td>no effects · no effects</td></tr>
+      <tr class="grp"><td colspan="2">subagent panel: replaces the table</td></tr>
+      <tr><td>panel with one running row and one failed</td><td>Delegating; the table is now panel-owned</td></tr>
+      <tr><td>next panel shows only the failed row</td><td>the running row is gone: absence is a fact; Idle</td></tr>
+      <tr><td>panel taken before the agent's last event</td><td>no effects; rows unchanged</td></tr>
+      <tr><td>the panel stops refreshing for 30 min</td><td>its rows expire like any other: a panel that went quiet is no longer authoritative</td></tr>
+      <tr><td>an event gated a row that the next panel still shows</td><td>the gate survives the replacement; Attention</td></tr>
+      <tr class="grp"><td colspan="2">waits: from Stop</td></tr>
+      <tr><td>Stop reports one background task</td><td>Waiting</td></tr>
+      <tr><td>reported again 99 s later</td><td>its <em>armed</em> time is unchanged; expiry moves to the new report + 30 min</td></tr>
+      <tr><td>a tick at that expiry · an empty report</td><td>Idle · Idle</td></tr>
+    </tbody>
+  </table></div>
+  <p class="prose" style="margin-top:12px">The provided view then renders equal views for an unchanged board, explains a gated call as <code>wants approval to run Bash</code>, and converts <code>since</code> against one reading of each clock.</p>
+
+  <h4>Definition of done</h4>
+  <ol class="dod">
+    <li><label><input type="checkbox" data-k="t09-1"><b>Discovery already holds.</b> No code; confirm it before building on it.</label>
+      <span class="cmd">cargo test --test t09_snapshot_tick -- new_process later_sweep missing_from_a_sweep rename</span></li>
+    <li><label><input type="checkbox" data-k="t09-2"><b>Time.</b> Staleness, promotion, the earliest deadline.</label>
+      <span class="cmd">cargo test --test t09_snapshot_tick -- quiet_turn parked_on_a_gate escalation earliest_deadline stale_cap panel_rows</span></li>
+    <li><label><input type="checkbox" data-k="t09-3"><b>Limits.</b></label>
+      <span class="cmd">cargo test --test t09_snapshot_tick -- limits rejected</span></li>
+    <li><label><input type="checkbox" data-k="t09-4"><b>The panel.</b></label>
+      <span class="cmd">cargo test --test t09_snapshot_tick -- panel</span></li>
+    <li><label><input type="checkbox" data-k="t09-5"><b>Waits.</b> <code>armed</code> survives without a clone.</label>
+      <span class="cmd">cargo test --test t09_snapshot_tick -- background_tasks clear_waits</span></li>
+    <li><label><input type="checkbox" data-k="t09-6"><b>The view renders it.</b></label>
+      <span class="cmd">cargo test --test t09_snapshot_tick -- views tooltip</span></li>
+    <li class="gate"><label><input type="checkbox" data-k="t09-7"><b>Phase 03 green.</b> Every reducer suite and the model's unit tests, together.</label>
+      <span class="cmd">cargo test --test t07_turns --test t08_join --test t09_snapshot_tick &amp;&amp; cargo test --lib</span></li>
+  </ol>
+  <div class="note trap"><b>Watch for</b>
+    <ul>
+      <li>A <code>Stop</code> and its waits snapshot arrive at the same instant. A "newer than the last event" check on waits would silently drop every one of them. Waits have nothing to be stale against.</li>
+      <li>A snapshot escalation is promoted by a tick that says <em>inferred</em>, yet it waits 6 s, not 10. Know why before you write <code>tick</code>.</li>
+    </ul>
+  </div>
+  <p class="commit">commit: <code>feat(reduce): snapshots, expiry and deadlines</code></p>
+</section>
+
+</div>

@@ -1,0 +1,124 @@
+
+<!-- T05 -->
+<section class="sig" id="t05">
+  <header><h3>T05 · The transcript adapter and usage</h3><span class="pill">¾ h + ½ h stretch</span><span class="pill out">t05_transcript</span><span class="pill prog" data-task="t05"></span></header>
+  <dl class="meta">
+    <div><dt>you write</dt><dd><code>claude::transcript</code> (<code>line</code> and its helpers); in <code>usage.rs</code>: <code>Usage</code>'s operators, <code>response</code>, <code>usage_by_model</code>, plus the four pricing functions as stretch</dd></div>
+    <div><dt>provided</dt><dd><code>parse_rfc3339</code>, <code>Denier</code> / <code>Origin</code> / <code>ErrorClass</code> vocabularies, <code>tests/fixtures/claude/transcript/session.jsonl</code></dd></div>
+    <div><dt>gaps</dt><dd><code>filter_map</code>, <code>flat_map</code>, <code>chain</code>, <code>bool::then</code>, borrowed map keys, operator traits</dd></div>
+    <div><dt>depends on</dt><dd>T02, T03 (json helpers, hash)</dd></div>
+  </dl>
+
+  <h4>Desired behaviour · transcript line → inputs</h4>
+  <p class="prose">Every event takes its process, session and confidence from the watcher's context, never from the line. Its actor is the agent, and its claimed time is the line's <code>timestamp</code>. Sidechain and <code>isMeta</code> lines produce nothing.</p>
+  <div class="tbl"><table class="spec">
+    <thead><tr><th>line</th><th>inputs</th><th>cause</th></tr></thead>
+    <tbody>
+      <tr class="grp"><td colspan="3">user lines, checked in this order</td></tr>
+      <tr><td>has <code>interruptedMessageId</code></td><td class="out">TurnEnded · Interrupted, naming the killed message; key from <code>promptId</code>; the content is not looked at</td><td><span class="tag user">user</span></td></tr>
+      <tr><td>string content that is a local command</td><td><span class="tag none">nothing</span> for prefixes <code>&lt;local-command</code> <code>&lt;command-</code> <code>&lt;bash-</code> <code>&lt;user-memory-input</code></td><td></td></tr>
+      <tr><td>any other string content</td><td class="out">TurnStarted, origin from <code>origin.kind</code> (absent → human), key from <code>promptId</code></td><td><span class="tag user">user</span> iff human</td></tr>
+      <tr><td>block content with <code>toolDenialKind</code></td><td class="out">ToolSettled · Denied, one per <code>tool_result</code> block with an id. An unknown kind counts as a policy denial.</td><td><span class="tag user">user</span> iff <code>user-rejected</code></td></tr>
+      <tr><td>block content, no denial</td><td class="out">ToolSettled · Failed if <code>is_error</code>, else Ok; one per <code>tool_result</code> with an id; text blocks ignored</td><td><span class="tag agent">agent</span></td></tr>
+      <tr class="grp"><td colspan="3">assistant lines</td></tr>
+      <tr><td><code>isApiErrorMessage: true</code></td><td class="out">TurnEnded · Failed (class from <code>error</code>, no key), then a Limits snapshot if <code>quotaLimits.status</code> is known</td><td><span class="tag agent">agent</span></td></tr>
+      <tr><td>otherwise</td><td class="out">one ToolDispatched per <code>tool_use</code> block with both id and name (hash of <code>input</code>, or of null), then TurnEnded · Completed if <code>stop_reason</code> is <code>end_turn</code></td><td><span class="tag agent">agent</span></td></tr>
+      <tr class="grp"><td colspan="3">everything else</td></tr>
+      <tr><td>system, attachment, metadata, JSON that isn't an object</td><td><span class="tag none">nothing</span></td><td></td></tr>
+    </tbody>
+  </table></div>
+  <p class="prose" style="margin-top:12px">Across the fixture this yields exactly fourteen inputs, five of them user-caused. The first response spans two lines (a thinking block, then a tool call) and yields one dispatch.</p>
+
+  <h4>Desired behaviour · usage</h4>
+  <ul class="prose">
+    <li>Only assistant lines report usage. A response is keyed by <code>message.id</code>, falling back to <code>requestId</code>. The synthetic model of error lines never counts. Absent counters are zero, and a <code>usage</code> that isn't an object is no usage at all.</li>
+    <li><b>A response split across lines counts once.</b> For the fixture: claude-opus-5 has input 8, output 646, cache writes 34 013, cache reads 95 315. claude-fable-5-1 has output 80. No other models appear.</li>
+    <li>Usages add with <code>+</code>, <code>+=</code> and <code>sum()</code>.</li>
+    <li><em>Stretch.</em> Prices parse from <code>$6.25 / MTok</code>, <code>$0.50</code> and <code>5</code> into integer micro-dollars. At most six decimals, no sign, digits on both sides of the point, and no floats anywhere. Cost rounds down and saturates instead of overflowing. Rate lookup tries the exact model, then the model with a bracketed suffix such as <code>[1m]</code> removed. A transcript's cost reports the models it couldn't price.</li>
+  </ul>
+
+  <h4>Definition of done</h4>
+  <ol class="dod">
+    <li><label><input type="checkbox" data-k="t05-1"><b>Silence first.</b> Junk and irrelevant lines produce nothing.</label>
+      <span class="cmd">cargo test --test t05_transcript -- malformed_or_irrelevant</span></li>
+    <li><label><input type="checkbox" data-k="t05-2"><b>User lines.</b> Prompts, results, denials.</label>
+      <span class="cmd">cargo test --test t05_transcript -- key_the_prompt denial failed_tool_result</span></li>
+    <li><label><input type="checkbox" data-k="t05-3"><b>Assistant lines and context stamping.</b></label>
+      <span class="cmd">cargo test --test t05_transcript -- hash_a_tool_use stamp_every</span></li>
+    <li><label><input type="checkbox" data-k="t05-4"><b>The whole fixture, exactly.</b></label>
+      <span class="cmd">cargo test --test t05_transcript -- exactly_this_sequence attribute_interrupts</span></li>
+    <li><label><input type="checkbox" data-k="t05-5"><b>Usage counted once per response.</b></label>
+      <span class="cmd">cargo test --test t05_transcript -- response_key split_across sum_usages</span></li>
+    <li class="gate"><label><input type="checkbox" data-k="t05-6"><b>Core done.</b> Everything above passes, and <code>assistant_line</code> builds its output without a mutable vector.</label>
+      <span class="cmd">cargo test --test t05_transcript -- --skip price --skip unpriced</span></li>
+    <li><label><input type="checkbox" data-k="t05-7"><b>Stretch: pricing.</b></label>
+      <span class="cmd">cargo test --test t05_transcript -- price unpriced</span></li>
+  </ol>
+  <div class="note trap"><b>Watch for</b>
+    <ul>
+      <li>Summing usage per line. It is the most natural code, and wrong by a factor of however many blocks each response had.</li>
+      <li>Marker text such as <code>[Request interrupted by user]</code>. Two different strings exist, so key on the field.</li>
+    </ul>
+  </div>
+  <p class="commit">commit: <code>feat(ingest): claude transcript adapter and usage accounting</code></p>
+</section>
+
+<!-- T06 -->
+<section class="sig" id="t06">
+  <header><h3>T06 · Finding agents in /proc</h3><span class="pill">¾ h</span><span class="pill out">t06_proc</span><span class="pill prog" data-task="t06"></span></header>
+  <dl class="meta">
+    <div><dt>you write</dt><dd><code>parse_stat</code>, <code>parse_cmdline</code>, <code>classify</code>, <code>session_from_file</code>, <code>name_from_file</code>, <code>written_by</code>, <code>parent_of</code>, <code>ancestors</code>, <code>key_of</code></dd></div>
+    <div><dt>provided</dt><dd><code>read_process</code> and <code>sweep</code> (the I/O shell around your parsers); a fake <code>/proc</code> builder in <code>tests/common</code></dd></div>
+    <div><dt>gaps</dt><dd><code>?</code> over many fields, <code>Cow&lt;str&gt;</code>, <code>AsRef&lt;str&gt;</code> generics, <code>iter::successors</code></dd></div>
+    <div><dt>depends on</dt><dd>T02 (<code>StatError</code>), T03 (json helpers)</dd></div>
+  </dl>
+
+  <h4>Desired behaviour</h4>
+  <div class="tbl"><table class="spec">
+    <thead><tr><th>input</th><th>result</th></tr></thead>
+    <tbody>
+      <tr class="grp"><td colspan="2">/proc/&lt;pid&gt;/stat</td></tr>
+      <tr><td>a real line for pid 6002</td><td>pid, comm <code>claude</code>, state, ppid (field 4), tty (field 7), cpu = utime + stime (14 + 15), start (22)</td></tr>
+      <tr><td>comm of <code>tmux: server</code>, <code>a) (b</code>, <code>))</code>, <code>(</code>, or empty</td><td>parsed intact; every later field still correct</td></tr>
+      <tr><td>no parentheses, or <code>)</code> before <code>(</code></td><td><span class="tag err">no comm</span></td></tr>
+      <tr><td>ends after comm · ends before utime</td><td><span class="tag err">missing state</span> · <span class="tag err">missing utime</span></td></tr>
+      <tr><td>a non-number in ppid · in pid</td><td><span class="tag err">bad number ppid</span> · <span class="tag err">bad number pid</span>, with the parse error as source</td></tr>
+      <tr class="grp"><td colspan="2">cmdline and classification</td></tr>
+      <tr><td><code>claude\0--resume\0abc\0</code></td><td>three arguments, each borrowed from the input</td></tr>
+      <tr><td>an argument with invalid UTF-8</td><td>repaired with U+FFFD, and owned</td></tr>
+      <tr><td>empty, or only NULs</td><td>no arguments</td></tr>
+      <tr><td>comm <code>claude</code>, exe under <code>…/claude/…</code>, argv <code>claude [--resume x]</code></td><td>Claude</td></tr>
+      <tr><td>exe unreadable</td><td>still Claude: an unreadable exe isn't a rejection</td></tr>
+      <tr><td>comm not <code>claude</code> · exe elsewhere</td><td>not an agent</td></tr>
+      <tr><td>first argument <code>daemon</code> or <code>mcp</code></td><td>not an agent (but <code>--model daemon</code> is fine)</td></tr>
+      <tr><td><code>-p</code> or <code>--print</code> anywhere after the program</td><td>not an agent: headless</td></tr>
+      <tr><td>argv as <code>Vec&lt;String&gt;</code>, <code>&amp;[&amp;str]</code>, or <code>Vec&lt;Cow&lt;str&gt;&gt;</code></td><td>all accepted</td></tr>
+      <tr class="grp"><td colspan="2">session file and ancestry</td></tr>
+      <tr><td><code>{"pid":6002,"procStart":"12313","sessionId":"e550f90b"}</code> for key (6002, 12313)</td><td>Some("e550f90b")</td></tr>
+      <tr><td>wrong start · wrong pid · <code>procStart</code> as a number · absent · empty or missing <code>sessionId</code></td><td>None: a stale file names someone else's conversation</td></tr>
+      <tr><td>the same file with <code>"name":"switchboard-rust-7f"</code></td><td>Some("switchboard-rust-7f"): the display name the operator recognises, under the same guard. Blank, missing, or a stale file: None.</td></tr>
+      <tr><td>ancestors of 70 in <code>1 ← 50 ← 60 ← 70</code></td><td>70, 60, 50, 1. A limit of 2 gives 70, 60. An unknown pid gives just itself.</td></tr>
+      <tr><td>parent of pid 1 (ppid 0) · of an unknown pid</td><td>None · None</td></tr>
+    </tbody>
+  </table></div>
+  <p class="prose" style="margin-top:12px">With your parsers in place, the provided sweep returns live, interactive Claude processes in pid order. Zombies, headless runs and other programs are excluded, and a missing <code>/proc</code> root gives an empty list. Each row carries the session file's name when that file is the process's own.</p>
+
+  <h4>Definition of done</h4>
+  <ol class="dod">
+    <li><label><input type="checkbox" data-k="t06-1"><b>stat.</b></label>
+      <span class="cmd">cargo test --test t06_proc -- stat_line comm_contains missing_or_malformed &amp;&amp; cargo test --lib -- proc::</span></li>
+    <li><label><input type="checkbox" data-k="t06-2"><b>cmdline, borrowing when it can.</b></label>
+      <span class="cmd">cargo test --test t06_proc -- cmdline invalid_utf8_arguments</span></li>
+    <li><label><input type="checkbox" data-k="t06-3"><b>Classification.</b></label>
+      <span class="cmd">cargo test --test t06_proc -- classify argv_alike</span></li>
+    <li><label><input type="checkbox" data-k="t06-4"><b>Session file and a full sweep of a fake /proc.</b></label>
+      <span class="cmd">cargo test --test t06_proc -- session_file sweep proc_root</span></li>
+    <li><label><input type="checkbox" data-k="t06-5"><b>Ancestry.</b></label>
+      <span class="cmd">cargo test --test t06_proc -- ancestors</span></li>
+    <li class="gate"><label><input type="checkbox" data-k="t06-6"><b>Phase 02 green.</b> Every ingest suite passes together.</label>
+      <span class="cmd">cargo test --test t03_hook --test t04_tail --test t04_history --test t05_transcript --test t06_proc</span></li>
+  </ol>
+  <p class="commit">commit: <code>feat(proc): stat and cmdline parsing, classification, ancestry</code></p>
+</section>
+
+</div>

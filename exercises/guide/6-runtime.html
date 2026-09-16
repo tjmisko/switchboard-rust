@@ -1,0 +1,222 @@
+
+<!-- ===================== 4 · THE RUNTIME ===================== -->
+<div class="panel" id="p5" role="tabpanel" aria-labelledby="tab-5" hidden>
+
+<p class="prose">Tokio enters here, because the design needs it. One task owns the board. Inputs arrive on a bounded channel, the view leaves on a <code>watch</code>, and effects go to a runner that owns every watcher. None of it may stall an agent: the forwarder gives up after 500 ms, and it has to find the daemon answering.</p>
+
+<div class="tier-head"><span class="k">phase 04</span><h2>The runtime</h2><p>T10–T12 · about 3 hours, in any order once phase 03 is done. When this phase is done, a dwell promotes itself with nothing sent, a real Unix socket serves the synchronous forwarder, and a transcript write reaches the board as a confirmed event.</p></div>
+
+<div class="flow">
+  <div class="box"><b>rpc listener</b><span>A task per connection. Hooks and status lines in, verdicts and snapshots out.</span></div>
+  <div class="box"><b>core</b><span>The sole owner of the <code>Board</code>. It waits on the next input or the next deadline.</span></div>
+  <div class="box"><b>watch&lt;View&gt;</b><span>Readers only ever see the latest view, and wake only when it changed.</span></div>
+  <div class="box"><b>effect runner</b><span>Owns the watchers; best-effort history.</span></div>
+  <div class="box"><b>watchers · scanner</b><span>Transcript tails and <code>/proc</code> sweeps, which come back round as inputs.</span></div>
+</div>
+
+<!-- T10 -->
+<section class="sig" id="t10">
+  <header><h3>T10 · async I: the core actor</h3><span class="pill">1 h</span><span class="pill out">t10_core</span><span class="pill prog" data-task="t10"></span></header>
+  <dl class="meta">
+    <div><dt>you write</dt><dd><code>run_until_closed</code>, <code>dispatch</code>, <code>publish</code> in <code>daemon/core.rs</code></dd></div>
+    <div><dt>provided</dt><dd><code>daemon::run</code> wiring, <code>daemon::now</code>, <code>View::render</code></dd></div>
+    <div><dt>gaps</dt><dd><code>select!</code>, futures as values, <code>mpsc</code> and <code>watch</code>, <code>Arc</code>, paused time</dd></div>
+    <div><dt>depends on</dt><dd>T09</dd></div>
+  </dl>
+  <h4>Desired behaviour</h4>
+  <ul class="prose">
+    <li>An input that changes the board publishes a new view, and subscribers wake to see the new shown phases.</li>
+    <li>An input that changes nothing visible, such as a duplicate prompt, wakes nobody.</li>
+    <li>Every effect except publish reaches the runner, in order. Publish itself never does. A runner that has gone away is ignored, not a panic.</li>
+    <li><b>With nothing sent</b>, an inferred escalation still shows at its deadline, and a quiet turn still ends after ten minutes. The core sleeps until the board's own next deadline, recomputed after every input.</li>
+    <li>When every sender is dropped, the loop drains what's queued, ends, and hands back the board.</li>
+    <li>All times come from tokio's clock, so the tests pause it and nothing really waits.</li>
+  </ul>
+  <h4>Definition of done</h4>
+  <ol class="dod">
+    <li><label><input type="checkbox" data-k="t10-1"><b>Inputs in, views out, board back.</b></label>
+      <span class="cmd">cargo test --test t10_core -- new_view hand_back</span></li>
+    <li><label><input type="checkbox" data-k="t10-2"><b>Effects routed; no spurious wake-ups.</b></label>
+      <span class="cmd">cargo test --test t10_core -- forward_every_effect nothing_visible</span></li>
+    <li><label><input type="checkbox" data-k="t10-3"><b>Time drives the core.</b></label>
+      <span class="cmd">cargo test --test t10_core -- dwell stale_turn</span></li>
+    <li class="gate"><label><input type="checkbox" data-k="t10-4"><b>Green three runs in a row.</b> An ordering bug in a paused-time test shows up as a flake, not a failure.</label>
+      <span class="cmd">for i in 1 2 3; do cargo test -q --test t10_core || break; done</span></li>
+  </ol>
+  <div class="note trap"><b>Watch for</b> a wake-up future built once, outside the loop. It either fires at a stale deadline, or completes once and then spins.</div>
+  <p class="commit">commit: <code>feat(daemon): core actor with deadline wake-ups</code></p>
+</section>
+
+<!-- T11 -->
+<section class="sig" id="t11">
+  <header><h3>T11 · async II: the socket</h3><span class="pill">1 h</span><span class="pill out">t11_rpc</span><span class="pill prog" data-task="t11"></span></header>
+  <dl class="meta">
+    <div><dt>you write</dt><dd><code>serve</code>, <code>handle</code>, <code>write_line</code>, <code>offer</code>, <code>resolve</code> in <code>daemon/rpc.rs</code></dd></div>
+    <div><dt>provided</dt><dd><code>daemon::bind</code>, <code>snapshot_line</code>, the statusline adapter</dd></div>
+    <div><dt>gaps</dt><dd><code>AsyncRead</code> / <code>AsyncWrite</code> generics, <code>spawn_blocking</code> and <code>'static</code>, <code>try_send</code></dd></div>
+    <div><dt>depends on</dt><dd>T02, T03, T06, T09</dd></div>
+  </dl>
+  <h4>Desired behaviour</h4>
+  <div class="tbl"><table class="spec">
+    <thead><tr><th>client sends</th><th>reply</th><th>and</th></tr></thead>
+    <tbody>
+      <tr><td>a hook frame for a tracked event</td><td class="out">{"ok":true}</td><td>its inputs are offered to the inbox, with the process resolved when possible</td></tr>
+      <tr><td>a hook frame for an untracked event</td><td class="out">{"ok":true}</td><td>nothing is offered</td></tr>
+      <tr><td>a status-line frame</td><td class="out">{"ok":true}</td><td>limits and beat snapshots are offered</td></tr>
+      <tr><td>list</td><td class="out">{"snapshot":{…}}</td><td>the current view</td></tr>
+      <tr><td>subscribe</td><td class="out">{"snapshot":…} now</td><td>then one more on every view change, until the peer or the view goes away</td></tr>
+      <tr><td>a malformed line · an unknown command</td><td class="out">{"ok":false,"error":"…"}</td><td>the connection keeps serving</td></tr>
+      <tr><td>more than 1 MiB on one connection</td><td class="out">no snapshot</td><td>reading stops at the cap; the handler neither hangs nor answers the truncated request</td></tr>
+    </tbody>
+  </table></div>
+  <ul class="prose" style="margin-top:12px">
+    <li>Every reply is one line, flushed at once. A full inbox drops the input, and the reply is still immediate.</li>
+    <li>A hook's pid resolves to the nearest tracked ancestor, counting the pid itself, at most 20 levels up. The walk runs on the blocking pool. No pid, or no tracked ancestor, resolves to none.</li>
+    <li>The socket is mode 0600. A second daemon can't steal a live socket, and a dead daemon's leftover file is cleared.</li>
+    <li>The synchronous forwarder client from T02 gets <code>Ok</code> from a real socket, and the inbox receives its event.</li>
+  </ul>
+  <h4>Definition of done</h4>
+  <ol class="dod">
+    <li><label><input type="checkbox" data-k="t11-1"><b>Hooks and bad lines, over in-memory pipes.</b></label>
+      <span class="cmd">cargo test --test t11_rpc -- hook_frame untracked_event bad_line</span></li>
+    <li><label><input type="checkbox" data-k="t11-2"><b>List and subscribe.</b></label>
+      <span class="cmd">cargo test --test t11_rpc -- list_the_current_view subscribed</span></li>
+    <li><label><input type="checkbox" data-k="t11-3"><b>The byte cap.</b></label>
+      <span class="cmd">cargo test --test t11_rpc -- connection_cap</span></li>
+    <li><label><input type="checkbox" data-k="t11-4"><b>Resolving a hook to its agent.</b></label>
+      <span class="cmd">cargo test --test t11_rpc -- nearest_tracked_ancestor</span></li>
+    <li class="gate"><label><input type="checkbox" data-k="t11-5"><b>A real socket, end to end.</b></label>
+      <span class="cmd">cargo test --test t11_rpc -- real_unix_socket &amp;&amp; cargo test --test t11_rpc</span></li>
+  </ol>
+  <div class="note trap"><b>Watch for</b> a borrow of the view held across an <code>.await</code>. The compiler reports it far from where you wrote it.</div>
+  <p class="commit">commit: <code>feat(daemon): socket listener, subscribe stream, hook resolution</code></p>
+</section>
+
+<!-- T12 -->
+<section class="sig" id="t12">
+  <header><h3>T12 · async III: tasks that own things</h3><span class="pill">1 h</span><span class="pill out">t12_tasks</span><span class="pill prog" data-task="t12"></span></header>
+  <dl class="meta">
+    <div><dt>you write</dt><dd><code>watcher::run</code>, <code>poll_once</code>, <code>open_at_tail</code>; <code>effects::run</code>, <code>Watchers</code> (<code>start</code>, <code>stop</code>, <code>abort_all</code>); <code>scanner::sweep_inputs</code>; <code>publish::write_atomic</code></dd></div>
+    <div><dt>provided</dt><dd>the scanner and publisher loops, the history task, <code>main.rs</code>, the forwarder binary</dd></div>
+    <div><dt>gaps</dt><dd>ownership across <code>spawn_blocking</code>, <code>JoinHandle::abort</code>, <code>Drop</code> as cleanup</dd></div>
+    <div><dt>depends on</dt><dd>T04, T05, T09</dd></div>
+  </dl>
+  <h4>Desired behaviour</h4>
+  <div class="tbl"><table class="spec">
+    <thead><tr><th>story</th><th>expected</th></tr></thead>
+    <tbody>
+      <tr class="grp"><td colspan="2">transcript watcher</td></tr>
+      <tr><td>the transcript already has a prompt line</td><td>a TurnStarted, <em>Inferred</em>, for the watched process and session</td></tr>
+      <tr><td>…a tool call is appended</td><td>a ToolDispatched, <em>Confirmed</em></td></tr>
+      <tr><td>the transcript doesn't exist yet</td><td>silence, then its content once it appears</td></tr>
+      <tr><td>50 prompt lines, then one tool line; window fits only the last line</td><td>exactly one ToolDispatched, and nothing from before the window</td></tr>
+      <tr><td>nobody is listening any more (inbox closed), file quiet</td><td>the task exits by itself, within a poll interval</td></tr>
+      <tr class="grp"><td colspan="2">watcher registry</td></tr>
+      <tr><td>a second watcher started for the same process</td><td>the first is aborted; one entry remains</td></tr>
+      <tr><td>stop one · stop an unknown process · drop the registry</td><td>that one aborted · nothing · every remaining one aborted</td></tr>
+      <tr class="grp"><td colspan="2">scanner diff and publishing</td></tr>
+      <tr><td>known {1,2,3}, swept {2,4}</td><td>the snapshot first, then <code>Died</code> for 1 and 3; known becomes {2,4}</td></tr>
+      <tr><td>same pid, new start time</td><td>a death and a birth in one sweep</td></tr>
+      <tr><td>write state twice into a directory that doesn't exist yet</td><td>directories created; file holds the second write; no temp file left</td></tr>
+    </tbody>
+  </table></div>
+  <p class="prose" style="margin-top:12px">The runner turns <code>WatchTranscript</code> into a watcher on <code>&lt;projects&gt;/&lt;cwd slug&gt;/&lt;session&gt;.jsonl</code> and <code>Forget</code> into a stop. It offers history without waiting, dropping entries when full, and ignores publish.</p>
+  <h4>Definition of done</h4>
+  <ol class="dod">
+    <li><label><input type="checkbox" data-k="t12-1"><b>The pure parts first.</b> Sweep diff and atomic write.</label>
+      <span class="cmd">cargo test --test t12_tasks -- sweep_then recycled_pid atomically</span></li>
+    <li><label><input type="checkbox" data-k="t12-2"><b>The registry.</b> No leaked tasks.</label>
+      <span class="cmd">cargo test --test t12_tasks -- previous_watcher everything_left_on_drop</span></li>
+    <li><label><input type="checkbox" data-k="t12-3"><b>The watcher.</b> No <code>Arc</code> or <code>Mutex</code> around the file or the cursor.</label>
+      <span class="cmd">cargo test --test t12_tasks -- replay_the_tail does_not_exist replay_only_the_window inbox_closes</span></li>
+    <li class="gate"><label><input type="checkbox" data-k="t12-4"><b>Phase 04 green: the whole crate.</b></label>
+      <span class="cmd">cargo test</span>
+      <span class="why">With <code>--no-fail-fast</code> in mind: nothing anywhere is still <code>todo!</code> except the T05 pricing stretch, if you skipped it.</span></li>
+  </ol>
+  <div class="note trap"><b>Watch for</b> a <code>Drop</code> that can panic. A panic inside <code>drop</code> while a failing test is already unwinding aborts the whole test binary.</div>
+  <p class="commit">commit: <code>feat(daemon): transcript watchers, effect runner, sweep diff</code></p>
+</section>
+
+</div>
+
+<!-- ===================== 5 · SHIP IT ===================== -->
+<div class="panel" id="p6" role="tabpanel" aria-labelledby="tab-6" hidden>
+
+<p class="prose">The last phase is observation. The daemon runs against this machine on its own socket, beside the Go daemon, and one Claude session is pointed at it. Everything the tests asserted is now something you can see.</p>
+
+<div class="tier-head"><span class="k">phase 05</span><h2>Ship it</h2><p>T13 · half an hour, then as much stretch as you like. When this phase is done, you have watched your own agent's chip go red, green, amber and grey for the right reasons.</p></div>
+
+<section class="sig" id="t13">
+  <header><h3>T13 · Run it on your own agents</h3><span class="pill">½ h</span><span class="pill prog" data-task="t13"></span></header>
+
+  <h4>Desired behaviour · what you should see</h4>
+  <div class="tbl"><table class="spec">
+    <thead><tr><th>you do</th><th>the chip</th><th>because</th></tr></thead>
+    <tbody>
+      <tr><td>start the daemon while agents are already running</td><td>grey, then the truth within a second</td><td>discovery, then transcript replay at inferred confidence</td></tr>
+      <tr><td>type a prompt in the wired session</td><td>green (working), at once</td><td>user-caused</td></tr>
+      <tr><td>the agent asks to run a Bash command</td><td>red, at once</td><td>a confirmed, human-owned gate</td></tr>
+      <tr><td>approve it</td><td>green, at once</td><td>liberal in what lifts</td></tr>
+      <tr><td>press Escape mid-generation</td><td>amber (stopped), within the poll interval</td><td>the transcript's interrupt line, user-caused</td></tr>
+      <tr><td>send the next prompt</td><td>green</td><td>the next turn clears Stopped</td></tr>
+      <tr><td><code>/clear</code></td><td>green (idle), new session id in the view</td><td>rotation resets the conversation</td></tr>
+      <tr><td>quit Claude</td><td>row gone within a second, <code>session_end</code> in history</td><td>the sweep diff's <code>Died</code></td></tr>
+    </tbody>
+  </table></div>
+
+  <figure>
+    <figcaption><span>one session, wired without touching global settings</span><span>sbr-hooks.json (abridged)</span></figcaption>
+<pre><code>{ <span class="k">"hooks"</span>: {
+    <span class="k">"UserPromptSubmit"</span>:  [{ <span class="k">"hooks"</span>: [{ <span class="k">"type"</span>: <span class="t">"command"</span>, <span class="k">"command"</span>: <span class="t">"…/switchboard-hook UserPromptSubmit"</span> }] }],
+    <span class="k">"PreToolUse"</span>:        [{ <span class="k">"matcher"</span>: <span class="t">"*"</span>, <span class="k">"hooks"</span>: [{ … <span class="t">"…/switchboard-hook PreToolUse"</span> }] }],
+    <span class="k">"PermissionRequest"</span>: [ … ],  <span class="k">"PostToolUse"</span>: [ … ],  <span class="k">"PostToolUseFailure"</span>: [ … ],
+    <span class="k">"Stop"</span>: [ … ],  <span class="k">"StopFailure"</span>: [ … ],  <span class="k">"SubagentStart"</span>: [ … ],  <span class="k">"SubagentStop"</span>: [ … ]
+} }
+
+<span class="c"># the socket variable is inherited by every hook process</span>
+SWITCHBOARD_RUST_SOCKET=$XDG_RUNTIME_DIR/sbr.sock claude --settings sbr-hooks.json</code></pre>
+  </figure>
+
+  <h4>Definition of done</h4>
+  <ol class="dod">
+    <li><label><input type="checkbox" data-k="t13-1"><b>No scaffolding left.</b> <code>#![allow(unused)]</code> removed from <code>lib.rs</code> and the three test skeletons; warnings fixed.</label>
+      <span class="cmd">cargo clippy --all-targets -- -D warnings</span></li>
+    <li><label><input type="checkbox" data-k="t13-2"><b>Everything green</b>, your tests included.</label>
+      <span class="cmd">cargo test</span></li>
+    <li><label><input type="checkbox" data-k="t13-3"><b>It finds your agents.</b> Every running <code>claude</code> is listed with its session id within a second of starting.</label>
+      <span class="cmd">cargo build --release &amp;&amp; SWITCHBOARD_RUST_SOCKET=$XDG_RUNTIME_DIR/sbr.sock ./target/release/switchboard</span>
+      <span class="why">In another shell: <code>printf '{"cmd":"list"}\n' | socat - UNIX-CONNECT:$XDG_RUNTIME_DIR/sbr.sock</code></span></li>
+    <li><label><input type="checkbox" data-k="t13-4"><b>The story plays out.</b> Every row of the table above, watched on a <code>subscribe</code> stream.</label>
+      <span class="cmd">printf '{"cmd":"subscribe"}\n' | socat - UNIX-CONNECT:$XDG_RUNTIME_DIR/sbr.sock</span></li>
+    <li><label><input type="checkbox" data-k="t13-5"><b>History recorded it.</b> <code>session_start</code>, then <code>shown</code> lines whose phases match what you saw.</label>
+      <span class="cmd">tail -n 20 ~/.local/state/switchboard-rust/history/$(date -u +%F).jsonl</span></li>
+    <li class="gate"><label><input type="checkbox" data-k="t13-6"><b>It leaves cleanly.</b> Ctrl-C exits 0, the socket file is gone, and <code>state.json</code> is valid JSON.</label>
+      <span class="cmd">test ! -e $XDG_RUNTIME_DIR/sbr.sock &amp;&amp; jq . ~/.cache/switchboard-rust/state.json &gt;/dev/null</span></li>
+  </ol>
+  <p class="commit">commit: <code>chore: remove scaffold allowances</code></p>
+</section>
+
+<h2>Stretch: the plan's open edges</h2>
+<p class="prose">Each of these is a real gap in the golden. What counts as done is written as behaviour you can observe, because the design is yours to choose.</p>
+<div class="tbl"><table class="spec">
+  <thead><tr><th>edge</th><th>why it matters</th><th>done when</th></tr></thead>
+  <tbody>
+    <tr><td>limit reset expiry</td><td>a rate-limited chip stays amber after the limit has reset, until the next status line</td><td>a rejected limit whose reset time has passed stops showing Blocked within one tick, with no new snapshot; tested with an injected wall clock</td></tr>
+    <tr><td>a late replayed prompt</td><td>polling can land a prompt line after that turn's Stop, restarting a finished turn for up to 10 min</td><td>replaying a prompt line for a turn that already ended leaves the agent Idle, while a genuinely new prompt still starts a turn</td></tr>
+    <tr><td>inotify</td><td>the contradicted case: Escape should turn the chip amber immediately</td><td>an interrupt line reaches the board within 50 ms of being written; an inotify queue overflow triggers a full re-read; idle agents cost no polling</td></tr>
+    <tr><td>pidfd deathwatch</td><td>death within a second is fine; death without a sweep is right</td><td><code>kill -9</code> on an agent removes its row within 100 ms; an agent already dead when watched is removed at once; an interrupted wait is never mistaken for death</td></tr>
+    <tr><td>subagent panel</td><td>the only source for failed and killed children</td><td>a panel payload with a killed row changes the board; a row missing from the newest payload disappears; an older payload never resurrects one</td></tr>
+    <tr><td>Codex hooks</td><td>exercises every grey path in the fold</td><td>a Codex permission request mid-turn shows grey, never red; an interrupt shows amber</td></tr>
+    <tr><td><code>switchboard explain &lt;pid&gt;</code></td><td>open item C1: why is this chip this colour?</td><td>prints the last N inputs for an agent, with truth and shown after each, and the final line matches the live chip</td></tr>
+  </tbody>
+</table></div>
+
+<footer>
+  <p>This page structures the work and never contains the code. The task sheets in <code>exercises/tasks/</code> carry the same checkpoints in more detail, and your answers go in <code>exercises/answers/</code>. The design rationale is in <code>docs/03</code>, <code>docs/04</code>, <code>docs/05</code> and <code>~/Guides/Understanding Switchboard's Signals.html</code>.</p>
+</footer>
+
+</div>
+
+</main>
+</div>
+</div>

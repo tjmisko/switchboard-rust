@@ -1,0 +1,111 @@
+
+<!-- ===================== 3 · THE REDUCER ===================== -->
+<div class="panel" id="p4" role="tabpanel" aria-labelledby="tab-4" hidden>
+
+<p class="prose">The reducer is where your model stops being a sketch. Three pure entry points, <code>apply_event</code>, <code>apply_snapshot</code> and <code>tick</code>, change a <code>Board</code> and return effects. After every change the truth is recomputed and handed to <code>Shown::settle</code>. Every behaviour below is observed through four things only: <em>truth</em> (<code>board.phase(agent)</code>), <em>shown</em> (<code>agent.shown.phase</code>), the effects returned, and the agent's fields.</p>
+
+<div class="tier-head"><span class="k">phase 03</span><h2>The reducer</h2><p>T07–T09 · about 4¼ hours. When this phase is done, a scripted story of an agent's life produces the right chip at every step: typing, tools, an approval, an Escape, a rate limit, a subagent, a <code>/clear</code>, and death.</p></div>
+
+<div class="note"><b>Rules that hold for every transition in this phase.</b>
+  <ul>
+    <li>Nothing that changes nothing publishes. A duplicate event returns no effects at all.</li>
+    <li>At most one <code>PublishState</code>, and it comes last. A history entry always implies a publish.</li>
+    <li>A history entry is written exactly when <em>shown</em> moves, recording from, to, and how long the old phase was held.</li>
+    <li><code>last_event</code> is stamped only when the event changed something.</li>
+    <li>Time comes only from the input. The reducer never reads a clock.</li>
+  </ul>
+</div>
+
+<!-- T07 -->
+<section class="sig" id="t07">
+  <header><h3>T07 · Reducer I: routing, sessions, turns, tools</h3><span class="pill">2 h</span><span class="pill tdd">you write t07_turns</span><span class="pill prog" data-task="t07"></span></header>
+  <dl class="meta">
+    <div><dt>you write</dt><dd><code>route</code>, <code>limits_for</code>, <code>settle</code>; <code>apply_event</code>; the agent arms of <code>transition</code>; <code>end_turn</code>, <code>dispatch</code>, <code>settle_call</code>, <code>idle</code>, <code>working</code>; and the tests</dd></div>
+    <div><dt>provided</dt><dd><code>Effects</code>, constants, <code>Agent::phase</code>, <code>Shown::settle</code>, discovery, the <code>tests/common</code> builder harness</dd></div>
+    <div><dt>gaps</dt><dd>mutating enums through <code>&amp;mut</code>, split borrows, returning a <code>Copy</code> key instead of a reference</dd></div>
+    <div><dt>depends on</dt><dd>T01–T03. The T08 helpers are placeholders until T08.</dd></div>
+  </dl>
+
+  <h4>Desired behaviour · routing and identity</h4>
+  <div class="tbl"><table class="spec">
+    <thead><tr><th>story</th><th>expected</th></tr></thead>
+    <tbody>
+      <tr><td>pid and session both unknown</td><td>no effects; no agent created: agents exist because processes do</td></tr>
+      <tr><td>no pid · an untracked pid</td><td>routed by session instead; with two agents, only the one owning that session moves</td></tr>
+      <tr><td>a tracked pid</td><td>routed to that agent, whatever the session says</td></tr>
+      <tr><td>agent discovered without a session, then any event</td><td>adopts the event's session; <code>WatchTranscript{process, session, cwd}</code></td></tr>
+      <tr><td><code>SessionStarted{Clear}</code> to "new", then a late event for "old"</td><td>the late event: no effects, no change</td></tr>
+      <tr><td>a rotation while a call is open</td><td>idle with no outcome; open calls, parked prompts, subagents, waits and compaction all gone; title updated if given; the new transcript is watched; shows Idle</td></tr>
+      <tr><td><code>SessionEnded</code></td><td>no effects: it is not liveness</td></tr>
+    </tbody>
+  </table></div>
+
+  <h4>Desired behaviour · turns</h4>
+  <div class="tbl"><table class="spec">
+    <thead><tr><th>story</th><th>truth · shown · effects</th></tr></thead>
+    <tbody>
+      <tr><td>discovered, never heard from</td><td class="out">Unknown · Unknown (grey)</td></tr>
+      <tr><td>…then <code>SessionStarted{Startup}</code></td><td class="out">Idle · Idle · publish + 1 history</td></tr>
+      <tr><td>idle 5 s, then <code>TurnStarted(p1)</code></td><td class="out">Working · Working · history {Idle→Working, held 5 s}</td></tr>
+      <tr><td><code>TurnStarted(p1)</code> again</td><td class="out">no effects</td></tr>
+      <tr><td><code>TurnStarted(p2)</code> with a call open</td><td class="out">call kept; turn key is now p2</td></tr>
+      <tr><td><code>TurnEnded(p1)</code> or keyless, with calls open</td><td class="out">Idle · Idle at once; calls abandoned</td></tr>
+      <tr><td><code>TurnEnded(p1)</code> while p2 is open</td><td class="out">no effects; still Working</td></tr>
+      <tr><td>user interrupts a turn</td><td class="out">Stopped · Stopped at once (an escalation the user caused)</td></tr>
+      <tr><td>Stop, then the interrupt line lands</td><td class="out">Stopped: a late close may say <em>how</em> the turn ended</td></tr>
+      <tr><td>interrupt, then a late Completed</td><td class="out">no effects; still Stopped: never erased</td></tr>
+      <tr><td>Stopped, then the next prompt</td><td class="out">Working at once</td></tr>
+      <tr><td>turn fails, agent-caused, <em>inferred</em></td><td class="out">Blocked · Working · an escalation pending</td></tr>
+      <tr><td>turn fails, agent-caused, <em>confirmed</em></td><td class="out">Blocked · Blocked at once</td></tr>
+      <tr><td>replayed turn end on an unobserved agent</td><td class="out">Idle</td></tr>
+    </tbody>
+  </table></div>
+
+  <h4>Desired behaviour · tools, death, bookkeeping</h4>
+  <div class="tbl"><table class="spec">
+    <thead><tr><th>story</th><th>expected</th></tr></thead>
+    <tbody>
+      <tr><td>a call dispatched while idle</td><td>a turn with no key starts; Working</td></tr>
+      <tr><td>the same call dispatched twice (hook, then transcript)</td><td>no effects</td></tr>
+      <tr><td>two calls open, one settles</td><td>the other stays; still Working</td></tr>
+      <tr><td>an unseen call settles (nothing parked)</td><td>nothing published; open calls unchanged</td></tr>
+      <tr><td>a call fails with <code>interrupt: true</code>, from the user</td><td>turn ends interrupted; Stopped at once</td></tr>
+      <tr><td>a call fails plainly</td><td>call removed; turn continues</td></tr>
+      <tr><td><code>Died</code></td><td>only that agent removed; <code>Forget</code>, <code>AgentGone{session}</code>, publish. A second <code>Died</code>: no effects.</td></tr>
+      <tr><td><code>CwdChanged</code> to a new path · the same path</td><td>cwd and workspace follow, publish · no effects</td></tr>
+    </tbody>
+  </table></div>
+
+  <h4>Definition of done</h4>
+  <p class="prose">For each group, write its test bodies in <code>tests/t07_turns.rs</code> and watch them fail, then implement until they pass.</p>
+  <ol class="dod">
+    <li><label><input type="checkbox" data-k="t07-1"><b>Harness and first light.</b> Read <code>tests/common/mod.rs</code>; unobserved, then session start.</label>
+      <span class="cmd">cargo test --test t07_turns -- unknown_for_a_discovered idle_on_session_start</span>
+      <span class="why">Needs <code>settle</code>, <code>limits_for</code> and the <code>SessionStarted</code> arm. Swap the three T08 helpers for placeholders now.</span></li>
+    <li><label><input type="checkbox" data-k="t07-2"><b>Routing.</b></label>
+      <span class="cmd">cargo test --test t07_turns -- route tracked adopt</span>
+      <span class="why">Try <code>route</code> returning <code>Option&lt;&amp;mut Agent&gt;</code> first, and keep the compiler error for kata 1.</span></li>
+    <li><label><input type="checkbox" data-k="t07-3"><b>The /clear race and rotation.</b></label>
+      <span class="cmd">cargo test --test t07_turns -- previous_session rotates</span></li>
+    <li><label><input type="checkbox" data-k="t07-4"><b>Turns.</b></label>
+      <span class="cmd">cargo test --test t07_turns -- working_at_once same_turn mid_turn turn_ends different_turn</span></li>
+    <li><label><input type="checkbox" data-k="t07-5"><b>How a turn ended, and the dwell.</b></label>
+      <span class="cmd">cargo test --test t07_turns -- stopped turn_failure</span></li>
+    <li><label><input type="checkbox" data-k="t07-6"><b>Tools.</b></label>
+      <span class="cmd">cargo test --test t07_turns -- dispatched settled settles fails</span></li>
+    <li><label><input type="checkbox" data-k="t07-7"><b>Death and bookkeeping.</b></label>
+      <span class="cmd">cargo test --test t07_turns -- dies cwd liveness</span></li>
+    <li><label><input type="checkbox" data-k="t07-8"><b>Your four.</b> At least four tests the file doesn't name, each pinning a rule from the tables above.</label>
+      <span class="why">Start with <code>last_event</code>, a replay on an unobserved agent, and interrupt-before-Stop against Stop-before-interrupt.</span></li>
+    <li class="gate"><label><input type="checkbox" data-k="t07-9"><b>Whole task green.</b></label>
+      <span class="cmd">cargo test --test t07_turns &amp;&amp; cargo test --lib -- model::</span>
+      <span class="why">Grading adds a hidden suite of 31 tests. Where yours and it disagree, one of them has found a spec ambiguity, and that's worth talking about.</span></li>
+  </ol>
+  <div class="note trap"><b>Watch for</b>
+    <ul>
+      <li>Holding <code>&amp;mut Agent</code> while reading the account's limits. Destructure the board first.</li>
+      <li>Leaving a turn from inside a match on that same turn. Know when the borrow of its fields ends.</li>
+    </ul>
+  </div>
+  <p class="commit">commit: <code>feat(reduce): routing, sessions, turns and tools</code></p>
+</section>

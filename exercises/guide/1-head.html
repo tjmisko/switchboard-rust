@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="The Rust rewrite of switchboard as a course: thirteen ordered tasks in five phases, each with the behaviour it must produce and a checkpointed definition of done that structures the work without giving away the code.">
+<title>Building Switchboard in Rust</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+:root{
+  --ground:#EEF1F4; --surface:#FFFFFF; --sunk:#E4E9EE;
+  --ink:#14181F; --muted:#5A6472; --faint:#8892A0;
+  --rule:#D3D9E0; --rule-soft:#E3E8ED;
+  --accent:#3A5A78; --accent-soft:#DCE6EE;
+  --calm:#2F7D4F; --notice:#C4761A; --alert:#B33A34; --grey:#8892A0;
+  --code-bg:#171C24; --code-ink:#D5DCE5; --code-dim:#72808F; --code-key:#9FC1DA;
+  --code-ty:#C9B68C; --code-mark:#31465B; --code-mark-ink:#FFFFFF;
+  --display:Archivo,"Helvetica Neue",Arial,sans-serif;
+  --body:"IBM Plex Serif",Georgia,serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#0E1116; --surface:#161B22; --sunk:#1C222B;
+    --ink:#E4E8EE; --muted:#97A1AF; --faint:#6C7787;
+    --rule:#293141; --rule-soft:#20262F;
+    --accent:#8FB4D0; --accent-soft:#1B2836;
+    --calm:#5FAE7B; --notice:#DDA04A; --alert:#E0706A; --grey:#7D8794;
+    --code-bg:#090C11; --code-ink:#CED6E0; --code-dim:#67727F; --code-mark:#2C465C;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0E1116; --surface:#161B22; --sunk:#1C222B;
+  --ink:#E4E8EE; --muted:#97A1AF; --faint:#6C7787;
+  --rule:#293141; --rule-soft:#20262F;
+  --accent:#8FB4D0; --accent-soft:#1B2836;
+  --calm:#5FAE7B; --notice:#DDA04A; --alert:#E0706A; --grey:#7D8794;
+  --code-bg:#090C11; --code-ink:#CED6E0; --code-dim:#67727F; --code-mark:#2C465C;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--body);
+     font-size:16.5px;line-height:1.6;padding-inline:20px;padding-block:0 90px;
+     -webkit-font-smoothing:antialiased}
+.wrap{max-width:1280px;margin:0 auto}
+h1,h2,h3,h4{font-family:var(--display);text-wrap:balance;margin:0;letter-spacing:-.015em}
+h1{font-size:clamp(30px,5vw,42px);font-weight:700;line-height:1.06}
+h2{font-size:23px;font-weight:700;margin-top:44px}
+h3{font-size:16px;font-weight:700;margin-top:30px;color:var(--accent)}
+h4{font-size:12px;font-family:var(--mono);font-weight:600;letter-spacing:.12em;text-transform:uppercase;
+   color:var(--muted);margin-top:24px}
+p{margin:0}
+p+p{margin-top:11px}
+h2+p,h3+p,h4+p{margin-top:9px}
+code{font-family:var(--mono);font-size:.85em;background:var(--sunk);padding:1px 5px;border-radius:3px}
+a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--rule)}
+a:hover,a:focus-visible{border-bottom-color:currentColor;outline:none}
+.lede{color:var(--muted);font-size:18px;max-width:62ch;margin-top:16px}
+.prose{max-width:66ch}
+ul.prose,ol.prose{padding-left:20px;margin:9px 0 0}
+ul.prose li,ol.prose li{margin-bottom:5px}
+
+header.top{padding-block:44px 22px}
+.eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;
+         color:var(--accent);margin-bottom:14px}
+
+.tabs{position:sticky;top:0;z-index:20;background:var(--ground);border-bottom:2px solid var(--ink);
+  display:flex;gap:2px;padding-top:6px;overflow-x:auto}
+.tabs button{appearance:none;background:none;border:0;border-bottom:3px solid transparent;
+  font-family:var(--display);font-size:15px;font-weight:700;color:var(--muted);
+  padding:11px 15px 9px;cursor:pointer;display:flex;align-items:baseline;gap:9px;
+  margin-bottom:-2px;border-radius:5px 5px 0 0;white-space:nowrap}
+.tabs button .n{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--faint)}
+.tabs button .tp{font-family:var(--mono);font-size:10.5px;font-weight:400;color:var(--faint)}
+.tabs button .tp.full{color:var(--calm)}
+.tabs button:hover{color:var(--ink);background:var(--sunk)}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.tabs button[aria-selected="true"] .n{color:var(--accent)}
+.tabs button:focus-visible{outline:2px solid var(--accent);outline-offset:-3px}
+
+.cols{display:flex;align-items:flex-start;gap:32px}
+main{flex:1;min-width:0;padding:0 0 20px}
+nav.rail{position:sticky;top:60px;flex-shrink:0;width:230px;max-height:calc(100vh - 76px);
+  overflow-y:auto;padding:20px 14px 20px 0;border-right:1px solid var(--rule);order:-1}
+nav.rail .railtitle{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:10px}
+nav.rail a{display:block;padding:4px 9px;border-radius:5px;border-bottom:0;line-height:1.32;
+  color:var(--muted);font-size:13px}
+nav.rail a.lvl3{padding-left:19px;font-size:12px;font-family:var(--mono);color:var(--faint)}
+nav.rail a:hover{background:var(--sunk);color:var(--ink)}
+nav.rail a.here{color:var(--accent);background:var(--accent-soft)}
+nav.rail .railnote{margin-top:16px;padding:8px 10px;border:1px solid var(--rule);border-radius:6px;
+  color:var(--muted);font-size:11px;line-height:1.5}
+nav.rail .railnote b{font-family:var(--mono);font-weight:600;color:var(--ink)}
+main h2,main h3,main [id]{scroll-margin-top:74px}
+@media (max-width:1000px){ .cols{display:block} nav.rail{display:none} }
+.panel{padding-top:8px}
+.panel[hidden]{display:none}
+.panel>p:first-of-type{margin-top:20px}
+
+figure{margin:18px 0 0}
+figcaption{font-family:var(--mono);font-size:11.5px;color:var(--faint);margin-bottom:7px;
+  display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+pre{margin:0;background:var(--code-bg);color:var(--code-ink);border-radius:7px;
+    padding:15px 17px;overflow-x:auto;font-family:var(--mono);font-size:12.5px;line-height:1.6;tab-size:4}
+pre code{background:none;padding:0;font-size:inherit}
+pre .c{color:var(--code-dim)}
+pre .k{color:var(--code-key)}
+pre .t{color:var(--code-ty)}
+pre b{color:#fff;font-weight:600}
+
+.tbl{overflow-x:auto;margin-top:14px}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:600px}
+th,td{text-align:left;padding:7px 11px;border-bottom:1px solid var(--rule-soft);vertical-align:top}
+th{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;
+   color:var(--muted);font-weight:600;background:var(--sunk)}
+td.m{font-family:var(--mono);font-size:12px}
+tr.grp td{background:var(--sunk);font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--accent);padding:5px 11px}
+
+.ladder{margin-top:18px;border:1px solid var(--rule);border-radius:7px;background:var(--surface);overflow:hidden}
+.rung{display:grid;grid-template-columns:14px 78px minmax(0,1fr);gap:13px;align-items:center;
+      padding:10px 15px;border-bottom:1px solid var(--rule-soft)}
+.rung:last-child{border-bottom:0}
+.lamp{width:11px;height:11px;border-radius:50%}
+.rung b{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+.rung span{font-size:14px;color:var(--muted)}
+.rung .ph{font-family:var(--mono);font-size:12.5px;color:var(--ink)}
+.r-calm .lamp{background:var(--calm)} .r-calm b{color:var(--calm)}
+.r-notice .lamp{background:var(--notice)} .r-notice b{color:var(--notice)}
+.r-alert .lamp{background:var(--alert)} .r-alert b{color:var(--alert)}
+.r-grey .lamp{background:var(--grey)} .r-grey b{color:var(--grey)}
+
+.costgrid{margin-top:18px;display:grid;grid-template-columns:auto 1fr 1fr;gap:1px;
+        background:var(--rule);border:1px solid var(--rule);border-radius:7px;overflow:hidden}
+.costgrid>div{background:var(--surface);padding:12px 14px}
+.costgrid .hd,.costgrid .rh{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--muted);background:var(--sunk)}
+.costgrid .rh{display:flex;align-items:center}
+.costgrid .cell{font-size:14px}
+.costgrid .cell em{font-style:normal;color:var(--calm);font-weight:600}
+.costgrid .wait{background:var(--accent-soft)}
+.costgrid .wait em{color:var(--accent)}
+.costgrid .cell small{display:block;margin-top:3px;color:var(--muted);font-size:12.5px;line-height:1.45}
+@media (max-width:560px){.costgrid{grid-template-columns:1fr}.costgrid .hd:first-child{display:none}}
+
+.note{margin-top:16px;padding:10px 14px;border-left:3px solid var(--accent);background:var(--surface);
+      border-radius:0 5px 5px 0;font-size:14.5px;max-width:68ch}
+.note.trap{border-left-color:var(--notice)}
+.note ul{margin:6px 0 0;padding-left:18px}
+.note li{margin-bottom:4px}
+
+.flow{margin-top:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+      gap:10px;font-size:13.5px}
+.flow .box{background:var(--surface);border:1px solid var(--rule);border-radius:7px;padding:11px 13px}
+.flow .box b{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--accent);margin-bottom:5px}
+.flow .box span{color:var(--muted);font-size:12.5px;line-height:1.45;display:block}
+
+footer{margin-top:56px;padding-top:18px;border-top:1px solid var(--rule);
+       font-size:14px;color:var(--muted);max-width:68ch}
+
+.tier-head{margin-top:46px;padding-top:13px;border-top:3px solid var(--ink);display:flex;
+  align-items:baseline;gap:16px;flex-wrap:wrap}
+.tier-head .k{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.tier-head h2{margin-top:0}
+.tier-head p{color:var(--muted);flex-basis:100%;margin-top:6px;font-size:15px;max-width:70ch}
+section.sig{margin-top:30px;padding-top:18px;border-top:1px solid var(--rule)}
+section.sig>header{display:flex;gap:11px;align-items:center;flex-wrap:wrap}
+section.sig h3{margin-top:0;color:var(--ink);font-size:19px}
+.pill{font-family:var(--mono);font-size:11px;letter-spacing:.04em;padding:3px 8px;border-radius:3px;
+  background:var(--accent-soft);color:var(--accent)}
+.pill.out{background:transparent;border:1px solid var(--rule);color:var(--muted)}
+.pill.tdd{background:transparent;border:1px solid var(--notice);color:var(--notice)}
+.pill.prog{margin-left:auto;background:var(--sunk);color:var(--muted)}
+.pill.prog.full{background:transparent;border:1px solid var(--calm);color:var(--calm)}
+dl.meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:9px 22px;
+  margin:13px 0 0;padding:11px 0;border-top:1px dashed var(--rule);border-bottom:1px dashed var(--rule);font-size:14px}
+dl.meta div{min-width:0}
+dl.meta dt{font-family:var(--mono);font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+dl.meta dd{margin:2px 0 0;overflow-wrap:anywhere}
+table.spec td:first-child{font-family:var(--mono);font-size:12px;min-width:170px}
+table.spec td.out{font-family:var(--mono);font-size:12px}
+.tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;
+  border-radius:3px;white-space:nowrap;display:inline-block}
+.tag.user{background:var(--accent-soft);color:var(--accent)}
+.tag.agent{border:1px solid var(--rule);color:var(--muted)}
+.tag.err{border:1px solid var(--alert);color:var(--alert)}
+.tag.none{border:1px dashed var(--rule);color:var(--faint)}
+
+/* definition of done: checkpoints */
+ol.dod{list-style:none;margin:12px 0 0;padding:0;counter-reset:cp;max-width:78ch}
+ol.dod>li{counter-increment:cp;position:relative;padding:11px 12px 11px 44px;margin-top:8px;
+  background:var(--surface);border:1px solid var(--rule);border-radius:8px;
+  transition:border-color .15s,background-color .15s}
+ol.dod>li.gate{border-style:dashed}
+ol.dod>li.done{border-color:color-mix(in srgb,var(--calm) 60%,var(--rule));
+  background:color-mix(in srgb,var(--calm) 7%,var(--surface))}
+ol.dod label{display:block;min-height:26px;padding-top:2px;cursor:pointer;font-size:14.5px;line-height:1.5;
+  -webkit-user-select:none;user-select:none}
+ol.dod label b{font-family:var(--display);font-weight:700;margin-right:3px}
+ol.dod>li.done label{color:var(--muted)}
+ol.dod>li.done label b{color:var(--calm)}
+/* the native box is kept for keyboard and screen readers, drawn by .tick:
+   an Obsidian-style task box, small, rounded, hollow until checked */
+ol.dod input{position:absolute;left:14px;top:14px;width:20px;height:20px;margin:0;opacity:0;cursor:pointer}
+ol.dod .tick{position:absolute;left:15px;top:15px;width:18px;height:18px;border-radius:4px;
+  border:1.5px solid var(--faint);background:transparent;display:grid;place-items:center;
+  pointer-events:none;transition:background-color .12s,border-color .12s,transform .1s}
+ol.dod>li:hover .tick{border-color:var(--accent)}
+ol.dod input:focus-visible+.tick{outline:2px solid var(--accent);outline-offset:2px}
+ol.dod input:active+.tick{transform:scale(.9)}
+ol.dod input:checked+.tick{background:var(--calm);border-color:var(--calm)}
+ol.dod input:checked+.tick::before{content:"";width:4px;height:9px;margin-top:-2px;
+  border:solid var(--surface);border-width:0 2px 2px 0;transform:rotate(45deg)}
+ol.dod .why{display:block;margin-top:6px;font-size:13.5px;color:var(--muted)}
+
+/* runnable commands, one click to copy */
+.cmd{display:flex;align-items:stretch;margin-top:8px;background:var(--code-bg);border-radius:6px;
+  border:1px solid color-mix(in srgb,var(--code-ink) 10%,transparent);overflow:hidden}
+.cmd .cmdtext{flex:1;min-width:0;overflow-x:auto;white-space:nowrap;padding:7px 10px;
+  font-family:var(--mono);font-size:12px;line-height:1.5;color:var(--code-ink);
+  -webkit-user-select:all;user-select:all;scrollbar-width:thin}
+.cmd .cmdtext::before{content:"$ ";color:var(--code-dim);-webkit-user-select:none;user-select:none}
+.cmd .copy{appearance:none;border:0;border-left:1px solid color-mix(in srgb,var(--code-ink) 12%,transparent);
+  background:transparent;color:var(--code-dim);font-family:var(--mono);font-size:11px;letter-spacing:.03em;
+  padding:0 12px;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;flex-shrink:0}
+.cmd .copy svg{width:13px;height:13px}
+.cmd .copy:hover{color:var(--code-ink);background:color-mix(in srgb,var(--code-ink) 8%,transparent)}
+.cmd .copy:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.cmd .copy.ok{color:var(--calm)}
+.commit{margin-top:12px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+.commit code{color:var(--ink)}
+
+table.cover td,table.cover th{text-align:center}
+table.cover td:first-child,table.cover th:first-child{text-align:left;white-space:nowrap}
+.dot{display:inline-block;width:11px;height:11px;border-radius:50%;vertical-align:-1px}
+.dot.a{background:var(--accent)}
+.dot.e{background:transparent;border:2px solid var(--accent)}
+.legend{display:flex;gap:20px;flex-wrap:wrap;font-size:13.5px;color:var(--muted);margin-top:9px}
+.legend span{display:inline-flex;align-items:center;gap:8px}
+.meter{margin-top:14px;height:8px;border-radius:4px;background:var(--sunk);overflow:hidden;max-width:520px}
+.meter i{display:block;height:100%;width:0;background:var(--calm);transition:width .25s}
+.resetbtn{appearance:none;background:none;border:1px solid var(--rule);border-radius:5px;color:var(--muted);
+  font-family:var(--mono);font-size:11px;padding:4px 9px;cursor:pointer;margin-top:10px}
+.resetbtn:hover{color:var(--ink);border-color:var(--muted)}
+</style>
+<style>img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<header class="top">
+  <div class="eyebrow">switchboard · rust</div>
+  <h1>Building it, one checkpoint at a time</h1>
+  <p class="lede">Thirteen tasks in five phases turn the model you designed into a daemon that finds every agent on the machine and says which one wants you. Each task states the behaviour it must produce and a definition of done as a sequence of checkpoints. The code is yours to write.</p>
+</header>
+
+<div class="tabs" role="tablist" aria-label="Phases">
+  <button role="tab" id="tab-1" aria-controls="p1" aria-selected="true"><span class="n">00</span>Overview</button>
+  <button role="tab" id="tab-2" aria-controls="p2" aria-selected="false" tabindex="-1"><span class="n">01</span>Vocabulary <span class="tp" data-phase="p2"></span></button>
+  <button role="tab" id="tab-3" aria-controls="p3" aria-selected="false" tabindex="-1"><span class="n">02</span>Reading the world <span class="tp" data-phase="p3"></span></button>
+  <button role="tab" id="tab-4" aria-controls="p4" aria-selected="false" tabindex="-1"><span class="n">03</span>The reducer <span class="tp" data-phase="p4"></span></button>
+  <button role="tab" id="tab-5" aria-controls="p5" aria-selected="false" tabindex="-1"><span class="n">04</span>The runtime <span class="tp" data-phase="p5"></span></button>
+  <button role="tab" id="tab-6" aria-controls="p6" aria-selected="false" tabindex="-1"><span class="n">05</span>Ship it <span class="tp" data-phase="p6"></span></button>
+</div>
+
+<div class="cols">
+<nav class="rail" aria-label="On this page">
+  <div class="railtitle">On this page</div>
+  <div class="railbody"></div>
+  <div class="railnote">Checkpoints tick off and are remembered in this browser. <b id="rail-total">0/0</b> done overall.<br>Repo: <code>~/Projects/switchboard-rust</code>, branch <code>main</code>.</div>
+</nav>
+
+<main>

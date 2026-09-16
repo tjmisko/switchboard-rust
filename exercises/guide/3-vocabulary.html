@@ -1,0 +1,151 @@
+
+<!-- ===================== 1 · VOCABULARY ===================== -->
+<div class="panel" id="p2" role="tabpanel" aria-labelledby="tab-2" hidden>
+
+<p class="prose">Before anything can be ingested, the crate needs to talk about itself. Identifiers have to pass for strings without losing their types. Every boundary needs an error that says which of four things went wrong: the bytes never arrived, they weren't JSON, the JSON had the wrong shape, or the peer refused.</p>
+
+<div class="tier-head"><span class="k">phase 01</span><h2>Vocabulary</h2><p>T01–T02 · about 2¼ hours. When this phase is done, a bad line on the socket gets an exact, typed reply, and the forwarder can tell a dead daemon from a refusal.</p></div>
+
+<!-- T01 -->
+<section class="sig" id="t01">
+  <header><h3>T01 · Identifiers and borrowed strings</h3><span class="pill">1 h</span><span class="pill out">t01_names</span><span class="pill prog" data-task="t01"></span></header>
+  <dl class="meta">
+    <div><dt>you write</dt><dd>the conversions inside <code>id_impls!</code>; <code>SubagentId::from_file_stem</code>, <code>from_hook</code>; the five helpers in <code>paths.rs</code></dd></div>
+    <div><dt>provided</dt><dd>the id types themselves, <code>socket_path</code>, <code>Layout</code></dd></div>
+    <div><dt>gaps</dt><dd>Deref coercion, <code>Borrow</code> vs <code>AsRef</code>, <code>as_deref</code>, <code>&amp;Path</code> / <code>OsStr</code></dd></div>
+    <div><dt>depends on</dt><dd>nothing</dd></div>
+  </dl>
+
+  <h4>Desired behaviour</h4>
+  <p class="prose">Every id (<code>SessionId</code>, <code>ToolUseId</code>, <code>SubagentId</code>, and the rest) behaves like a string wherever a string is only being read, and like its own type everywhere else.</p>
+  <ul class="prose">
+    <li>A <code>&amp;SessionId</code> can be passed to a function taking <code>&amp;str</code>, and <code>str</code> methods can be called on it directly.</li>
+    <li>A <code>BTreeMap</code> or <code>HashMap</code> keyed by an id can be queried with a plain <code>&amp;str</code>, without allocating.</li>
+    <li><code>Option&lt;SessionId&gt;</code> becomes <code>Option&lt;&amp;str&gt;</code> in one call.</li>
+    <li>Formatting prints the bare id. Building one from a <code>String</code> reuses its allocation.</li>
+  </ul>
+  <div class="tbl"><table class="spec">
+    <thead><tr><th>input</th><th>result</th></tr></thead>
+    <tbody>
+      <tr class="grp"><td colspan="2">subagent ids</td></tr>
+      <tr><td>file stem <code>agent-a1a4f5cc</code></td><td class="out">Some("a1a4f5cc")</td></tr>
+      <tr><td>file stem <code>agent-agent-x</code></td><td class="out">Some("agent-x"): strip once, never twice</td></tr>
+      <tr><td>file stem <code>agent-</code>, <code>a1a4</code>, empty</td><td class="out">None</td></tr>
+      <tr><td>hook <code>"  a1  "</code></td><td class="out">Some("a1")</td></tr>
+      <tr><td>hook <code>"agent-child"</code></td><td class="out">Some("agent-child"): taken as-is</td></tr>
+      <tr><td>hook blank or empty</td><td class="out">None</td></tr>
+      <tr class="grp"><td colspan="2">paths</td></tr>
+      <tr><td>slug <code>/home/u/Projects/switchboard-rust</code></td><td class="out">-home-u-Projects-switchboard-rust</td></tr>
+      <tr><td>slug <code>/home/u/.claude</code></td><td class="out">-home-u--claude</td></tr>
+      <tr><td>slug <code>/tmp/snake_case dir</code></td><td class="out">-tmp-snake-case-dir</td></tr>
+      <tr><td>slug of a non-UTF-8 path <code>/home/u/caf\xE9</code></td><td class="out">-home-u-caf-</td></tr>
+      <tr><td>transcript for cwd <code>/home/u/Projects/switchboard</code>, session <code>e0b4</code></td><td class="out">&lt;projects&gt;/-home-u-Projects-switchboard/e0b4.jsonl</td></tr>
+      <tr><td>workspace of <code>/a/b</code> · <code>/</code> · non-UTF-8 last part</td><td class="out">Some("b") · None · None</td></tr>
+      <tr><td>display name</td><td class="out">title, else workspace, else last cwd part, else "?"</td></tr>
+      <tr><td>temp sibling of <code>/c/state.json</code> · <code>/</code></td><td class="out">/c/state.json.tmp · None</td></tr>
+    </tbody>
+  </table></div>
+
+  <h4>Definition of done</h4>
+  <ol class="dod">
+    <li><label><input type="checkbox" data-k="t01-1"><b>Ids pass for strings.</b> Deref, <code>AsRef</code>, <code>Borrow</code>, <code>Display</code>, both <code>From</code>s.</label>
+      <span class="cmd">cargo test --test t01_names -- deref as_str btreemap display</span></li>
+    <li><label><input type="checkbox" data-k="t01-2"><b>Subagent ids normalise once.</b></label>
+      <span class="cmd">cargo test --test t01_names -- agent_id file_stem</span></li>
+    <li><label><input type="checkbox" data-k="t01-3"><b>Paths.</b> Slug, transcript path, workspace, display name, temp sibling.</label>
+      <span class="cmd">cargo test --test t01_names -- slug transcript workspace utf8 naming_an_agent temp_sibling</span></li>
+    <li class="gate"><label><input type="checkbox" data-k="t01-4"><b>Whole task green</b>, including the module unit tests.</label>
+      <span class="cmd">cargo test --test t01_names &amp;&amp; cargo test --lib -- names:: paths::</span>
+      <span class="why"><code>display_name</code> is one expression with no <code>match</code>. Katas 1–3 are answered in <code>exercises/answers/T01.md</code>.</span></li>
+  </ol>
+  <div class="note trap"><b>Watch for</b>
+    <ul>
+      <li><code>Borrow</code> carries a promise that <code>AsRef</code> doesn't. Know why your type keeps it before you write the impl.</li>
+      <li>A path isn't a string. Whatever you slug must go through a lossy conversion first, and the workspace name must refuse non-UTF-8 rather than repair it.</li>
+    </ul>
+  </div>
+  <p class="commit">commit: <code>feat(names): id conversions and path helpers</code></p>
+</section>
+
+<!-- T02 -->
+<section class="sig" id="t02">
+  <header><h3>T02 · Error architecture</h3><span class="pill">1¼ h</span><span class="pill out">t02_errors</span><span class="pill tdd">you write t02_forward</span><span class="pill prog" data-task="t02"></span></header>
+  <dl class="meta">
+    <div><dt>you write</dt><dd><code>Display</code>, <code>source</code> and <code>From</code> for the four error enums; <code>FromStr</code> for <code>Phase</code>, <code>StartSource</code>, <code>Denier</code>; <code>decode_request</code>; <code>interpret_reply</code>; <code>client::send</code></dd></div>
+    <div><dt>provided</dt><dd>the enum definitions, <code>ok_reply</code>, <code>error_reply</code>, <code>BoxError</code></dd></div>
+    <div><dt>gaps</dt><dd><code>?</code> and <code>From</code>, <code>ok_or</code> vs <code>ok_or_else</code>, <code>transpose</code>, <code>Box&lt;dyn Error&gt;</code></dd></div>
+    <div><dt>depends on</dt><dd>T01</dd></div>
+  </dl>
+
+  <h4>Desired behaviour · vocabularies</h4>
+  <ul class="prose">
+    <li>Every <code>Phase</code> parses from the name it prints (<code>attention</code> … <code>idle</code>). The Go daemon's <code>permission</code> is rejected, and the error prints as <code>unknown phase: "permission"</code>.</li>
+    <li>Start sources are <code>startup · resume · clear · compact</code>. Denial kinds are <code>user-rejected · permission-rule · automode-blocked · automode-unavailable · interrupted</code>. Matching is case-sensitive.</li>
+  </ul>
+
+  <h4>Desired behaviour · socket frames</h4>
+  <p class="prose">Fields are checked in the order <code>cmd</code>, <code>event</code>, <code>pid</code>, <code>session_id</code>. A required field that's absent is <em>missing</em>. A field that's present with the wrong type or range is <em>wrong type</em>, whether or not the field is required. Unknown extra fields are ignored.</p>
+  <div class="tbl"><table class="spec">
+    <thead><tr><th>line</th><th>decodes to</th></tr></thead>
+    <tbody>
+      <tr><td>{"cmd":"list"}</td><td class="out">List</td></tr>
+      <tr><td>{"cmd":"subscribe","extra":1}</td><td class="out">Subscribe</td></tr>
+      <tr><td>{"cmd":"hook","event":"Stop","pid":4036,"session_id":"s-1",…}</td><td class="out">Hook, with event, <code>pid: Some(4036)</code>, session, and the whole object kept as payload</td></tr>
+      <tr><td>{"cmd":"statusline","session_id":"s"}</td><td class="out">Statusline, <code>pid: None</code></td></tr>
+      <tr><td>{not json</td><td><span class="tag err">json</span> the message starts <code>malformed JSON: </code>, and the parser error is its source</td></tr>
+      <tr><td>[1,2] · "list" · 42 · null</td><td><span class="tag err">not an object</span></td></tr>
+      <tr><td>{"event":"Stop"}</td><td><span class="tag err">missing cmd</span> prints <code>missing field `cmd`</code></td></tr>
+      <tr><td>{"cmd":7}</td><td><span class="tag err">wrong type cmd</span></td></tr>
+      <tr><td>hook without event · without session_id</td><td><span class="tag err">missing event</span> · <span class="tag err">missing session_id</span></td></tr>
+      <tr><td>hook with "session_id":null</td><td><span class="tag err">wrong type session_id</span></td></tr>
+      <tr><td>pid "4036" · -1 · 4294967296 · 1.5</td><td><span class="tag err">wrong type pid</span></td></tr>
+      <tr><td>{"cmd":"focus"}</td><td><span class="tag err">unknown command</span> prints <code>unknown command: focus</code>, with no source</td></tr>
+    </tbody>
+  </table></div>
+  <p class="prose" style="margin-top:12px">Every one of these errors converts with <code>?</code> into a <code>BoxError</code>. A <code>StatError::BadNumber</code> exposes the integer parse error as its source. A <code>RecordError</code> can be reached with <code>?</code> from a JSON error, an I/O error, and an unknown name.</p>
+
+  <h4>Desired behaviour · the forwarder's verdict</h4>
+  <div class="tbl"><table class="spec">
+    <thead><tr><th>what happened</th><th>classified as</th></tr></thead>
+    <tbody>
+      <tr><td>reply {"ok":true}</td><td class="out">Ok</td></tr>
+      <tr><td>reply {"ok":false,"error":"x"}</td><td><span class="tag err">rejected</span> carrying "x", and prints <code>daemon refused the frame: x</code></td></tr>
+      <tr><td>reply {"ok":false}</td><td><span class="tag err">rejected</span> carrying "no reason given"</td></tr>
+      <tr><td>reply {} · {"ok":"true"} · {"snapshot":{}}</td><td><span class="tag err">no verdict</span></td></tr>
+      <tr><td>reply OK · empty</td><td><span class="tag err">malformed</span></td></tr>
+      <tr><td>nothing listening on the socket</td><td><span class="tag err">connect</span></td></tr>
+      <tr><td>accepted, but no reply within the timeout</td><td><span class="tag err">io</span></td></tr>
+      <tr><td>what the daemon receives</td><td class="out">exactly one line, newline-terminated, valid JSON</td></tr>
+    </tbody>
+  </table></div>
+
+  <h4>Definition of done</h4>
+  <ol class="dod">
+    <li><label><input type="checkbox" data-k="t02-1"><b>Vocabularies parse.</b></label>
+      <span class="cmd">cargo test --test t02_errors -- phase start_sources</span></li>
+    <li><label><input type="checkbox" data-k="t02-2"><b>Frames decode, and absence stays distinct from malformation.</b></label>
+      <span class="cmd">cargo test --test t02_errors -- decode carry malformed not_an_object missing command_when replies</span>
+      <span class="why">In <code>optional_pid</code>, write the type after each step as a comment.</span></li>
+    <li><label><input type="checkbox" data-k="t02-3"><b>Error chains.</b> <code>source</code>, <code>From</code> and boxing.</label>
+      <span class="cmd">cargo test --test t02_errors -- stat_number record_error send_sync</span></li>
+    <li class="gate"><label><input type="checkbox" data-k="t02-4"><b>Forwarder tests written first.</b> All seven stubs plus at least two of your own compile and fail in <code>interpret_reply</code> or <code>send</code>.</label>
+      <span class="cmd">cargo test --test t02_forward</span>
+      <span class="why">The one-shot daemon helper in the file must actually bind and reply. Check it with a throwaway assertion before trusting any failure.</span></li>
+    <li><label><input type="checkbox" data-k="t02-5"><b>Replies classified.</b></label>
+      <span class="cmd">cargo test --test t02_forward -- ok_true rejected verdict</span></li>
+    <li><label><input type="checkbox" data-k="t02-6"><b>Transport classified.</b> Each I/O step maps to the variant that names it.</label>
+      <span class="cmd">cargo test --test t02_forward -- connect newline never_answers refusal</span></li>
+    <li class="gate"><label><input type="checkbox" data-k="t02-7"><b>Whole task green</b>, and there is no blanket <code>From&lt;io::Error&gt;</code> for <code>ForwardError</code>.</label>
+      <span class="cmd">cargo test --test t02_errors --test t02_forward &amp;&amp; cargo test --lib -- frame::</span>
+      <span class="why">Grading adds a hidden suite of 8 tests for the forwarder.</span></li>
+  </ol>
+  <div class="note trap"><b>Watch for</b>
+    <ul>
+      <li>A missing optional field must never become an error on its way through a chain of combinators. Only a present-but-wrong one may.</li>
+      <li>Socket paths longer than 108 bytes fail to bind with a confusing error. The cargo target directory is long, so keep test sockets in the temp dir.</li>
+    </ul>
+  </div>
+  <p class="commit">commit: <code>feat(errors): typed errors, frame decoding, forwarder verdicts</code></p>
+</section>
+
+</div>
