@@ -105,3 +105,96 @@ below reports regressions against the four green files.
      borrows `ctx` and `v`, and what would break if `line` returned `event`
      instead of calling it?" That is the ownership fact this task quietly
      relies on.
+
+### T06 — Finding agents in `/proc`
+- **Effort:** 3 cycles (1 test run, 1 clippy, 1 lib unit tests). 0
+  compiler errors. Difficulty 2/5: every function is small, the tests are a
+  complete spec, and the two provided I/O functions show exactly how the
+  parsers are called. About 40% Rust (the `Cow` return, `AsRef` generic,
+  `successors` with a `move` closure, the `FromStr` bound on `number`) and
+  60% reading tests to recover the classification rules the sheet said were
+  in a doc comment.
+- **Prerequisites assumed:**
+  - `str::find`/`rfind` returning byte indices you can slice with, and that
+    slicing `s[open + 1..close]` is safe because `(` and `)` are one byte.
+  - `slice::split(|&b| b == 0)` on a byte slice, and that
+    `String::from_utf8_lossy` returns a `Cow` borrowing the input. The
+    sheet does name `from_utf8_lossy`, which is enough of a hint.
+  - `Option::is_some_and` and `bool::then_some` (used in the provided
+    `read_process`, so at least visible).
+  - That a closure passed to `iter::successors` must be `move` when it
+    captures a `&Path` parameter, or it borrows the local variable holding
+    the reference. Kata 1 asks about `'_` but not about `move`, and `move`
+    is the error a learner actually hits.
+  - The domain: which `claude` invocations are not interactive sessions.
+    See sheet accuracy.
+- **Sheet accuracy:**
+  - Sheet: "`classify` ... The rules are in the doc comment." They are not.
+    The scaffold's doc comment says only what `exe: None` means. The rules
+    (comm must be `claude`; a readable `exe` must have `claude` in its
+    path; `-p`/`--print` anywhere is headless; `daemon` or `mcp` as the
+    verb in `argv[1]` is a service) exist only as test cases, and the test
+    comment "daemon only matters as the verb" is the sole hint that
+    `--model daemon` must pass. I had to invent a `SERVICE_VERBS` list and
+    guessed `plugin` as a third entry; nothing says what the full list is.
+  - Sheet: "Field N is `fields[N - 3]`." Correct and load-bearing, but the
+    field numbers themselves (3 state, 4 ppid, 7 tty_nr, 14 utime, 15
+    stime, 22 starttime) appear nowhere in the sheet or scaffold. `Stat`'s
+    doc comments give only 22. I knew them from `man proc`; a learner
+    without that would need to look them up. The error test also pins the
+    field names `"state"`, `"utime"`, `"ppid"`, `"pid"` as the `Missing` /
+    `BadNumber` payloads.
+  - Sheet: "`session_from_file` ... `procStart` is a **string**." True and
+    necessary: the test has a numeric `procStart` that must be rejected.
+    Good signpost.
+  - Sheet: "`parent_of` and `ancestors` ... one `successors` call and one
+    `take`." Accurate. The scaffold body `todo!("T06"); std::iter::empty()`
+    with `#[allow(unreachable_code)]` is a little confusing on first read;
+    a learner may wonder whether `empty()` is meant to stay.
+  - The scaffold's `ancestors` doc "at most `limit` of them" plus the test
+    "the starting pid is always yielded" together define `take(limit)` on
+    a sequence that begins with `pid`; a limit of 0 yields nothing, which
+    no test checks.
+  - `key_of` has no mention in the sheet's implement list at all; it is
+    only in the test's import list and the scaffold. Trivial once
+    `parent_of` exists, but it should be listed.
+- **Where I got stuck:** Never blocked. The only thinking time went to the
+  `classify` rules and to deciding between `split_once(" (")` and
+  `find('(')`/`rfind(')')` for `parse_stat`; the reversed-parens test case
+  `6002 )claude( S 1` made me add the `close > open` filter. I wrote
+  `stat_of` as a private helper shared by `parent_of` and `key_of` because
+  both read and parse the same file.
+- **What this drilled:** `ok_or` into `?` across many fields with a
+  closure that names the missing field; a generic `number<T: FromStr<Err =
+  ParseIntError>>` with `map_err` into a struct variant; `Cow<'_, str>` as
+  a return type and why the borrowed case matters; `S: AsRef<str>` with
+  `.iter().map(AsRef::as_ref)`; `iter::successors` + `take` + `move`;
+  `impl Iterator + '_`. Incidental: the `/proc/<pid>/stat` field numbering
+  and the `claude` CLI's subcommand vocabulary.
+- **Ordering:** Fine where it is, and a good breather between T05 and the
+  reducer. It could even go before T05: nothing in it depends on T05, it
+  is shorter, and its `Cow`/`AsRef` content pairs naturally with T01. If
+  the goal is "confidence before the reducer", T06 then T05 puts the more
+  intricate adapter immediately before T07, which is where its `event`
+  closure pattern gets reused.
+- **Confidence after:** A learner would feel they understood `Cow` and
+  `AsRef` generics, and `?` with `ok_or`. They would be shaky on why
+  `move` was needed on the `successors` closure (they will hit E0373 and
+  do what the compiler says without understanding that `proc_root` the
+  parameter and `*proc_root` the path are different borrows), and on
+  whether `+ '_` captures `pid` and `limit` too.
+- **Suggestions:**
+  1. Put the classification rules in `classify`'s doc comment, as the
+     sheet claims, including the verb list, or change the sheet to "the
+     rules are the test cases; `SERVICE_VERBS` and `HEADLESS_FLAGS` are
+     yours to name".
+  2. Add the field-number table to `parse_stat`'s doc comment (`3 state, 4
+     ppid, 7 tty_nr, 14 utime, 15 stime, 22 starttime`) or to the sheet.
+  3. Add `key_of` to the sheet's implement list.
+  4. Add a kata (or extend kata 1): "Remove `move` from the closure. What
+     error do you get, and which `proc_root` is being borrowed?"
+  5. Replace the `todo!("T06"); std::iter::empty()` body with a comment
+     saying "replace this whole body; the `empty()` only keeps the
+     signature compiling".
+  6. Add a test for `ancestors(_, pid, 0)` so the `take(limit)` semantics
+     are pinned at the edge.
