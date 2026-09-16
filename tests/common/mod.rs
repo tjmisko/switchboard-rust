@@ -47,7 +47,7 @@ impl Clock {
 // Boards
 // ---------------------------------------------------------------------------
 
-/// `start` is 1000 on purpose: `FakeProc::add(50, .., 1000, ..)` in the T11
+/// `start` is 1000 on purpose: `FakeProc::add(50, .., 1000, ..)` in the T12
 /// resolve test writes the same start time into pid 50's fake `stat`, so a
 /// `resolve` that matches ancestors by full `ProcKey` (via `proc::key_of`)
 /// agrees with one that matches by pid, which is what golden does. Keep the

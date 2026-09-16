@@ -1,9 +1,9 @@
-# T13 — Capstone: run it on your own agents
+# T15 — Capstone: run it on your own agents
 
 **Core: 30m · Stretch: open-ended**
 
 Steps 1 to 4 prove the daemon runs. Step 5 is the capstone: it is the first
-time your T03 adapter, T10 core and T11 socket meet a real harness. If you
+time your T03 adapter, T11 core and T12 socket meet a real harness. If you
 cannot run step 5 on this machine, step 6 replays a captured hook sequence
 into the socket instead and shows the same transitions.
 
@@ -245,7 +245,7 @@ couple of hours each; the last two are weekend items.
 - **Limit reset expiry.** A `Rejected` limit stays `Blocked` after
   `resets_at` passes until a new snapshot arrives. `tick` has no wall clock.
   Design it: pass `SystemTime` into `tick`, or have the core convert
-  `resets_at` into an `Instant` deadline on arrival? T09 and T10 material.
+  `resets_at` into an `Instant` deadline on arrival? T10 and T11 material.
 - **A late replayed `TurnStarted` after `Stop`.** Transcript polling means a
   prompt line can land after the `Stop` hook for the same turn, and it would
   restart a finished turn until staleness ends it. The fix needs memory of
@@ -253,14 +253,14 @@ couple of hours each; the last two are weekend items.
   5 working to reproduce.
 - **`switchboard explain <pid>`.** A ring buffer of the last N inputs per
   agent, re-folded step by step to print why the lamp is the colour it is.
-  The buffer goes in the core you wrote in T10.
+  The buffer goes in the core you wrote in T11.
 - **A subscriber that hangs up.** `handle`'s `Subscribe` arm notices a
   closed peer only on the next write. Make it a `select!` between
   `view.changed()` and `lines.next_line()`; both are cancel-safe, so the
-  race is legal (T10). Write the test that pins it first: subscribe, drop
+  race is legal (T11). Write the test that pins it first: subscribe, drop
   the client's halves, and expect the handler task to finish before the
   view changes.
-- **Transcript replacement.** T12's kata 4 made real: a transcript deleted
+- **Transcript replacement.** T13's kata 4 made real: a transcript deleted
   and recreated leaves `poll_once` reading a dead inode forever. Compare the
   open file's `MetadataExt::ino` against the path's each tick, or every Nth
   tick, and reopen at the tail when they differ. Test it with a rename over

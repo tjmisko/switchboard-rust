@@ -1,7 +1,7 @@
-//! T09 — snapshots, time, and the view.
+//! T10 — snapshots, time, and the view.
 //!
 //! Two groups, Discovery and The view, exercise provided code and pass
-//! before T09 starts. They are regression checks on `discover`,
+//! before T10 starts. They are regression checks on `discover`,
 //! `discovered` and `view.rs`, not on anything you write here.
 
 mod common;

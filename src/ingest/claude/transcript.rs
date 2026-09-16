@@ -70,11 +70,11 @@ const LOCAL_COMMAND_PREFIXES: [&str; 4] = [
 
 /// Adapt one parsed transcript line.
 pub fn line(v: &Value, ctx: &LineCtx) -> Vec<Input> {
-    todo!("T05")
+    todo!("T07")
 }
 
 fn user_line(v: &Value, event: impl Fn(Cause, EventKind) -> Input) -> Vec<Input> {
-    todo!("T05")
+    todo!("T07")
 }
 
 fn assistant_line(
@@ -82,14 +82,14 @@ fn assistant_line(
     ctx: &LineCtx,
     event: impl Fn(Cause, EventKind) -> Input,
 ) -> Vec<Input> {
-    todo!("T05")
+    todo!("T07")
 }
 
 /// `quotaLimits` on an API error line: a limits snapshot the transcript
 /// happens to carry. Only a rejection with a reset time is worth anything.
 /// `used_percent` stays `None`: the transcript never reports one.
 fn quota_limits(v: &Value, ctx: &LineCtx) -> Option<Input> {
-    todo!("T05")
+    todo!("T07")
 }
 
 /// `rateLimitType`, as the harness names its windows. The vocabulary is
@@ -104,5 +104,5 @@ fn quota_limits(v: &Value, ctx: &LineCtx) -> Option<Input> {
 /// - anything else starting with `seven_day` → `SevenDay`
 /// - anything else → `None`
 pub fn limit_window(s: &str) -> Option<LimitWindow> {
-    todo!("T05")
+    todo!("T07")
 }

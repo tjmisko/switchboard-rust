@@ -22,7 +22,7 @@ use crate::reduce::{
 /// whose deadline has arrived, which is why the core ticks at
 /// `next_deadline` rather than on a timer.
 pub fn tick(board: &mut Board, now: Instant) -> Vec<Effect> {
-    todo!("T09")
+    todo!("T10")
 }
 
 /// Everything with a deadline that has passed, in one agent. Returns
@@ -34,13 +34,13 @@ pub fn tick(board: &mut Board, now: Instant) -> Vec<Effect> {
 /// subagent rows past their bounds are dropped; a compaction past
 /// `COMPACTION_STALE` is over.
 fn expire(agent: &mut Agent, now: Instant) -> bool {
-    todo!("T09")
+    todo!("T10")
 }
 
 /// When a quiet turn would be declared over, or `None` if it cannot be:
 /// not in a turn, a gate is open, or a compaction is running.
 fn stale_turn_deadline(agent: &Agent) -> Option<Instant> {
-    todo!("T09")
+    todo!("T10")
 }
 
 /// When a silent subagent row would be forgotten, or `None` while it holds
@@ -49,19 +49,19 @@ fn stale_turn_deadline(agent: &Agent) -> Option<Instant> {
 /// reported a stop; `expire` removes a row past this deadline whoever owns
 /// the table, and `deadlines` includes it.
 fn stale_subagent_deadline(row: &Subagent) -> Option<Instant> {
-    todo!("T09")
+    todo!("T10")
 }
 
 /// The earliest moment a `tick` could change anything. The core sleeps until
 /// then instead of polling.
 pub fn next_deadline(board: &Board) -> Option<Instant> {
-    todo!("T09")
+    todo!("T10")
 }
 
 fn deadlines(agent: &Agent) -> impl Iterator<Item = Instant> + '_ {
-    // T09. Replace this whole body. The `empty()` below only keeps the
+    // T10. Replace this whole body. The `empty()` below only keeps the
     // `impl Iterator` signature compiling until you do; it is not a start.
-    todo!("T09");
+    todo!("T10");
     #[allow(unreachable_code)]
     std::iter::empty()
 }

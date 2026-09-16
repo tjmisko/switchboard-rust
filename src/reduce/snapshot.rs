@@ -28,7 +28,7 @@ pub fn apply_snapshot(board: &mut Board, snapshot: Snapshot) -> Vec<Effect> {
         }
 
         SnapshotKind::Limits { account, value } => {
-            todo!("T09: newer-or-equal only; unchanged publishes nothing; re-settle the account")
+            todo!("T10: newer-or-equal only; unchanged publishes nothing; re-settle the account")
         }
 
         SnapshotKind::Beat { session, value } => {
@@ -49,13 +49,13 @@ pub fn apply_snapshot(board: &mut Board, snapshot: Snapshot) -> Vec<Effect> {
         }
 
         SnapshotKind::Subagents { session, rows } => {
-            todo!("T09: find the agent by session; drop if not `AsOf::supersedes` its last event")
+            todo!("T10: find the agent by session; drop if not `AsOf::supersedes` its last event")
         }
 
         SnapshotKind::Waits { session, rows } => {
             // No event creates or ends a wait, so there is nothing for a
             // `Stop` snapshot to be stale against: it replaces outright.
-            todo!("T09")
+            todo!("T10")
         }
 
         SnapshotKind::Placements(rows) => {
@@ -139,7 +139,7 @@ fn discover(board: &mut Board, row: ProcessRow, taken: Instant, effects: &mut Ef
 /// The panel replaces the table. What an event learned about a row that is
 /// still present — its gate — is kept; a row that is absent is gone.
 fn replace_panel(old: &Subagents, rows: Vec<SubagentRow>, taken: Instant) -> Subagents {
-    todo!("T09")
+    todo!("T10")
 }
 
 fn replace_waits(
@@ -147,5 +147,5 @@ fn replace_waits(
     rows: Vec<WaitRow>,
     taken: Instant,
 ) -> BTreeMap<crate::model::WaitId, Wait> {
-    todo!("T09")
+    todo!("T10")
 }
