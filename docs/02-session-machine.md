@@ -1,10 +1,10 @@
 # The session machine: phases, writers, and per-child state
 
-Companion to `00-rewrite-plan.md` §4. Records the decision behind the shape of
+Companion to `product/00-rewrite-plan.md` §4. Records the decision behind the shape of
 `Root`/`Child` and the two modelling calls that were put to the design
 (approval as a phase; child attention bubbling). Written 2026-09-11 in
 response to an external state-machine review of the hook census
-(`survey/14-hook-events-verified.md`).
+(`product/survey/14-hook-events-verified.md`).
 
 ## 0. What the review got right
 
