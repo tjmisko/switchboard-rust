@@ -1,8 +1,21 @@
 //! T07 — YOUR tests for the reducer: routing, sessions, turns, tools.
 //!
-//! Work one group at a time. Write every body in the group, run it and see it
-//! fail, then implement until the group passes. `tests/common/mod.rs` has the
-//! builders. Read it first.
+//! One file, two halves. The T07a groups (routing, discovery, death and cwd)
+//! need only the T07a code: `route`, `limits_for`, `settle`, `apply_event`
+//! and the `SessionStarted`, `SessionEnded`, `CwdChanged`, `Compaction*` and
+//! `Died` arms. The T07b groups need the turn and tool arms. Work one group
+//! at a time: write every body in the group, run it and see it fail, then
+//! implement until the group passes. `tests/common/mod.rs` has the builders.
+//! Read it first, `row` included: it fabricates the cwd
+//! (`/home/u/Projects/p<pid>`) and tty that some assertions need.
+//!
+//! Two builders, and the difference matters: `board_with` gives agents that
+//! have sent `SessionStart{startup}` and show `Idle`; `board_unobserved`
+//! gives agents a sweep found and nobody has heard from, showing `Unknown`.
+//! Each stub says which one it wants where it is not `board_with`.
+//!
+//! No test in this file may use `from_subagent`: `transition` hands a
+//! subagent's event to `subagent_transition`, which is T08's.
 //!
 //! The list is not complete. Section "yours" at the bottom wants at least four
 //! more tests. Good places to look: what `last_event` should do, what a
@@ -14,6 +27,7 @@
 
 mod common;
 
+use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 use serde_json::json;
@@ -22,8 +36,11 @@ use common::*;
 use switchboard::model::*;
 
 // ---------------------------------------------------------------------------
-// Routing and identity
+// T07a — Routing and identity
 // ---------------------------------------------------------------------------
+//
+// `TurnStarted` is T07b, so probe routing with a T07a arm: `CwdChanged` to a
+// fresh path lands on exactly one agent, and you can read `cwd` back.
 
 /// An event whose pid and session match nothing produces no effects and
 /// creates no agent. Agents exist because processes do.
@@ -45,9 +62,19 @@ fn should_route_by_session_when_the_process_is_not_tracked() {
     todo!("write this test")
 }
 
+/// The pid wins the routing, and then the session is checked against the
+/// agent it named. An event from a tracked pid carrying a session that agent
+/// does not hold is dropped: no effects, and *not* rerouted to whichever
+/// agent does hold that session. Two agents, `(100, "s1")` and `(200, "s2")`;
+/// send `CwdChanged` from pid 100 with session `"s2"`.
+#[test]
+fn should_drop_an_event_whose_tracked_pid_disagrees_with_its_session() {
+    todo!("write this test")
+}
+
 /// An agent discovered without a session adopts the first event's session and
 /// asks for its transcript to be watched. Check the exact `WatchTranscript`
-/// effect, cwd included.
+/// effect, cwd included. `board_unobserved(&[(100, None)], ..)`.
 #[test]
 fn should_adopt_the_session_and_watch_its_transcript_when_the_agent_had_none() {
     todo!("write this test")
@@ -60,34 +87,59 @@ fn should_ignore_a_late_event_for_the_previous_session_after_clear() {
     todo!("write this test")
 }
 
-/// A rotation mid-turn wipes the old conversation. The agent is idle with no
-/// outcome, the title updates, the new transcript is watched, and the chip
-/// shows idle.
+/// A rotation wipes the old conversation. The agent is idle with no outcome,
+/// the title updates, the new transcript is watched, and the chip shows idle.
+/// (In T07b, come back and start a turn before the rotation, to see it
+/// wiped.)
 #[test]
 fn should_reset_the_conversation_and_watch_the_new_transcript_when_the_session_rotates() {
     todo!("write this test")
 }
 
 // ---------------------------------------------------------------------------
-// Discovery and the first event
+// T07a — Discovery and the first event
 // ---------------------------------------------------------------------------
 
 /// Discovered and never heard from: truth and shown are both `Unknown`, which
-/// paints grey.
+/// paints grey. `board_unobserved`.
 #[test]
 fn should_show_unknown_for_a_discovered_agent_until_it_is_heard_from() {
     todo!("write this test")
 }
 
 /// `SessionStarted{Startup}` on an unobserved agent shows `Idle`, publishes,
-/// and records exactly one history entry.
+/// and records exactly one history entry. `board_unobserved`: with
+/// `board_with` the agent is already idle and there is nothing to record.
 #[test]
 fn should_go_idle_on_session_start() {
     todo!("write this test")
 }
 
 // ---------------------------------------------------------------------------
-// Turns
+// T07a — Death, cwd, bookkeeping
+// ---------------------------------------------------------------------------
+
+/// `Died` removes only that agent, emits `Forget` and `AgentGone`, and
+/// publishes. A second `Died` for the same process is a no-op.
+#[test]
+fn should_remove_the_agent_forget_it_and_record_it_when_it_dies() {
+    todo!("write this test")
+}
+
+/// `CwdChanged` updates `cwd` and `workspace`. The same path again is a no-op.
+#[test]
+fn should_follow_cwd_changes_and_rename_the_workspace() {
+    todo!("write this test")
+}
+
+/// `SessionEnded` is not liveness. The agent stays and nothing is published.
+#[test]
+fn should_publish_nothing_for_session_end_because_it_is_not_liveness() {
+    todo!("write this test")
+}
+
+// ---------------------------------------------------------------------------
+// T07b — Turns
 // ---------------------------------------------------------------------------
 
 /// A turn starting shows `Working` immediately. The history entry is exact:
@@ -124,8 +176,9 @@ fn should_ignore_a_turn_end_that_names_a_different_turn() {
     todo!("write this test")
 }
 
-/// Escape: `Working` → `Stopped` is an escalation, and it shows immediately
-/// because the user caused it.
+/// Escape: `Working` → `Stopped` is an escalation (`Severity`: Calm to
+/// Notice, see `Phase::severity`), and it shows immediately because the user
+/// caused it.
 #[test]
 fn should_show_stopped_at_once_when_the_user_interrupts() {
     todo!("write this test")
@@ -157,7 +210,7 @@ fn should_start_a_turn_when_a_tool_is_dispatched_while_idle() {
 }
 
 // ---------------------------------------------------------------------------
-// Tools
+// T07b — Tools
 // ---------------------------------------------------------------------------
 
 /// The same call dispatched twice (hook, then transcript) produces no effects.
@@ -193,28 +246,28 @@ fn should_keep_the_turn_when_a_tool_merely_fails() {
 }
 
 // ---------------------------------------------------------------------------
-// Death, cwd, bookkeeping
+// T07b — The fold: an unowned gate mid-turn
 // ---------------------------------------------------------------------------
 
-/// `Died` removes only that agent, emits `Forget` and `AgentGone`, and
-/// publishes. A second `Died` for the same process is a no-op.
+/// A gate nobody owns, held by a call mid-turn, folds to `Unknown` (grey):
+/// not `Working`, and never `Attention`. Fails until `has_unowned_gate` sees
+/// tool gates and `Agent::phase` checks it above `Turn → Working`.
+///
+/// Build the state by hand: start a turn, then set `agent.activity` to a
+/// `Turn` whose `tools` map holds one `Tool` with a `Gate::Blocked` owned by
+/// `Ownership::Unknown` (`b.agents.get_mut(&key(1))`). The reducer path that
+/// makes such a gate is `ask`, which is T08's; this pins `Agent::phase`
+/// alone. Assert on `truth`, and on `.lamp()`.
 #[test]
-fn should_remove_the_agent_forget_it_and_record_it_when_it_dies() {
-    todo!("write this test")
-}
-
-/// `CwdChanged` updates `cwd` and `workspace`. The same path again is a no-op.
-#[test]
-fn should_follow_cwd_changes_and_rename_the_workspace() {
-    todo!("write this test")
-}
-
-/// `SessionEnded` is not liveness. The agent stays and nothing is published.
-#[test]
-fn should_publish_nothing_for_session_end_because_it_is_not_liveness() {
+fn should_render_an_unowned_gate_grey_never_red_even_mid_turn() {
     todo!("write this test")
 }
 
 // ---------------------------------------------------------------------------
 // yours: at least four more
 // ---------------------------------------------------------------------------
+
+#[allow(dead_code)]
+fn _keep_imports_used() -> (PathBuf, serde_json::Value, BTreeMap<ToolUseId, Tool>) {
+    (PathBuf::new(), json!({}), BTreeMap::new())
+}

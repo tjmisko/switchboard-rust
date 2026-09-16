@@ -196,6 +196,70 @@ fn should_lift_every_agent_prompt_when_the_turn_ends_or_a_new_one_starts() {
     }
 }
 
+/// The hook and the transcript both report one prompt, and a
+/// `PermissionRequest` can land between the two reports. The second report
+/// is a duplicate `TurnStarted`, and a duplicate must not lift what was
+/// parked after the first: T07's duplicate check runs before its clear.
+#[test]
+fn should_keep_a_prompt_parked_between_the_hooks_and_the_transcripts_report_of_one_prompt() {
+    let t = Clock::new();
+    let mut b = board_with(&[(1, "s")], t.at(0));
+    apply(&mut b, hook(1, "s", t.at(1), turn_started("p")));
+    apply(&mut b, hook(1, "s", t.at(2), asked("Bash", &ls())));
+    assert_eq!(truth(&b, 1), Phase::Attention);
+
+    let fx = apply(&mut b, inferred(1, "s", t.at(3), turn_started("p")));
+    assert!(fx.is_empty(), "{fx:?}");
+    assert_eq!(agent(&b, 1).prompts.unjoined.len(), 1);
+    assert_eq!(truth(&b, 1), Phase::Attention);
+
+    // A genuinely new prompt does lift it.
+    apply(&mut b, hook(1, "s", t.at(4), turn_started("next")));
+    assert!(agent(&b, 1).prompts.unjoined.is_empty());
+}
+
+/// Claude's `PermissionDenied` may carry no call id. A call-less answer can
+/// only mean a parked prompt was dealt with: the sole parked prompt is
+/// lifted; with two parked, neither is (which one?); and a gated call is
+/// never released by it.
+#[test]
+fn should_lift_only_the_sole_parked_prompt_when_a_call_less_permission_settles() {
+    let t = Clock::new();
+    let answered = || EventKind::PermissionSettled {
+        call: None,
+        req: None,
+        outcome: Decision::Allowed,
+    };
+
+    let mut b = board_with(&[(1, "s")], t.at(0));
+    apply(&mut b, hook(1, "s", t.at(1), turn_started("p")));
+    apply(&mut b, hook(1, "s", t.at(2), asked("Bash", &ls())));
+    let fx = apply(&mut b, by_user(1, "s", t.at(3), answered()));
+    assert!(publishes(&fx));
+    assert!(agent(&b, 1).prompts.unjoined.is_empty());
+    assert_eq!(shown(&b, 1), Phase::Working);
+
+    let mut b = board_with(&[(1, "s")], t.at(0));
+    apply(&mut b, hook(1, "s", t.at(1), asked("Bash", &ls())));
+    apply(
+        &mut b,
+        hook(1, "s", t.at(1), asked("Write", &json!({"file_path": "x"}))),
+    );
+    let fx = apply(&mut b, by_user(1, "s", t.at(2), answered()));
+    assert!(fx.is_empty(), "ambiguous: {fx:?}");
+    assert_eq!(agent(&b, 1).prompts.unjoined.len(), 2);
+
+    let mut b = board_with(&[(1, "s")], t.at(0));
+    apply(
+        &mut b,
+        hook(1, "s", t.at(1), dispatched("c1", "Bash", &ls())),
+    );
+    apply(&mut b, hook(1, "s", t.at(2), asked("Bash", &ls())));
+    let fx = apply(&mut b, by_user(1, "s", t.at(3), answered()));
+    assert!(fx.is_empty(), "a gated call needs its id: {fx:?}");
+    assert!(matches!(gate_of(&b, 1, "c1"), Some(Gate::Blocked { .. })));
+}
+
 #[test]
 fn should_release_the_gate_when_the_prompt_is_allowed_and_drop_the_call_when_denied() {
     let t = Clock::new();

@@ -10,20 +10,33 @@ snapshot replaces a whole scope, unless an event has spoken since the snapshot
 was taken (`AsOf::supersedes`). Time is the third input: graces expire and
 dwells promote.
 
+Two groups in the test file, Discovery and The view, are regression checks
+on provided code (`discover`, `discovered`, `view.rs`) and pass before you
+start. Six green tests at the outset is not a sign you wrote something.
+
 ## Implement
 
 **`src/reduce/snapshot.rs`**:
 
-- `apply_snapshot` arms:
-  - `Limits`: newer-or-equal only, publish nothing if the value is unchanged,
-    and re-settle every agent on the account.
-  - `Subagents`: drop the snapshot if it was taken before `last_event`.
-  - `Waits`
+- `apply_snapshot` arms. `Limits` first, because it has the three-way rule:
+  - `Limits`: newer-or-equal only (an older snapshot is dropped), publish
+    nothing if the value is unchanged, and otherwise re-settle every agent
+    on the account, with `Cause::Agent` and `Confidence::Snapshot`. This arm
+    needs the `Board` destructure *inside* the arm: the `&mut Account` you
+    got from `entry().or_default()` must be dead before it.
+  - `Subagents`: find the agent by session and drop the snapshot if it was
+    taken **not after** `last_event` (`AsOf::supersedes` is a strict `>`, so
+    the same instant is dropped too). Otherwise `replace_panel`, publish,
+    and settle.
+  - `Waits`: no event creates or ends a wait, so there is nothing for a
+    `Stop`'s snapshot to be stale against. It replaces outright, via
+    `replace_waits`, then publishes and settles.
   - `Processes` (with `discover` / `discovered`), `Beat` and `Placements` are
     provided. Discovery ships early because every test harness from T07 on
     builds boards through it.
 - `replace_panel(old: &Subagents, rows, taken) -> Subagents`: keep each
-  surviving row's gate.
+  surviving row's gate (and its `parent`, which the panel does not carry);
+  `last_seen` is `taken`; the source becomes `Panel`.
 - `replace_waits(old: BTreeMap<..>, rows, taken)`: note that it takes the old
   map **by value**. `old.remove(&id)` hands back the old `Wait`, so `armed`
   carries over with no clone. The caller gets that map with
@@ -31,10 +44,17 @@ dwells promote.
 
 **`src/reduce/tick.rs`**:
 
-- `tick` and `expire`. Staleness may end a turn, but never one that is parked
-  on a gate. It also forgets a subagent row past `SUBAGENT_STALE` (54 of 168
+- `tick`: expire every agent, then settle every agent with `Cause::Agent`
+  and `Confidence::Inferred`. That second half is what promotes a pending
+  escalation at its deadline.
+- `expire`. Staleness may end a turn, but never one that is parked on a
+  gate. A turn closed by staleness becomes `Idle { after: None }`: how it
+  ended is unknown, so no outcome is claimed. `idle` and `working` in
+  `event.rs` are private to that module; write the `Activity::Idle` literal
+  here. It also forgets a subagent row past `SUBAGENT_STALE` (54 of 168
   captured children never reported a stop), whoever owns the table, unless
-  the row holds a gate.
+  the row holds a gate; and it drops waits and parked prompts past their
+  bounds and a compaction past `COMPACTION_STALE`.
 - `stale_turn_deadline` (one `then`) and `stale_subagent_deadline` (another)
 - `next_deadline` and `deadlines`: the pending promotion, the stale turn, the
   compaction, every wait, every parked prompt, and every ungated subagent
@@ -56,6 +76,10 @@ the same order as `Agent::phase`.
    sources in the chain borrow from `agent`, and which are already owned?
 3. `SNAPSHOT_DWELL` is 6 s and the tick passes `Confidence::Inferred`, yet a
    snapshot escalation still promotes after 6 s rather than 10. Why?
+4. In the `Limits` arm, the `&mut Account` from `entry().or_default()` must
+   be dead before the loop that calls `limits_for(accounts, ..)`. Rewrite
+   the loop to read that account's `limits` directly instead of calling
+   `limits_for`, and explain the error you get.
 
 ## Done when
 

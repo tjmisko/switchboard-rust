@@ -1,4 +1,8 @@
 //! T09 — snapshots, time, and the view.
+//!
+//! Two groups, Discovery and The view, exercise provided code and pass
+//! before T09 starts. They are regression checks on `discover`,
+//! `discovered` and `view.rs`, not on anything you write here.
 
 mod common;
 
@@ -27,7 +31,8 @@ fn sub_row(id: &str, status: SubagentStatus) -> SubagentRow {
 }
 
 // ---------------------------------------------------------------------------
-// Discovery
+// Discovery (provided code: `discover` and `discovered` ship with the
+// scaffold, so this group already passes)
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -483,7 +488,8 @@ fn should_report_the_earliest_deadline_across_agents_or_none() {
 }
 
 // ---------------------------------------------------------------------------
-// The view
+// The view (provided code: `view.rs` ships with the scaffold, so this group
+// already passes)
 // ---------------------------------------------------------------------------
 
 #[test]
