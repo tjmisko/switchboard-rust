@@ -51,22 +51,25 @@ The repository carries far more documentation than the course needs. This
 is the whole reading list, in order:
 
 1. This file.
-2. The header of `src/model.rs`, which now maps each of its sections to the
+2. The header of `src/model.rs`, which maps each of its sections to the
    task that first needs it. Read a section when its task arrives, not before.
-3. [`docs/03-types-and-transitions.md`](../docs/03-types-and-transitions.md)
-   before T03: which harness signal drives each transition.
-4. [`docs/02-session-machine.md`](../docs/02-session-machine.md) before T07:
-   phase as a fold, the turn's tool map, one machine per child.
-5. [`docs/04-cost-model.md`](../docs/04-cost-model.md) before T09: where
-   every timeout and hysteresis constant comes from.
-6. The [architecture explorer](../docs/architecture-explorer/README.md),
+3. Before T03: the field table in
+   `docs/product/survey/14-hook-events-verified.md` §1.1 and the module
+   comment at the top of `src/ingest/claude/hook.rs`. That is the whole
+   hook-to-event mapping. Nothing else.
+4. Before T05: `docs/product/survey/10-transcript-facts.md` §5 (the table of
+   user-line shapes) and §6 (error lines). Skip the rest.
+5. Before T07: the module comment at the top of `src/reduce/mod.rs`, which
+   carries the three conclusions the reducer rests on and translates the
+   design documents' vocabulary into the code's. Then, only if you want the
+   argument behind them, `docs/02-session-machine.md` §0.1, §2 and §3 and
+   `docs/03-types-and-transitions.md` §4 and §13. Both documents use older
+   type names and spend half their length on a second provider the course
+   has frozen out; read them for the reasoning, not the names.
+6. Before T09: [`docs/04-cost-model.md`](../docs/04-cost-model.md), which is
+   short and is where every timeout and hysteresis constant comes from.
+7. The [architecture explorer](../docs/architecture-explorer/README.md),
    whenever you want the picture.
-
-Reference, only when a task sheet points at it: the signal fixtures in
-`docs/product/survey/09-signal-fixtures.md` and the verified hook fields in
-`docs/product/survey/14-hook-events-verified.md` (T03), the transcript facts
-in `docs/product/survey/10-transcript-facts.md` (T05), and the live signals
-guide at https://claude.ai/code/artifact/3e90d067-8f18-40cd-9217-51018bb323c2.
 
 Ignore everything else under `docs/product/` and `todo.md`. Those are the
 owner's notes for the product track: the rewrite plan, the surveys, the
@@ -93,8 +96,12 @@ for what comes after.
 | [T12](tasks/T12-tasks.md) | async III: tasks that own things | 1h | | `t12_tasks` |
 | [T13](tasks/T13-capstone.md) | Capstone: run it on your own agents | 30m | open-ended | — |
 
-Order matters up to T09: each task uses the one before it. T10–T12 depend only
-on T09 and can be done in any order.
+Order matters throughout. Up to T09 each task uses the one before it. T10–T12
+each compile and test on their own against T09, but do them as numbered: T10
+builds the two channels from the core's side, T11 uses both from the other
+side, and T12 spawns the tasks that feed them. T07 is the course's one real
+jump and its sheet is in two halves, T07a and T07b, with a passing suite
+between them.
 
 ## Rules of the road
 

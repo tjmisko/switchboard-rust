@@ -8,8 +8,8 @@ order):
 
 | File | Read before | What it settles |
 |---|---|---|
-| `02-session-machine.md` | T07 | phase as a fold over the axes, the turn's tool map, one machine per child |
-| `03-types-and-transitions.md` | T03 | why `src/model.rs` has the shape it has, and which harness signal drives each transition |
+| `02-session-machine.md` | T07, optional | the argument for phase as a fold, the turn's tool map, one machine per child; the conclusions are restated in `src/reduce/mod.rs` in the code's own vocabulary |
+| `03-types-and-transitions.md` | T07, optional | why `src/model.rs` has the shape it has; its transition sections (§4, §13) are reducer material, not adapter material |
 | `04-cost-model.md` | T09 | every latency and hysteresis constant, and the asymmetry behind `Shown` |
 | `architecture-explorer/` | any time | an interactive picture of the pipeline; open `index.html` |
 
