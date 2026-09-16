@@ -1280,7 +1280,7 @@ agent.shown.settle(
       id: "dwell", title: "Truth can lead the display", subtitle: "Inferred failure → pending escalation → timer promotion",
       status: "implemented",
       summary: "This trace isolates the current Shown hysteresis rule: an inferred, agent-caused failure waits ten seconds before amber. Assume no other event arrives during the dwell. Live transcript polling uses Confirmed after its initial read.",
-      source: refs(["src/model.rs", 1004], ["src/model.rs", 1054], ["src/reduce/mod.rs", 93], ["src/reduce/tick.rs", 83], ["src/daemon/core.rs", 22], ["docs/audit/repro/adv_bugs.rs", 411]),
+      source: refs(["src/model.rs", 1004], ["src/model.rs", 1054], ["src/reduce/mod.rs", 93], ["src/reduce/tick.rs", 83], ["src/daemon/core.rs", 22], ["docs/product/audit/repro/adv_bugs.rs", 411]),
       steps: [
         step("Read failure evidence during replay", "watcher", ["watcher", "adapters"],
           "The initial transcript read uses Confidence::Inferred. An API error line becomes a failed turn. This example has no quotaLimits field, keeping account limits out of the trace.",
@@ -1445,7 +1445,7 @@ row.gate = None;
       id: "deadlines", title: "Quiet is not dead", subtitle: "Stale-turn deadline → gate protection → process death cleanup",
       status: "implemented",
       summary: "A silent turn and a dead process are different facts. The timer may retire an unguarded stale turn; only Died removes the agent. This trace deliberately leaves a joined approval open while time passes.",
-      source: refs(["src/reduce/tick.rs", 13], ["src/reduce/tick.rs", 67], ["src/daemon/scanner.rs", 54], ["src/reduce/event.rs", 28], ["src/daemon/effects.rs", 74], ["docs/audit/repro/adv_daemon_bugs.rs", 30]),
+      source: refs(["src/reduce/tick.rs", 13], ["src/reduce/tick.rs", 67], ["src/daemon/scanner.rs", 54], ["src/reduce/event.rs", 28], ["src/daemon/effects.rs", 74], ["docs/product/audit/repro/adv_daemon_bugs.rs", 30]),
       steps: [
         step("A turn has a stale deadline", "core", ["board", "core"],
           "A Turn with no blocked own tool and no compaction has a deadline ten minutes after its last tool/turn activity update. CPU ticks do not themselves refresh that activity deadline.",
@@ -1541,7 +1541,7 @@ write_atomic(&path, body.as_bytes()).await;`, state("Attention", { turn: "Turn",
       id: "replay-gap", title: "Restart replays history as fresh inputs", subtitle: "Known gaps · missing gates, synthetic history, stale account limits",
       status: "known-gap",
       summary: "This is the current recovery path, including audited failures. There is no Input::Replay batch, persisted gate model, or dual-clock Now type yet. The diagram intentionally exposes what reconstruction can and cannot know.",
-      source: refs(["src/daemon/watcher.rs", 39], ["src/ingest/claude/transcript.rs", 56], ["src/ingest/claude/transcript.rs", 186], ["src/reduce/tick.rs", 83], ["docs/audit/repro/adv_daemon_bugs.rs", 140], ["docs/audit/repro/adv_bugs.rs", 58]),
+      source: refs(["src/daemon/watcher.rs", 39], ["src/ingest/claude/transcript.rs", 56], ["src/ingest/claude/transcript.rs", 186], ["src/reduce/tick.rs", 83], ["docs/product/audit/repro/adv_daemon_bugs.rs", 140], ["docs/product/audit/repro/adv_bugs.rs", 58]),
       steps: [
         step("Restart begins with an empty board", "board", ["scanner", "inbox", "core", "board", "view"],
           "Discovery reconstructs process and session identity. The agent begins Unobserved/Unknown; the reducer does not reload open gates from history. The process itself may still be parked at a real approval prompt.",
@@ -1596,7 +1596,7 @@ TurnStarted { turn: Some(Prompt("old-2")), origin: Human }
       id: "subagent-gap", title: "A child has two calls, but only one gate slot", subtitle: "Known gap · an unrelated completion clears a live prompt",
       status: "known-gap",
       summary: "The parent has a tools map, but Subagent currently has only Option<Gate>. This asymmetry explains the audited bug without requiring provider-specific logic in the fold. A shared per-call actor model remains a proposal.",
-      source: refs(["src/model.rs", 878], ["src/reduce/event.rs", 131], ["src/reduce/event.rs", 368], ["src/reduce/event.rs", 491], ["docs/audit/repro/adv_bugs.rs", 267]),
+      source: refs(["src/model.rs", 878], ["src/reduce/event.rs", 131], ["src/reduce/event.rs", 368], ["src/reduce/event.rs", 491], ["docs/product/audit/repro/adv_bugs.rs", 267]),
       steps: [
         step("The child starts beneath an idle parent", "board", ["hook", "socket", "adapters", "inbox", "core", "board", "fold"],
           "SubagentStart creates a1 in the parent's Subagents table. With no own turn open, the running child makes the parent Delegating.",

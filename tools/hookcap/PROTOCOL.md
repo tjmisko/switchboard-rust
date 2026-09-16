@@ -1,7 +1,7 @@
 # Signal-capture experiment
 
-Settles the questions the design is currently guessing at (`docs/10-open-items.md` A1,
-`docs/survey/14` §5, and the open decisions O1, O2 and O4) by recording what Claude
+Settles the questions the design is currently guessing at (`docs/product/10-open-items.md` A1,
+`docs/product/survey/14` §5, and the open decisions O1, O2 and O4) by recording what Claude
 Code and Codex actually emit on this machine.
 
 ## What it records

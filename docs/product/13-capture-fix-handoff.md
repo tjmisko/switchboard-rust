@@ -61,9 +61,9 @@ in place):
    stays golden-only as the end-to-end file that runs real payload shapes
    through adapter and reducer. Names were kept where they already stated
    the behaviour.
-5. **Documents corrected** (golden, exercises and main): `docs/survey/10`
-   (the 32 s claim, now 60 ms median / 101 ms max), `docs/survey/14`
-   (`session_title` and `source` never captured), `docs/05` (`limits_feed`
+5. **Documents corrected** (golden, exercises and main): `docs/product/survey/10`
+   (the 32 s claim, now 60 ms median / 101 ms max), `docs/product/survey/14`
+   (`session_title` and `source` never captured), `docs/product/05` (`limits_feed`
    row), and the signals guide (Codex `PermissionRequest` has no
    `tool_use_id`; the two Claude rows; the capability row).
 
@@ -82,7 +82,7 @@ Found while fixing, not in the queue:
 
 ## Rules that still bind
 
-From `docs/11-golden-audit-handoff.md`, unchanged:
+From `docs/product/11-golden-audit-handoff.md`, unchanged:
 
 - A public signature change must land in five places: golden, the `exercises`
   branch, `main` (as a commit the learner merges), the task sheet, and the guide.
@@ -302,7 +302,7 @@ The audit flagged several fixtures as inferred. These now have real shapes:
 
 - The guide's ingestion table says Codex `PermissionRequest` carries
   `tool_use_id`. It does not (0 of 31).
-- `docs/survey/10` says a transcript `end_turn` can precede the turn's real end
+- `docs/product/survey/10` says a transcript `end_turn` can precede the turn's real end
   by up to 32 s. Measured at 60 ms median, 101 ms max over 30 pairs.
 - The guide lists `session_title` as the naming source, and
   `UserPromptSubmit.source` as the human/machine discriminator. Neither field

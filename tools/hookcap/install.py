@@ -35,7 +35,7 @@ CLAUDE_EVENTS = [
     "ElicitationResult", "SubagentStart", "SubagentStop", "TeammateIdle", "TaskCreated",
     "TaskCompleted", "CwdChanged", "PreCompact", "PostCompact", "SessionEnd",
 ]
-# Verified against the Codex 0.154 binary (docs/survey/14 §2).
+# Verified against the Codex 0.154 binary (docs/product/survey/14 §2).
 CODEX_EVENTS = [
     "SessionStart", "UserPromptSubmit", "PreToolUse", "PermissionRequest", "PostToolUse", "Stop",
     "SubagentStart", "SubagentStop", "Interrupt", "PreCompact", "PostCompact", "SessionEnd",

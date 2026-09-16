@@ -6,9 +6,9 @@ Codex binaries, and this machine's transcript corpus. All written 2026-09-10
 and 2026-09-11. The synthesis is `../00-rewrite-plan.md`; the concurrency
 argument is `../01-concurrency-design.md`; the state-machine shape (phase as a
 fold, the turn's tool map, per-child machines, and the asymmetric blind spots)
-is `../02-session-machine.md`; the concrete Rust types, the per-transition
+is `../../../02-session-machine.md`; the concrete Rust types, the per-transition
 harness mechanisms, and the two non-hook channels (`statusLine`,
-`subagentStatusLine`) are in `../03-types-and-transitions.md`.
+`subagentStatusLine`) are in `../../../03-types-and-transitions.md`.
 
 Live reference with captured examples of every signal:
 https://claude.ai/code/artifact/3e90d067-8f18-40cd-9217-51018bb323c2

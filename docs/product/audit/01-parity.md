@@ -220,19 +220,19 @@ There are 111 Go capabilities in the matrix: 16 recovered, 8 improved, 26 partia
 
 ## 3. Where Rust is right and Go is wrong
 
-1. **False green after an API error or usage limit.** Go only listens for `Stop` (`observer.go:568-574`), which never fires on an API failure, so the chip stays green indefinitely (`docs/survey/13-tail-sentinels.md:19-22`). Rust turns StopFailure (`hook.rs:201-212`) or an `isApiErrorMessage` transcript line (`transcript.rs:142-155`) into Blocked. Caveat in §4.6.
+1. **False green after an API error or usage limit.** Go only listens for `Stop` (`observer.go:568-574`), which never fires on an API failure, so the chip stays green indefinitely (`docs/product/survey/13-tail-sentinels.md:19-22`). Rust turns StopFailure (`hook.rs:201-212`) or an `isApiErrorMessage` transcript line (`transcript.rs:142-155`) into Blocked. Caveat in §4.6.
 2. **Stale red after answering a prompt.** `04-cost-model.md:119-130` (R4) names this Go's costliest bug.
-   - *Go:* a decline fires no hook, so it waits for the 5 s Observe tick. An approval with subagents in flight is held by the fanout floor (`observer.go:539`). Codex approval red is re-asserted until you type (`codex_hook_transitions.go:953-993`; `docs/survey/14-hook-events-verified.md:121`).
+   - *Go:* a decline fires no hook, so it waits for the 5 s Observe tick. An approval with subagents in flight is held by the fanout floor (`observer.go:539`). Codex approval red is re-asserted until you type (`codex_hook_transitions.go:953-993`; `docs/product/survey/14-hook-events-verified.md:121`).
    - *Rust:* approval clears on the PostToolUse id match (`event.rs:351-358`); a decline clears from the transcript within about 200 ms (`transcript.rs:115-134`).
 3. **Esc feedback.** Go catches the interrupt marker on a 5 s tick and shows orange idle (`observer.go:1607-1609`). Rust keys on `interruptedMessageId` and `PostToolUseFailure.is_interrupt`, marks it user-caused, and shows amber immediately (`transcript.rs:87-97`, `hook.rs:166-179`, `model.rs:1073`). This is the "contradicted calm" case in `04-cost-model.md` §2–3.
 4. **Pricing and `inference_geo`.**
-   - *Go:* Claude transcripts report `inference_geo:"not_available"` (`docs/survey/10-transcript-facts.md:332`). Go's `selectRates` treats any value other than empty, global or default as a geography (`calculate.go:260-266`). Only a `us` multiplier exists (`source.go:185-188`), so every current Claude request comes back "inference geography price is unavailable" and the whole estimate is marked unknown (`calculate.go:44-47`). No Go test covers `not_available`.
+   - *Go:* Claude transcripts report `inference_geo:"not_available"` (`docs/product/survey/10-transcript-facts.md:332`). Go's `selectRates` treats any value other than empty, global or default as a geography (`calculate.go:260-266`). Only a `us` multiplier exists (`source.go:185-188`), so every current Claude request comes back "inference geography price is unavailable" and the whole estimate is marked unknown (`calculate.go:44-47`). No Go test covers `not_available`.
    - *Rust:* `usage.rs` ignores the field and prices at base rates. But that code isn't wired to anything.
 5. **Process identity.** Rust keys on the kernel start time (`model.rs:123`) and rejects zombies (`proc.rs:147`). Go has a zombie rediscovery loop (survey 02 §6.2).
 6. **Session known before the first hook** (`proc.rs:129-160`), so the transcript can be replayed as soon as the agent is discovered.
-7. **Waiting on background tasks and crons.** Go has no such state (`docs/survey/12-waiting-sessions.md:256-266`).
-8. **MCP elicitation shows as attention.** Go misses it (`docs/survey/14-hook-events-verified.md:84`). Caveat: Rust doesn't handle ElicitationResult, so the red lingers until the turn ends.
-9. **Anti-flap dwell and a rule that unowned gates stay grey** (`model.rs:1054-1107,1199-1203`). In Go, 53 Auto-review false-red episodes led to a 30 s grace (`docs/survey/07-design-history-and-decisions.md:142`). No Codex code exists in Rust yet to exercise this.
+7. **Waiting on background tasks and crons.** Go has no such state (`docs/product/survey/12-waiting-sessions.md:256-266`).
+8. **MCP elicitation shows as attention.** Go misses it (`docs/product/survey/14-hook-events-verified.md:84`). Caveat: Rust doesn't handle ElicitationResult, so the red lingers until the turn ends.
+9. **Anti-flap dwell and a rule that unowned gates stay grey** (`model.rs:1054-1107,1199-1203`). In Go, 53 Auto-review false-red episodes led to a 30 s grace (`docs/product/survey/07-design-history-and-decisions.md:142`). No Codex code exists in Rust yet to exercise this.
 10. **cwd follows CwdChanged** (`event.rs:234-241`); Go records cwd once at discovery. Caveat in §4.14.
 
 ## 4. What a user would notice if Rust replaced Go today

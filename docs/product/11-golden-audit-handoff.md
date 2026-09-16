@@ -17,17 +17,17 @@ The framing, from the user: **this is a redesign, not a port.** Go feature parit
 
 | Thing | Location | State |
 |---|---|---|
-| Golden reference | branch `golden`, worktree `.worktrees/golden` | 241 tests green, clippy clean. Last commit `95839c7` (`abort_all`). This doc and `docs/audit/` are uncommitted until the handoff commit. |
+| Golden reference | branch `golden`, worktree `.worktrees/golden` | 241 tests green, clippy clean. Last commit `95839c7` (`abort_all`). This doc and `docs/product/audit/` are uncommitted until the handoff commit. |
 | Scaffold | branch `exercises`, worktree `.worktrees/exercises` | Golden with `todo!("T0N")` bodies, TDD skeletons, no golden-only files. `f8fd7cc`. |
 | Learner workspace | `main` | Scaffold squash-merged: `ee6bd7a`, then `becc14b` (T08/T12 stubs). **Check `git log main` for learner commits before touching `main`.** |
 | Course docs | `exercises/README.md`, `exercises/tasks/T01–T13`; kata answers `exercises/ANSWERS-golden.md` (golden only) | |
 | Study guide | `~/Guides/Building Switchboard in Rust.html` | Editable sources: `~/.cache/sbr-audit/guide-src/[1-7]*.html`. Concatenate in order to rebuild. |
 | Hidden suites (golden only) | `tests/t02_forward_golden.rs`, `t04_tail_golden.rs`, `t07_turns_golden.rs` | |
-| Audit reports (full text) | `docs/audit/01-parity.md`, `02-complexity.md`, `03-adversarial.md`, `04-coverage.md` | |
-| Failing bug repros | `docs/audit/repro/adv_bugs.rs` (15), `adv_daemon_bugs.rs` (5) | Written against golden's public API; they fail today. Copy into `tests/` to use. |
-| Corpus / property / fuzz harnesses | `docs/audit/repro/adv_corpus.rs`, `adv_props.rs`, `adv_history.rs`, `adv_proc.rs`, `adv_tail.rs`, `adv_daemon_fuzz.py`, `adv_cascade.py`, `adv_forwarder.sh`, `adv_shape_*.py` | The `.rs` ones are `#[ignore]`; run with `cargo test --release -- --ignored`. They need `tests/common/`. |
+| Audit reports (full text) | `docs/product/audit/01-parity.md`, `02-complexity.md`, `03-adversarial.md`, `04-coverage.md` | |
+| Failing bug repros | `docs/product/audit/repro/adv_bugs.rs` (15), `adv_daemon_bugs.rs` (5) | Written against golden's public API; they fail today. Copy into `tests/` to use. |
+| Corpus / property / fuzz harnesses | `docs/product/audit/repro/adv_corpus.rs`, `adv_props.rs`, `adv_history.rs`, `adv_proc.rs`, `adv_tail.rs`, `adv_daemon_fuzz.py`, `adv_cascade.py`, `adv_forwarder.sh`, `adv_shape_*.py` | The `.rs` ones are `#[ignore]`; run with `cargo test --release -- --ignored`. They need `tests/common/`. |
 | Mutation driver | `~/.cache/sbr-audit/mutate.py`, results `~/.cache/sbr-audit/mutations.jsonl` | 96 mutations, 43 killed. |
-| Go/Rust analysers | `~/.cache/sbr-audit/tools/` (`goanalyze`, `rsanalyze`, `compare.py`) | Commands are in `docs/audit/02-complexity.md`. |
+| Go/Rust analysers | `~/.cache/sbr-audit/tools/` (`goanalyze`, `rsanalyze`, `compare.py`) | Commands are in `docs/product/audit/02-complexity.md`. |
 
 ## Workflow invariants — do not break
 
@@ -144,7 +144,7 @@ For each row: what Go does, what Rust does, the question, and how to settle it w
 | Death detection | pidfd per process | sweep diff every 1 s | Is 1 s death latency ever costly? | Cost model says removal latency is cheap | Keep the sweep; drop pidfd (simplification) — but fix #3 |
 | Transcript watch | 5 s tail re-read | 200 ms size poll | CPU cost with N agents vs inotify; Esc latency | Measure the poll's CPU at 10 agents | Keep the poll unless measured cost bites |
 | PreToolUse matcher | restricted + 330-line call-id latch | assumes unrestricted | Require an unrestricted PreToolUse (one spawn per tool call) and delete the latch? | Measure hook spawn cost and latency on a busy session | Require unrestricted; document install |
-| Subagents | directory scan + stale caps + workflows | hooks (+ panel reducer with no producer) | Minimum signal set? Does `subagentStatusLine` fire with the panel closed (open item A1)? | Run the capture harness (`docs/10-open-items.md` A1) | Hooks + panel; no directory scan |
+| Subagents | directory scan + stale caps + workflows | hooks (+ panel reducer with no producer) | Minimum signal set? Does `subagentStatusLine` fire with the panel closed (open item A1)? | Run the capture harness (`docs/product/10-open-items.md` A1) | Hooks + panel; no directory scan |
 | Headless `claude -p` | tracked, flagged | rejected by the classifier | Show them? They cause bug #2 | Corpus has 17 nested runs; ask the user | Ignore, and fix attribution |
 | Ctrl-Z suspended | flag + history | none | Worth one `stat` field? | Cheap | Keep (tiny) |
 | Turn end | `Stop` hook / 5 s tick | a transcript block with `end_turn` | `end_turn` fires up to 32 s early | Corpus timing: `end_turn` vs `stop_hook_summary` / `turn_duration` | End on `Stop` or `turn_duration`, not `end_turn` |
@@ -173,7 +173,7 @@ Evidence tools already built:
 
 ## Recommended next session
 
-1. Orient on this doc and `docs/audit/03-adversarial.md`.
+1. Orient on this doc and `docs/product/audit/03-adversarial.md`.
 2. Walk the user through the Queue C rows marked "yes/ask" and the Design? rows in Queue A: #1, #2, #4, #5, #7, #9, #15, C-A4. Get decisions.
 3. Run the hook-capture experiment (docs/10 A1) if subagent, Esc or `/clear` behaviour is still unknown.
 4. Then fix in this order: high bugs → P0 tests → low bugs → P1 tests → course propagation. Run the mutation driver at the end.

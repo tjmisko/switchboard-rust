@@ -1,21 +1,21 @@
 # Switchboard in Rust — rewrite plan (draft 1, 2026-09-10)
 
-This is the synthesis of the surveys in `docs/survey/` (index in
-`docs/survey/README.md`; 01–08 cover the Go daemon and the prior Rust attempt,
+This is the synthesis of the surveys in `docs/product/survey/` (index in
+`docs/product/survey/README.md`; 01–08 cover the Go daemon and the prior Rust attempt,
 09–14 cover the signals, transcripts, hooks, and the two installed binaries).
-The concurrency argument behind §3 is in `docs/01-concurrency-design.md`;
+The concurrency argument behind §3 is in `docs/product/01-concurrency-design.md`;
 the state-machine shape behind §4 is in `docs/02-session-machine.md`; the
 concrete types and the per-transition harness mechanisms are in
 `docs/03-types-and-transitions.md`; the cost model that sets every latency and
 hysteresis decision is `docs/04-cost-model.md`; the module layout and the
-capability model for tracking daily harness releases are `docs/05-modules.md`;
+capability model for tracking daily harness releases are `docs/product/05-modules.md`;
 what the rewrite owes `switchboard-dashboard`, and why that is almost nothing,
-is `docs/06-dashboard-boundary.md`; the history record's own shape and how to
-stop recomputing it per request is `docs/07-history-data-model.md`; the lighter
-write/anneal/read architecture for the dashboard is `docs/08-dashboard-redesign.md`,
+is `docs/product/06-dashboard-boundary.md`; the history record's own shape and how to
+stop recomputing it per request is `docs/product/07-history-data-model.md`; the lighter
+write/anneal/read architecture for the dashboard is `docs/product/08-dashboard-redesign.md`,
 and where precomputation should stop — superseding §4 of that document — is
-`docs/09-precomputation-boundary.md`. What is still undecided or unrecorded,
-ordered by how much it blocks, is `docs/10-open-items.md`.
+`docs/product/09-precomputation-boundary.md`. What is still undecided or unrecorded,
+ordered by how much it blocks, is `docs/product/10-open-items.md`.
 The types themselves are sketched, compiling, in `src/model.rs`. It is
 a proposal to iterate on, not a spec. Every section ends with the decisions it
 leaves open.
