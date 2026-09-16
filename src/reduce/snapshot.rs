@@ -28,7 +28,31 @@ pub fn apply_snapshot(board: &mut Board, snapshot: Snapshot) -> Vec<Effect> {
         }
 
         SnapshotKind::Limits { account, value } => {
-            todo!("T09: newer-or-equal only; unchanged publishes nothing; re-settle the account")
+            let Board { agents, accounts } = board;
+            let held = accounts.entry(account.clone()).or_default();
+            if held.limits.as_ref().is_some_and(|l| l.as_of > taken) {
+                return effects.finish();
+            }
+            let unchanged = held.limits.as_ref().is_some_and(|l| l.value == value);
+            held.limits = Some(AsOf {
+                value,
+                as_of: taken,
+            });
+            if unchanged {
+                return effects.finish();
+            }
+            // Account-wide: every agent billing here just changed truth.
+            for agent in agents.values_mut().filter(|a| a.account == account) {
+                let limits = limits_for(accounts, agent);
+                effects.history(settle(
+                    agent,
+                    limits,
+                    Cause::Agent,
+                    Confidence::Snapshot,
+                    taken,
+                ));
+            }
+            effects.publish_if(true);
         }
 
         SnapshotKind::Beat { session, value } => {
@@ -49,13 +73,52 @@ pub fn apply_snapshot(board: &mut Board, snapshot: Snapshot) -> Vec<Effect> {
         }
 
         SnapshotKind::Subagents { session, rows } => {
-            todo!("T09: find the agent by session; drop if not `AsOf::supersedes` its last event")
+            let Board { agents, accounts } = board;
+            let Some(agent) = agents
+                .values_mut()
+                .find(|a| a.session.as_ref() == Some(&session))
+            else {
+                return effects.finish();
+            };
+            let panel = AsOf {
+                value: rows,
+                as_of: taken,
+            };
+            if !panel.supersedes(agent.last_event) {
+                return effects.finish();
+            }
+            agent.subagents = replace_panel(&agent.subagents, panel.value, taken);
+            let limits = limits_for(accounts, agent);
+            effects.history(settle(
+                agent,
+                limits,
+                Cause::Agent,
+                Confidence::Snapshot,
+                taken,
+            ));
+            effects.publish_if(true);
         }
 
         SnapshotKind::Waits { session, rows } => {
             // No event creates or ends a wait, so there is nothing for a
             // `Stop` snapshot to be stale against: it replaces outright.
-            todo!("T09")
+            let Board { agents, accounts } = board;
+            let Some(agent) = agents
+                .values_mut()
+                .find(|a| a.session.as_ref() == Some(&session))
+            else {
+                return effects.finish();
+            };
+            agent.waits = replace_waits(std::mem::take(&mut agent.waits), rows, taken);
+            let limits = limits_for(accounts, agent);
+            effects.history(settle(
+                agent,
+                limits,
+                Cause::Agent,
+                Confidence::Snapshot,
+                taken,
+            ));
+            effects.publish_if(true);
         }
 
         SnapshotKind::Placements(rows) => {
@@ -139,7 +202,28 @@ fn discover(board: &mut Board, row: ProcessRow, taken: Instant, effects: &mut Ef
 /// The panel replaces the table. What an event learned about a row that is
 /// still present — its gate — is kept; a row that is absent is gone.
 fn replace_panel(old: &Subagents, rows: Vec<SubagentRow>, taken: Instant) -> Subagents {
-    todo!("T09")
+    let rows = rows
+        .into_iter()
+        .map(|row| {
+            let known = old.rows.get(&row.subagent);
+            let subagent = Subagent {
+                kind: row.kind,
+                status: row.status,
+                parent: known.and_then(|k| k.parent.clone()),
+                started: row.started,
+                label: row.label,
+                tokens: row.tokens,
+                gate: known.and_then(|k| k.gate.clone()),
+                last_seen: taken,
+            };
+            (row.subagent, subagent)
+        })
+        .collect();
+    Subagents {
+        rows,
+        as_of: Some(taken),
+        source: SubagentSource::Panel,
+    }
 }
 
 fn replace_waits(
@@ -147,5 +231,17 @@ fn replace_waits(
     rows: Vec<WaitRow>,
     taken: Instant,
 ) -> BTreeMap<crate::model::WaitId, Wait> {
-    todo!("T09")
+    rows.into_iter()
+        .map(|row| {
+            // A wait reported again keeps the moment it was first armed.
+            let armed = old.remove(&row.id).map_or(taken, |w| w.armed);
+            let wait = Wait {
+                kind: row.kind,
+                armed,
+                expected_by: None,
+                expires: taken + WAIT_EXPIRY,
+            };
+            (row.id, wait)
+        })
+        .collect()
 }

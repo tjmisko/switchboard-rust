@@ -514,3 +514,187 @@ below reports regressions against the four green files.
      `SUBAGENT_STALE`".
   7. Move the `has_unowned_gate` rework to the end of T07 (or T07b) so
      T08 is purely `event.rs`.
+
+### T09 — Snapshots and time
+- **Effort:** 3 cycles (1 test run, 1 clippy, 1 whole suite). 0 compiler
+  errors. Difficulty 2/5: the sheet's hints name the exact idiom for each
+  function and the tests are as precise as T08's. Roughly 40% Rust
+  (`mem::take`, a by-value map parameter whose `remove` hands back
+  ownership, a `chain` of `Option`s and borrowing iterators behind
+  `impl Iterator + '_`) and 60% reading tests and tracing how `settle`
+  and `tick` interact for the two dwell cases.
+- **Prerequisites assumed:**
+  - `BTreeMap::retain` takes a `(&K, &mut V)` closure, unlike
+    `Vec::retain`. Small, but the two appear side by side in `expire`.
+  - `Option::is_none_or` again, and `Iterator::min` on `Instant`.
+  - That `idle()` in `event.rs` is private, so `tick.rs` has to build
+    `Activity::Idle { .. }` by hand. Nothing says so; the first attempt
+    to call `idle(..)` from `tick.rs` is a visibility error.
+  - What outcome a turn closed by staleness carries (`after: None` or
+    `Some(Completed)`). Both fold to `Idle`, so the tests cannot tell. I
+    chose `None`: how it ended is unknown.
+  - `Account: Default`, needed for `accounts.entry(..).or_default()`. It
+    is derived; you find out by trying.
+- **Sheet accuracy:**
+  - Sheet: "`Limits`: newer-or-equal only, publish nothing if the value
+    is unchanged, and re-settle every agent on the account." Exact.
+  - Sheet: "`Subagents`: drop the snapshot if it was taken before
+    `last_event`." `AsOf::supersedes` is a strict `>`, so a snapshot
+    taken at the same instant as the last event is dropped too. "Not
+    after" would match the code.
+  - Sheet: "`Waits`" with no description; the scaffold's arm comment
+    carries the rule (replaces outright). Fine, but the sheet's list
+    looks truncated.
+  - Sheet: "`replace_panel` ... keep each surviving row's gate." I also
+    kept `parent`; unstated and untested.
+  - Sheet: "`tick` and `expire`. Staleness may end a turn, but never one
+    that is parked on a gate." A parked (unjoined) prompt is not a gate on
+    the turn by this reading; the `stale_turn_deadline` doc says "a gate
+    is open, or a compaction is running", which I followed. Whether a
+    parked human prompt should also hold the turn open is unpinned.
+  - Sheet: the `next_deadline` source list is complete and matches the
+    scaffold's doc; good.
+  - Sheet: "Discovery is provided ... `view.rs` is provided." True, and
+    it means six of the 21 tests (the Discovery group and the View
+    group) pass before T09 starts. The sheet should say those groups are
+    regression checks on provided code, so the learner does not wonder
+    what they wrote that made them pass.
+  - The scaffold `deadlines` body is the `todo!(); std::iter::empty()`
+    pattern again; same remark as T06.
+  - Kata 3's premise ("the tick passes `Confidence::Inferred`") is the
+    only place that tells you what confidence `tick` should settle with.
+    It should be in the implement list, not smuggled into a kata.
+- **Where I got stuck:** Nowhere. One borrow-ordering point worth
+  flagging: in the `Limits` arm, `held: &mut Account` comes from
+  `accounts` and the re-settle loop then calls `limits_for(accounts, ..)`
+  by shared reference. That compiles only because `held` is dead by the
+  loop. A learner who keeps `held` around (say, to read `held.limits`
+  inside the loop instead of calling `limits_for`) gets E0502 and no hint
+  that the fix is to call `limits_for`.
+- **What this drilled:** `mem::take` to move a field out through `&mut`;
+  a `BTreeMap` taken by value with `remove` handing back the old value;
+  `AsOf::supersedes` with a real payload; `retain` on `Vec` and
+  `BTreeMap`; `bool::then` for deadlines; a `chain` of `Option`s and
+  borrowing iterators behind `impl Iterator + '_`; `flat_map` with a
+  function item; `min` over `Instant`s; the second `Board` destructure
+  pattern (inside a match arm). Incidental: the two-dwell reasoning in
+  kata 3, which is the cost model rather than Rust.
+- **Ordering:** Right as the reducer's closer. It reuses everything from
+  T07 and T08 and adds the time axis. The snapshot arms and the tick
+  could be two half-tasks, but neither is heavy enough to need it. If
+  anything, the `Limits` arm is the most instructive snapshot (it has the
+  three-way rule) and could lead the sheet's list with a sentence more.
+- **Confidence after:** Solid on `mem::take` and by-value ownership.
+  Reasonably solid on `impl Iterator + '_` after kata 2. Shaky on the
+  `Board` destructure being needed per arm (a learner may destructure
+  once above the `match` and then wonder why `snapshot.kind` arms that
+  use only `board.agents.get_mut` were written the other way), and on
+  the privacy boundary between `event.rs` helpers and `tick.rs`.
+- **Suggestions:**
+  1. Say in the sheet that `tick` settles with `Cause::Agent,
+     Confidence::Inferred`, and that a stale-closed turn carries
+     `after: None`.
+  2. Either make `idle`/`working` `pub(super)` in `event.rs` or say that
+     `tick.rs` builds the `Idle` literal itself.
+  3. Mark the Discovery and View test groups as "provided code, should
+     already pass".
+  4. Change "taken before `last_event`" to "not after `last_event`".
+  5. Add a kata: "In the `Limits` arm, why must `held` be dead before the
+     loop that calls `limits_for(accounts, ..)`? Rewrite the loop to read
+     `held.limits` directly and explain the error."
+  6. Replace the `todo!(); std::iter::empty()` body pattern with a
+     comment, as for T06.
+
+## Overall
+
+**The shape of the ramp.** Difficulty by task: T05 2, T06 2, T07 4,
+T08 3, T09 2. The jump is entirely at T07, and it is not mainly a Rust
+jump. T05 and T06 are the same exercise as T03 in different clothes, and
+a learner who finished T03 will find them comfortable. T07 lands three
+things at once: the largest new slice of `model.rs` (sections 4 to 8,
+roughly 750 lines, most of it needed), the first test-first task whose
+rule list is incomplete, and the first sustained contact with the borrow
+checker on mutable state. T08 and T09 are easier than T07 because their
+tests are provided and precise; the reducer stretch is therefore
+front-loaded in exactly the wrong way, with the hardest step first and
+the two easier ones after.
+
+A candid note on the effort numbers: across five tasks I hit one real
+compiler error (a missing import) and one clippy warning, and every file
+compiled on its first or second attempt. That is a floor, not an
+estimate. A learner with the README's gap list would hit the borrow
+checker at least in `end_turn` (write-through-shared-borrow), `dispatch`
+(the `let ... else` after making the pattern irrefutable), `route`
+(returning `&mut`), `ancestors` (missing `move`), and the `Limits` arm
+(`held` overlapping `limits_for`). The journal's "where I got stuck"
+sections name those spots because they are where the stuck-ness would
+be, not where mine was.
+
+**The three biggest pedagogical problems.**
+
+1. **T07 is three tasks in one.** Model comprehension, test authoring
+   against an open spec, and ownership in a mutable fold each deserve
+   their own step. The T07 sheet's rule list reads as complete and is
+   not (idle and unobserved `TurnEnded`, settle on no-op, tracked pid
+   versus foreign session), so the test-first requirement turns into
+   "decide the product semantics yourself, then find out at grading".
+   That is the opposite of building confidence early.
+
+2. **Signposts that point at documentation which is not there.** T06:
+   "the rules are in the doc comment" (they are not; they are the test
+   cases). T08: the arm list groups `SubagentStarted`/`Ended` with the
+   subagent-actor arms though they live in different functions. T05: the
+   module table omits `isSidechain` and `isMeta`, which two tests depend
+   on. T07: docs/02 is the listed reading and uses a different vocabulary
+   from the code (`Root`/`Child`/`Writer` versus
+   `Agent`/`Subagent`/`Actor`) while spending half its length on Codex,
+   which the course has frozen out. Each costs a learner ten to thirty
+   minutes of "am I missing a file?".
+
+3. **Semantics left open exactly where the learner cannot self-check.**
+   `answer(call: None)`, a subagent's settle versus its parked prompts,
+   `park` duplicates, the stale-closed turn's outcome, whether a parked
+   prompt holds a turn open, whether `settle` runs on a no-op, whether a
+   `SessionStarted` with the *same* session resets anything. None is
+   hard; each is a coin the learner flips and then carries for three
+   tasks. The hidden golden suite converts these into grading surprises
+   rather than teaching moments. Pin them in the sheet or in a visible
+   test, and keep the hidden suite for genuine edge cases.
+
+**Recommended restructuring for T05–T09.**
+
+- **T06 before T05.** T06 is shorter, depends on nothing after T04, and
+  its `Cow`/`AsRef` content sits next to T01's. T05's `event` closure
+  pattern is then the last thing the learner wrote before T07 reuses it.
+  Optionally pull `usage.rs` out of T05 into a 20-minute "operator traits
+  and borrowed keys" mini-task between them.
+- **Split T07 into T07a and T07b.** T07a: `route`, `limits_for`,
+  `settle`, and `apply_event` with only the `SessionStarted`,
+  `SessionEnded`, `Died`, `CwdChanged` and `Compaction*` arms, plus the
+  routing, discovery, death and cwd test groups. The answers here are
+  obvious, the harness starts passing early, and the `Copy`-key kata and
+  the `Board` destructure get drilled in isolation. About 45 minutes.
+  T07b: `idle`, `working`, `end_turn`, `dispatch`, `settle_call` and the
+  turn and tool groups, with the rule list completed (idle and unobserved
+  `TurnEnded`, no-op settle policy, denial and the turn). About 75
+  minutes. Ship the `*_unjoined` placeholders in the scaffold so T07 does
+  not edit T08 stubs.
+- **Move the `has_unowned_gate` rework and the `phase` reorder to the
+  end of T07b**, where `Agent::phase` is first read closely, so T08 is
+  purely `event.rs`.
+- **T08 as is**, with the arm list regrouped by function, the import
+  added, and the three unpinned semantics pinned by visible tests.
+- **T09 as is**, with the tick's confidence and the stale-turn outcome
+  stated, and the provided-code test groups labelled.
+- **Replace the docs/02 reading** with its three load-bearing
+  conclusions written into `reduce/mod.rs`'s module comment (the turn
+  holds a map; phase is a fold, not a field; a child raises attention
+  and never lowers it), and a two-line vocabulary translation. Keep
+  docs/04, which is short and exactly on point for T08 and T09.
+
+Should T07 and T08 be split into more, smaller tasks? T07 yes, into the
+two halves above. T08 no: it is already the best-specified sheet of the
+five and its tests carry the join semantics almost completely. The
+reducer stretch then reads T07a (lifecycle), T07b (turns and tools), T08
+(the join), T09 (snapshots and time), each with a visible passing suite
+before the next, which is the ramp the README promises.
