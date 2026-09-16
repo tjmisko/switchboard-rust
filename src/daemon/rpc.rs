@@ -35,7 +35,24 @@ pub async fn serve(
     view: watch::Receiver<Arc<View>>,
     proc_root: PathBuf,
 ) {
-    todo!("T11")
+    let proc_root: Arc<Path> = Arc::from(proc_root);
+    loop {
+        let stream = match listener.accept().await {
+            Ok((stream, _)) => stream,
+            Err(e) => {
+                eprintln!("switchboard: accept failed: {e}");
+                continue;
+            }
+        };
+        let (read, write) = stream.into_split();
+        tokio::spawn(handle(
+            read,
+            write,
+            inbox.clone(),
+            view.clone(),
+            Arc::clone(&proc_root),
+        ));
+    }
 }
 
 /// Serve one connection until the peer closes it.
@@ -52,11 +69,61 @@ pub async fn handle<R, W>(
     R: AsyncRead + Unpin,
     W: AsyncWrite + Unpin,
 {
-    todo!("T11")
+    let mut lines = BufReader::new(read.take(MAX_CONNECTION_BYTES)).lines();
+    while let Ok(Some(line)) = lines.next_line().await {
+        let request = match decode_request(&line) {
+            Ok(request) => request,
+            Err(e) => {
+                if write_line(&mut write, &error_reply(&e)).await.is_err() {
+                    return;
+                }
+                continue;
+            }
+        };
+        let reply = match request {
+            Request::Hook(frame) => {
+                let process = resolve(&proc_root, frame.pid, &view).await;
+                let ctx = Ctx {
+                    now: now(),
+                    process,
+                };
+                offer(&inbox, claude::hook(&frame, &ctx));
+                ok_reply()
+            }
+            Request::Statusline(frame) => {
+                let process = resolve(&proc_root, frame.pid, &view).await;
+                let ctx = Ctx {
+                    now: now(),
+                    process,
+                };
+                offer(&inbox, claude::statusline(&frame, &default_account(), &ctx));
+                ok_reply()
+            }
+            Request::List => snapshot_line(&view.borrow()),
+            Request::Subscribe => {
+                let first = snapshot_line(&view.borrow_and_update());
+                if write_line(&mut write, &first).await.is_err() {
+                    return;
+                }
+                while view.changed().await.is_ok() {
+                    let next = snapshot_line(&view.borrow_and_update());
+                    if write_line(&mut write, &next).await.is_err() {
+                        return;
+                    }
+                }
+                return;
+            }
+        };
+        if write_line(&mut write, &reply).await.is_err() {
+            return;
+        }
+    }
 }
 
 async fn write_line<W: AsyncWrite + Unpin>(write: &mut W, line: &str) -> std::io::Result<()> {
-    todo!("T11")
+    write.write_all(line.as_bytes()).await?;
+    write.write_all(b"\n").await?;
+    write.flush().await
 }
 
 fn snapshot_line(view: &View) -> String {
@@ -67,7 +134,18 @@ fn snapshot_line(view: &View) -> String {
 /// Offer inputs without waiting. A full inbox means the core is behind; a
 /// dropped hook is recovered by the transcript, a stalled agent is not.
 fn offer(inbox: &mpsc::Sender<Input>, inputs: Vec<Input>) {
-    todo!("T11")
+    use mpsc::error::TrySendError;
+
+    for input in inputs {
+        match inbox.try_send(input) {
+            Ok(()) => {}
+            Err(TrySendError::Full(_)) => {
+                eprintln!("switchboard: inbox full, dropping an input");
+            }
+            // The core is gone; the daemon is shutting down.
+            Err(TrySendError::Closed(_)) => return,
+        }
+    }
 }
 
 /// The tracked agent a hook came from: the nearest ancestor of the
@@ -81,5 +159,17 @@ pub async fn resolve(
     pid: Option<u32>,
     view: &watch::Receiver<Arc<View>>,
 ) -> Option<ProcKey> {
-    todo!("T11")
+    let pid = pid?;
+    let tracked: Vec<ProcKey> = view.borrow().agents.iter().map(|a| a.process).collect();
+    if tracked.is_empty() {
+        return None;
+    }
+    let root = Arc::clone(proc_root);
+    tokio::task::spawn_blocking(move || {
+        ancestors(&root, pid, ANCESTOR_LIMIT)
+            .find_map(|p| tracked.iter().find(|k| k.pid == p).copied())
+    })
+    .await
+    .ok()
+    .flatten()
 }
