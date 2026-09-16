@@ -17,13 +17,19 @@ use crate::model::{Agent, SessionId};
 /// A non-UTF-8 path is slugged from its lossy form, which only ever replaces
 /// characters that would have become `-` anyway.
 pub fn cwd_slug(cwd: &Path) -> String {
-    todo!("T01")
+    let lossy: Cow<'_, str> = cwd.to_string_lossy();
+    lossy
+        .chars()
+        .map(|c| if c.is_ascii_alphanumeric() { c } else { '-' })
+        .collect()
 }
 
 /// `<projects>/<cwd-slug>/<session>.jsonl`, where `projects` is normally
 /// `~/.claude/projects`.
 pub fn transcript_path(projects: &Path, cwd: &Path, session: &SessionId) -> PathBuf {
-    todo!("T01")
+    projects
+        .join(cwd_slug(cwd))
+        .join(format!("{session}.jsonl"))
 }
 
 /// The last component of a working directory, when it is valid UTF-8.
@@ -31,13 +37,18 @@ pub fn transcript_path(projects: &Path, cwd: &Path, session: &SessionId) -> Path
 /// Borrows from `cwd`: the returned `&str` lives exactly as long as the path
 /// it was read from.
 pub fn workspace_name(cwd: &Path) -> Option<&str> {
-    todo!("T01")
+    cwd.file_name().and_then(|name| name.to_str())
 }
 
 /// The name a chip shows: the session title, else the workspace, else the
 /// last component of the cwd, else `"?"`.
 pub fn display_name(agent: &Agent) -> &str {
-    todo!("T01")
+    agent
+        .title
+        .as_deref()
+        .or(agent.workspace.as_deref())
+        .or_else(|| workspace_name(&agent.cwd))
+        .unwrap_or("?")
 }
 
 /// `$HOME`, or `None` when it is unset or empty.
@@ -66,7 +77,9 @@ pub fn socket_path() -> PathBuf {
 /// `state.json` -> `state.json.tmp`, in the same directory so the final
 /// `rename` stays on one filesystem. `None` for a path with no file name.
 pub fn temp_sibling(path: &Path) -> Option<PathBuf> {
-    todo!("T01")
+    let mut name = path.file_name()?.to_os_string();
+    name.push(".tmp");
+    Some(path.with_file_name(name))
 }
 
 /// Every well-known location, resolved once at startup from the environment.

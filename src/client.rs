@@ -18,5 +18,23 @@ use crate::ingest::forward::interpret_reply;
 /// Each step maps its `io::Error` to the variant that says which step failed,
 /// which is why there is no blanket `From<io::Error>` for `ForwardError`.
 pub fn send(socket: &Path, frame: &Value, timeout: Duration) -> Result<(), ForwardError> {
-    todo!("T02")
+    let stream = UnixStream::connect(socket).map_err(ForwardError::Connect)?;
+    stream
+        .set_write_timeout(Some(timeout))
+        .and_then(|()| stream.set_read_timeout(Some(timeout)))
+        .map_err(ForwardError::Io)?;
+
+    let mut line = frame.to_string();
+    line.push('\n');
+    // `Write` and `Read` are implemented for `&UnixStream`, so one stream can
+    // be written through one shared reference and read through another.
+    (&stream)
+        .write_all(line.as_bytes())
+        .map_err(ForwardError::Io)?;
+
+    let mut reply = String::new();
+    BufReader::new(&stream)
+        .read_line(&mut reply)
+        .map_err(ForwardError::Io)?;
+    interpret_reply(reply.trim_end())
 }
