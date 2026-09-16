@@ -216,11 +216,6 @@ mod tests {
         assert_eq!(SubagentId::from_file_stem("other"), None);
     }
 
-    #[test]
-    fn should_round_trip_every_phase_through_its_name() {
-        for p in Phase::ALL {
-            assert_eq!(p.as_str().parse::<Phase>(), Ok(p));
-        }
-        assert!("permission".parse::<Phase>().is_err());
-    }
+    // The `Phase` round trip through `FromStr` is pinned by `t02_errors`,
+    // so nothing here needs T02 and the whole module is green after T01.
 }

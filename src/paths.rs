@@ -8,11 +8,13 @@ use std::path::{Path, PathBuf};
 
 use crate::model::{Agent, SessionId};
 
-/// Claude's project directory name for a working directory: every byte that
-/// is not an ASCII letter or digit becomes `-`.
+/// Claude's project directory name for a working directory: every character
+/// that is not an ASCII letter or digit becomes `-`. Character, not byte: `é`
+/// is two bytes and one `char`, and it becomes one `-`.
 ///
 /// `/home/u/Projects/switchboard-rust` -> `-home-u-Projects-switchboard-rust`
 /// `/home/u/.claude`                   -> `-home-u--claude`
+/// `/home/u/café`                      -> `-home-u-caf-`
 ///
 /// A non-UTF-8 path is slugged from its lossy form, which only ever replaces
 /// characters that would have become `-` anyway.
@@ -106,7 +108,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn should_replace_every_non_alphanumeric_byte_when_slugging_a_cwd() {
+    fn should_replace_every_non_alphanumeric_character_when_slugging_a_cwd() {
         assert_eq!(
             cwd_slug(Path::new(
                 "/home/u/Projects/Arachne/.worktrees/feat/f90-drain"

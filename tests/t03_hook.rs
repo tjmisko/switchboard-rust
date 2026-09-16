@@ -154,7 +154,14 @@ fn should_still_produce_a_frame_when_stdin_was_not_an_object() {
 
 /// raw stdin -> scrub -> socket line -> decode -> adapter
 fn through_socket(fixture: &str, event: &str) -> Vec<Input> {
-    let raw = fixture_json(&format!("claude/hooks/{fixture}"));
+    through_socket_edited(fixture, event, |_| {})
+}
+
+/// The same path, after `edit` has changed the raw payload: for the shapes
+/// no captured payload has, such as a field left out or an unknown value.
+fn through_socket_edited(fixture: &str, event: &str, edit: impl FnOnce(&mut Value)) -> Vec<Input> {
+    let mut raw = fixture_json(&format!("claude/hooks/{fixture}"));
+    edit(&mut raw);
     let line = scrub(raw, Some(event), 4036).to_string();
     let Request::Hook(frame) = decode_request(&line).expect("decodes") else {
         panic!("not a hook frame");
@@ -574,4 +581,232 @@ fn should_produce_nothing_when_a_tool_event_lacks_its_call_id() {
         process: None,
     };
     assert!(claude::hook(&frame, &ctx).is_empty());
+}
+
+// ---------------------------------------------------------------------------
+// decisions the captured payloads leave open, pinned one by one
+// ---------------------------------------------------------------------------
+
+fn remove(raw: &mut Value, field: &str) {
+    raw.as_object_mut().unwrap().remove(field);
+}
+
+/// `SubagentStop` carries no outcome field. The child stopped, and that is
+/// all the hook can say, so the outcome is `Completed`; a failed or killed
+/// child is the transcript's story.
+#[test]
+fn should_report_a_completed_subagent_when_subagent_stop_carries_no_outcome() {
+    let e = only_event(through_socket("subagent_stop.json", "SubagentStop"));
+    assert!(matches!(
+        e.kind,
+        EventKind::SubagentEnded {
+            outcome: SubagentOutcome::Completed,
+            ..
+        }
+    ));
+}
+
+/// `agent_type` is not read. Every captured value is `general-purpose`, the
+/// names of custom agents are open strings, and a teammate or workflow agent
+/// arrives through other signals, so every hook-announced child is a `Task`.
+#[test]
+fn should_treat_every_agent_type_as_a_task_subagent() {
+    for agent_type in [Some("Explore"), Some("general-purpose"), None] {
+        let e = only_event(through_socket_edited(
+            "subagent_start.json",
+            "SubagentStart",
+            |raw| match agent_type {
+                Some(t) => raw["agent_type"] = json!(t),
+                None => remove(raw, "agent_type"),
+            },
+        ));
+        assert!(
+            matches!(
+                e.kind,
+                EventKind::SubagentStarted {
+                    kind: SubagentKind::Task,
+                    ..
+                }
+            ),
+            "{agent_type:?}: {:?}",
+            e.kind
+        );
+    }
+}
+
+/// `PermissionDenied.reason` is an open string shared with other subsystems,
+/// not the `toolDenialKind` vocabulary, and whether a human decline fires
+/// the hook at all is unmeasured. So the reason is never read: the call is
+/// settled as denied by `PermissionRule`, even when `reason` happens to
+/// spell a `Denier`, and the transcript line stays authoritative for who
+/// denied.
+#[test]
+fn should_settle_a_denied_call_by_rule_whatever_reason_permission_denied_gives() {
+    let e = only_event(through_socket("permission_denied.json", "PermissionDenied"));
+    assert_eq!(e.cause, Cause::Agent);
+    assert!(matches!(
+        &e.kind,
+        EventKind::PermissionSettled {
+            call: Some(call),
+            req: None,
+            outcome: Decision::Denied {
+                by: Denier::PermissionRule
+            },
+        } if call.as_str() == "toolu_01Den"
+    ));
+
+    let e = only_event(through_socket_edited(
+        "permission_denied.json",
+        "PermissionDenied",
+        |raw| raw["reason"] = json!("user-rejected"),
+    ));
+    assert!(matches!(
+        e.kind,
+        EventKind::PermissionSettled {
+            outcome: Decision::Denied {
+                by: Denier::PermissionRule
+            },
+            ..
+        }
+    ));
+}
+
+/// `Elicitation` has no `tool_name`: an MCP server is asking the operator a
+/// question. The gate is named after the server, and after `mcp` when the
+/// payload does not say which. There is no call id and nothing to hash.
+#[test]
+fn should_raise_a_question_gate_named_after_the_mcp_server_when_elicitation_fires() {
+    let e = only_event(through_socket("elicitation.json", "Elicitation"));
+    assert!(matches!(
+        &e.kind,
+        EventKind::PermissionAsked {
+            call: None,
+            tool,
+            hash: None,
+            owner: Ownership::Human,
+            kind: GateKind::Question,
+        } if tool.as_str() == "github"
+    ));
+
+    let e = only_event(through_socket_edited("elicitation.json", "Elicitation", |raw| {
+        remove(raw, "mcp_server_name")
+    }));
+    assert!(matches!(
+        &e.kind,
+        EventKind::PermissionAsked { tool, .. } if tool.as_str() == "mcp"
+    ));
+}
+
+/// `SessionEnd` still ends the session when `reason` is absent; the reason
+/// then reads `other`, the only value the binary has been seen to send.
+#[test]
+fn should_end_the_session_with_the_reason_given_or_other_when_it_is_absent() {
+    let e = only_event(through_socket("session_end.json", "SessionEnd"));
+    assert!(matches!(
+        &e.kind,
+        EventKind::SessionEnded { reason } if &**reason == "prompt_input_exit"
+    ));
+
+    let e = only_event(through_socket_edited("session_end.json", "SessionEnd", |raw| {
+        remove(raw, "reason")
+    }));
+    assert!(matches!(
+        &e.kind,
+        EventKind::SessionEnded { reason } if &**reason == "other"
+    ));
+}
+
+/// A `SessionStart` whose `source` is missing or outside the vocabulary is
+/// still a start: it reads as `Startup`, caused by the agent. Dropping it
+/// would leave the agent unobserved for the sake of a label.
+#[test]
+fn should_start_a_session_as_startup_when_source_is_unknown_or_absent() {
+    for source in [Some("reboot"), None] {
+        let e = only_event(through_socket_edited(
+            "session_start_startup.json",
+            "SessionStart",
+            |raw| match source {
+                Some(s) => raw["source"] = json!(s),
+                None => remove(raw, "source"),
+            },
+        ));
+        assert_eq!(e.cause, Cause::Agent, "{source:?}");
+        assert!(
+            matches!(
+                e.kind,
+                EventKind::SessionStarted {
+                    source: StartSource::Startup,
+                    ..
+                }
+            ),
+            "{source:?}: {:?}",
+            e.kind
+        );
+    }
+}
+
+/// A background task is a wait while its `status` is `running`, `pending`,
+/// or missing altogether. Any other status (`completed`, `failed`, `killed`,
+/// and whatever a later build adds) means the task is over and it is dropped
+/// from the snapshot.
+#[test]
+fn should_keep_pending_and_unlabelled_tasks_and_drop_finished_ones_when_snapshotting_waits() {
+    let inputs = through_socket_edited("stop_with_waits.json", "Stop", |raw| {
+        raw["background_tasks"] = json!([
+            {"id": "p", "type": "shell", "status": "pending"},
+            {"id": "u", "type": "monitor"},
+            {"id": "r", "type": "workflow", "status": "running"},
+            {"id": "f", "type": "shell", "status": "failed"},
+            {"id": "k", "type": "shell", "status": "killed"},
+            {"id": "c", "type": "shell", "status": "completed"},
+            {"id": "x", "type": "shell", "status": "paused"}
+        ]);
+        remove(raw, "session_crons");
+    });
+    let Some(Input::Snapshot(Snapshot {
+        kind: SnapshotKind::Waits { rows, .. },
+        ..
+    })) = inputs.get(1)
+    else {
+        panic!("waits snapshot second: {inputs:?}");
+    };
+    let ids: Vec<&str> = rows.iter().map(|r| r.id.0.as_ref()).collect();
+    assert_eq!(ids, ["p", "u", "r"]);
+}
+
+/// `PreToolUse` needs only `tool_use_id` and `tool_name`. With no
+/// `tool_input` there is nothing to hash, and `ToolDispatched.hash` is not
+/// optional, so the dispatch carries the hash of JSON `null`. The event is
+/// not dropped: the tool did start.
+#[test]
+fn should_dispatch_with_the_hash_of_null_when_pre_tool_use_carries_no_input() {
+    let e = only_event(through_socket_edited(
+        "pre_tool_use_bash.json",
+        "PreToolUse",
+        |raw| remove(raw, "tool_input"),
+    ));
+    assert!(matches!(
+        &e.kind,
+        EventKind::ToolDispatched { hash, .. } if *hash == input_hash(&Value::Null)
+    ));
+}
+
+/// `background_tasks: []` is a report of no waits, which is not the same as
+/// no report: the snapshot is still produced, with no rows, so the reducer
+/// can clear the waits it was holding.
+#[test]
+fn should_snapshot_an_empty_wait_list_when_stop_says_background_tasks_is_empty() {
+    let inputs = through_socket_edited("stop_with_waits.json", "Stop", |raw| {
+        raw["background_tasks"] = json!([]);
+        remove(raw, "session_crons");
+    });
+    assert_eq!(inputs.len(), 2, "{inputs:?}");
+    let Some(Input::Snapshot(Snapshot {
+        kind: SnapshotKind::Waits { rows, .. },
+        ..
+    })) = inputs.get(1)
+    else {
+        panic!("waits snapshot second: {inputs:?}");
+    };
+    assert!(rows.is_empty());
 }
