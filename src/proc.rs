@@ -63,20 +63,20 @@ impl Stat {
 /// parse is `BadNumber { field: name, .. }`. No paren pair, or a `)` before
 /// the `(`, is `NoComm`.
 pub fn parse_stat(s: &str) -> Result<Stat, StatError> {
-    todo!("T06")
+    todo!("T05")
 }
 
 fn number<T: std::str::FromStr<Err = std::num::ParseIntError>>(
     text: &str,
     field: &'static str,
 ) -> Result<T, StatError> {
-    todo!("T06")
+    todo!("T05")
 }
 
 /// `/proc/<pid>/cmdline`: NUL-separated, NUL-terminated, not necessarily
 /// UTF-8. Each argument borrows from `bytes` unless it had to be repaired.
 pub fn parse_cmdline(bytes: &[u8]) -> Vec<Cow<'_, str>> {
-    todo!("T06")
+    todo!("T05")
 }
 
 /// Whether a process is an interactive Claude session.
@@ -98,26 +98,26 @@ pub fn parse_cmdline(bytes: &[u8]) -> Vec<Cow<'_, str>> {
 ///
 /// Everything else is `Provider::Claude`.
 pub fn classify<S: AsRef<str>>(comm: &str, exe: Option<&Path>, argv: &[S]) -> Option<Provider> {
-    todo!("T06")
+    todo!("T05")
 }
 
 /// A session file `~/.claude/sessions/<pid>.json` names the conversation only
 /// if it was written by this very process: `procStart` is a string and must
 /// equal the stat start time.
 pub fn session_from_file(v: &Value, key: ProcKey) -> Option<SessionId> {
-    todo!("T06")
+    todo!("T05")
 }
 
 /// The same file's `name`: the display name the operator sees in Claude's
 /// own UI (`switchboard-rust-7f`), derived by the harness or set with
 /// `/rename`. Under the same guard as the session, for the same reason.
 pub fn name_from_file(v: &Value, key: ProcKey) -> Option<Box<str>> {
-    todo!("T06")
+    todo!("T05")
 }
 
 /// Whether a session file was written by the process `key` names.
 fn written_by(v: &Value, key: ProcKey) -> bool {
-    todo!("T06")
+    todo!("T05")
 }
 
 /// Read and classify one `/proc/<pid>`. `None` for anything that is not a
@@ -171,7 +171,7 @@ pub fn sweep(proc_root: &Path, sessions: &Path) -> Vec<ProcessRow> {
 
 /// The parent of `pid`, or `None` at the root or when it cannot be read.
 pub fn parent_of(proc_root: &Path, pid: u32) -> Option<u32> {
-    todo!("T06")
+    todo!("T05")
 }
 
 /// `pid`, its parent, its grandparent, … at most `limit` of them.
@@ -183,9 +183,9 @@ pub fn parent_of(proc_root: &Path, pid: u32) -> Option<u32> {
 /// A hook runs as `claude -> sh -> switchboard-hook`, so the pid the
 /// forwarder reports is rarely the agent itself.
 pub fn ancestors(proc_root: &Path, pid: u32, limit: usize) -> impl Iterator<Item = u32> + '_ {
-    // T06. Replace this whole body. The `empty()` below only keeps the
+    // T05. Replace this whole body. The `empty()` below only keeps the
     // `impl Iterator` signature compiling until you do; it is not a start.
-    todo!("T06");
+    todo!("T05");
     #[allow(unreachable_code)]
     std::iter::empty()
 }
@@ -193,7 +193,7 @@ pub fn ancestors(proc_root: &Path, pid: u32, limit: usize) -> impl Iterator<Item
 /// The start time of `pid`, to turn a bare pid into a `ProcKey`. Reads the
 /// same `stat` file as `parent_of`; the two can share a helper.
 pub fn key_of(proc_root: &Path, pid: u32) -> Option<ProcKey> {
-    todo!("T06")
+    todo!("T05")
 }
 
 #[cfg(test)]

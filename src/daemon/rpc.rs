@@ -35,7 +35,7 @@ pub async fn serve(
     view: watch::Receiver<Arc<View>>,
     proc_root: PathBuf,
 ) {
-    todo!("T11")
+    todo!("T12")
 }
 
 /// Serve one connection until the peer closes it.
@@ -60,11 +60,11 @@ pub async fn handle<R, W>(
     R: AsyncRead + Unpin,
     W: AsyncWrite + Unpin,
 {
-    todo!("T11")
+    todo!("T12")
 }
 
 async fn write_line<W: AsyncWrite + Unpin>(write: &mut W, line: &str) -> std::io::Result<()> {
-    todo!("T11")
+    todo!("T12")
 }
 
 fn snapshot_line(view: &View) -> String {
@@ -75,7 +75,7 @@ fn snapshot_line(view: &View) -> String {
 /// Offer inputs without waiting. A full inbox means the core is behind; a
 /// dropped hook is recovered by the transcript, a stalled agent is not.
 fn offer(inbox: &mpsc::Sender<Input>, inputs: Vec<Input>) {
-    todo!("T11")
+    todo!("T12")
 }
 
 /// The tracked agent a hook came from: the nearest tracked ancestor of
@@ -96,5 +96,5 @@ pub async fn resolve(
     pid: Option<u32>,
     view: &watch::Receiver<Arc<View>>,
 ) -> Option<ProcKey> {
-    todo!("T11")
+    todo!("T12")
 }

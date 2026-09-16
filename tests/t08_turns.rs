@@ -1,9 +1,9 @@
-//! T07 — YOUR tests for the reducer: routing, sessions, turns, tools.
+//! T08 — YOUR tests for the reducer: routing, sessions, turns, tools.
 //!
-//! One file, two halves. The T07a groups (routing, discovery, death and cwd)
-//! need only the T07a code: `route`, `limits_for`, `settle`, `apply_event`
+//! One file, two halves. The T08a groups (routing, discovery, death and cwd)
+//! need only the T08a code: `route`, `limits_for`, `settle`, `apply_event`
 //! and the `SessionStarted`, `SessionEnded`, `CwdChanged`, `Compaction*` and
-//! `Died` arms. The T07b groups need the turn and tool arms. Work one group
+//! `Died` arms. The T08b groups need the turn and tool arms. Work one group
 //! at a time: write every body in the group, run it and see it fail, then
 //! implement until the group passes. `tests/common/mod.rs` has the builders.
 //! Read it first, `row` included: it fabricates the cwd
@@ -15,7 +15,7 @@
 //! Each stub says which one it wants where it is not `board_with`.
 //!
 //! No test in this file may use `from_subagent`: `transition` hands a
-//! subagent's event to `subagent_transition`, which is T08's.
+//! subagent's event to `subagent_transition`, which is T09's.
 //!
 //! The list is not complete. Section "yours" at the bottom wants at least four
 //! more tests. Good places to look: what `last_event` should do, what a
@@ -36,10 +36,10 @@ use common::*;
 use switchboard::model::*;
 
 // ---------------------------------------------------------------------------
-// T07a — Routing and identity
+// T08a — Routing and identity
 // ---------------------------------------------------------------------------
 //
-// `TurnStarted` is T07b, so probe routing with a T07a arm: `CwdChanged` to a
+// `TurnStarted` is T08b, so probe routing with a T08a arm: `CwdChanged` to a
 // fresh path lands on exactly one agent, and you can read `cwd` back.
 
 /// An event whose pid and session match nothing produces no effects and
@@ -89,7 +89,7 @@ fn should_ignore_a_late_event_for_the_previous_session_after_clear() {
 
 /// A rotation wipes the old conversation. The agent is idle with no outcome,
 /// the title updates, the new transcript is watched, and the chip shows idle.
-/// (In T07b, come back and start a turn before the rotation, to see it
+/// (In T08b, come back and start a turn before the rotation, to see it
 /// wiped.)
 #[test]
 fn should_reset_the_conversation_and_watch_the_new_transcript_when_the_session_rotates() {
@@ -97,7 +97,7 @@ fn should_reset_the_conversation_and_watch_the_new_transcript_when_the_session_r
 }
 
 // ---------------------------------------------------------------------------
-// T07a — Discovery and the first event
+// T08a — Discovery and the first event
 // ---------------------------------------------------------------------------
 
 /// Discovered and never heard from: truth and shown are both `Unknown`, which
@@ -116,7 +116,7 @@ fn should_go_idle_on_session_start() {
 }
 
 // ---------------------------------------------------------------------------
-// T07a — Death, cwd, bookkeeping
+// T08a — Death, cwd, bookkeeping
 // ---------------------------------------------------------------------------
 
 /// `Died` removes only that agent, emits `Forget` and `AgentGone`, and
@@ -139,7 +139,7 @@ fn should_publish_nothing_for_session_end_because_it_is_not_liveness() {
 }
 
 // ---------------------------------------------------------------------------
-// T07b — Turns
+// T08b — Turns
 // ---------------------------------------------------------------------------
 
 /// A turn starting shows `Working` immediately. The history entry is exact:
@@ -210,7 +210,7 @@ fn should_start_a_turn_when_a_tool_is_dispatched_while_idle() {
 }
 
 // ---------------------------------------------------------------------------
-// T07b — Tools
+// T08b — Tools
 // ---------------------------------------------------------------------------
 
 /// The same call dispatched twice (hook, then transcript) produces no effects.
@@ -246,7 +246,7 @@ fn should_keep_the_turn_when_a_tool_merely_fails() {
 }
 
 // ---------------------------------------------------------------------------
-// T07b — The fold: an unowned gate mid-turn
+// T08b — The fold: an unowned gate mid-turn
 // ---------------------------------------------------------------------------
 
 /// A gate nobody owns, held by a call mid-turn, folds to `Unknown` (grey):
@@ -256,7 +256,7 @@ fn should_keep_the_turn_when_a_tool_merely_fails() {
 /// Build the state by hand: start a turn, then set `agent.activity` to a
 /// `Turn` whose `tools` map holds one `Tool` with a `Gate::Blocked` owned by
 /// `Ownership::Unknown` (`b.agents.get_mut(&key(1))`). The reducer path that
-/// makes such a gate is `ask`, which is T08's; this pins `Agent::phase`
+/// makes such a gate is `ask`, which is T09's; this pins `Agent::phase`
 /// alone. Assert on `truth`, and on `.lamp()`.
 #[test]
 fn should_render_an_unowned_gate_grey_never_red_even_mid_turn() {

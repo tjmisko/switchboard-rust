@@ -1,4 +1,4 @@
-//! T08 — the reducer, part II: permission gates, the join, subagents.
+//! T09 — the reducer, part II: permission gates, the join, subagents.
 
 mod common;
 
@@ -199,7 +199,7 @@ fn should_lift_every_agent_prompt_when_the_turn_ends_or_a_new_one_starts() {
 /// The hook and the transcript both report one prompt, and a
 /// `PermissionRequest` can land between the two reports. The second report
 /// is a duplicate `TurnStarted`, and a duplicate must not lift what was
-/// parked after the first: T07's duplicate check runs before its clear.
+/// parked after the first: T08's duplicate check runs before its clear.
 #[test]
 fn should_keep_a_prompt_parked_between_the_hooks_and_the_transcripts_report_of_one_prompt() {
     let t = Clock::new();

@@ -30,7 +30,7 @@ pub async fn run_until_closed(
     view: watch::Sender<Arc<View>>,
     effects: mpsc::UnboundedSender<Effect>,
 ) -> Board {
-    todo!("T10")
+    todo!("T11")
 }
 
 /// The task body the daemon spawns.
@@ -49,11 +49,11 @@ fn dispatch(
     view: &watch::Sender<Arc<View>>,
     effects: &mpsc::UnboundedSender<Effect>,
 ) {
-    todo!("T10")
+    todo!("T11")
 }
 
 /// Replace the published view only if it differs, so subscribers wake only
 /// for real changes.
 fn publish(board: &Board, view: &watch::Sender<Arc<View>>) {
-    todo!("T10")
+    todo!("T11")
 }

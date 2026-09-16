@@ -187,7 +187,7 @@ fn only_event(inputs: Vec<Input>) -> Event {
 
 /// 0 of 49 captured `SessionStart` payloads carry `session_title`. The
 /// adapter reads it as tolerance for a build that sends it, and the name
-/// otherwise comes from the session file (T06, `name_from_file`).
+/// otherwise comes from the session file (T05, `name_from_file`).
 #[test]
 fn should_start_a_session_with_no_title_when_the_payload_carries_none() {
     let e = only_event(through_socket("session_start_startup.json", "SessionStart"));
@@ -508,7 +508,7 @@ fn should_attribute_a_stop_failure_to_the_subagent_that_sent_it() {
 
 /// One question, announced twice: `PreToolUse` with the call id, then
 /// `PermissionRequest` without it and with the same `tool_input`. Both are
-/// question gates on the same hash; joining them is the reducer's job (T08).
+/// question gates on the same hash; joining them is the reducer's job (T09).
 #[test]
 fn should_announce_one_question_as_two_gates_sharing_a_hash() {
     let pre = only_event(through_socket("pre_tool_use_ask.json", "PreToolUse"));

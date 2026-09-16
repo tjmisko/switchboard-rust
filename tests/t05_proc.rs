@@ -1,4 +1,4 @@
-//! T06 — finding agents in `/proc`.
+//! T05 — finding agents in `/proc`.
 
 mod common;
 

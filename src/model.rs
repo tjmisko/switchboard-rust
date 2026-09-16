@@ -35,18 +35,18 @@
 //!
 //! | Section | First needed | Types it brings in |
 //! |---|---|---|
-//! | 1. Identity | T01 | the `id!` types (`SessionId`, `PromptId`, `TurnId`, `ToolUseId`, `SubagentId`, `ToolName`, `Host`, and the rest), and `Agent` only as the argument of `paths::display_name`; `InputHash`, `WaitId`, `Actor` in T03; `ProcKey` in T04; `Provider` in T06 |
+//! | 1. Identity | T01 | the `id!` types (`SessionId`, `PromptId`, `TurnId`, `ToolUseId`, `SubagentId`, `ToolName`, `Host`, and the rest), and `Agent` only as the argument of `paths::display_name`; `InputHash`, `WaitId`, `Actor` in T03; `ProcKey` in T04; `Provider` in T05 |
 //! | 3. Inputs, the wire enums | T02 | `StartSource` and `Denier`, whose wire names are in their doc comments and whose `FromStr` T02 writes; `Phase` from section 7, the same way. `Origin` and `ErrorClass` come with their parsers already written |
 //! | 3. Inputs, the rest | T03 | `Event`, `EventKind`, `Cause`, `Confidence`, `TurnKey`, `Snapshot`, `SnapshotKind`, and the small enums an adapter fills in: `TurnOutcome`, `ToolOutcome`, `Decision`, `Ownership`, `SubagentKind`, `SubagentOutcome`, `Trigger` |
-//! | 2. Time | T03 | `Moment`; `AsOf` (in section 3) waits for T09 |
+//! | 2. Time | T03 | `Moment`; `AsOf` (in section 3) waits for T10 |
 //! | 5. Agent, part one | T03 | `GateKind`, `WaitKind`, `WaitRow`, and `Agent` as a value the adapter never builds |
-//! | 8. Effects | T04 | `HistoryEntry` in T04; `Effect` in T07 |
+//! | 8. Effects | T04 | `HistoryEntry` in T04; `Effect` in T08 |
 //! | 7. The derived view | T04 | `Shown` |
-//! | 4. The board, part one | T05 | `Limits`, `LimitStatus`, `LimitWindow` |
-//! | 5. Agent, part two | T06 | `ProcessRow` |
-//! | 4. The board, 5. Agent | T07 | `Board`, `Account`, `Agent`, `Activity`, `Tool`, `Gate`, `Prompts`, `Unjoined`, `Compaction`; `Lamp` from section 7; `Agent::phase` and `has_unowned_gate` at the end of T07 |
-//! | 6. Subagent | T07, T08 | `Subagents`, `Subagent`, `SubagentSource`, `SubagentStatus` (read in T07 for the reset on `/clear`; worked in T08) |
-//! | 5. Agent, part three | T09 | `Life`, `Wait`, `Beat`; `Placement` from section 4; `SubagentRow` from section 6 |
+//! | 5. Agent, part two | T05 | `ProcessRow` |
+//! | 4. The board, part one | T07 | `Limits`, `LimitStatus`, `LimitWindow` |
+//! | 4. The board, 5. Agent | T08 | `Board`, `Account`, `Agent`, `Activity`, `Tool`, `Gate`, `Prompts`, `Unjoined`, `Compaction`; `Lamp` from section 7; `Agent::phase` and `has_unowned_gate` at the end of T08 |
+//! | 6. Subagent | T08, T09 | `Subagents`, `Subagent`, `SubagentSource`, `SubagentStatus` (read in T08 for the reset on `/clear`; worked in T09) |
+//! | 5. Agent, part three | T10 | `Life`, `Wait`, `Beat`; `Placement` from section 4; `SubagentRow` from section 6 |
 //! | 9. Tests | any time | the model's own unit tests, provided |
 //! | 10. Federation | no task | |
 //!
@@ -1280,7 +1280,7 @@ impl Agent {
             return Phase::Unknown;
         }
 
-        // T07b: this check is in the wrong place for a gate held mid-turn.
+        // T08b: this check is in the wrong place for a gate held mid-turn.
         if self.has_unowned_gate() {
             return Phase::Unknown;
         }
@@ -1341,7 +1341,7 @@ impl Agent {
     /// A gate whose owner was never established. Codex hooks report a gate
     /// without saying who holds it.
     ///
-    /// T07b: this only sees parked prompts. A gate on a call, or on a
+    /// T08b: this only sees parked prompts. A gate on a call, or on a
     /// subagent, is invisible to it.
     fn has_unowned_gate(&self) -> bool {
         self.prompts
@@ -1350,16 +1350,16 @@ impl Agent {
             .any(|p| p.owner == Ownership::Unknown)
     }
 
-    /// T07b, last thing: the full check. It sees parked prompts, gates on
+    /// T08b, last thing: the full check. It sees parked prompts, gates on
     /// calls, and gates on subagents. Once it passes, make it the body of
     /// `has_unowned_gate`, delete this stub, and move the check in `phase`
     /// above `Turn`. `should_render_an_unowned_gate_grey_never_red_even_mid_turn`
-    /// in your t07_turns fails until both are done.
+    /// in your t08_turns fails until both are done.
     ///
-    /// A separate stub because `phase` calls `has_unowned_gate` from T07a
-    /// on, and a `todo!()` there would fail every T07a test.
+    /// A separate stub because `phase` calls `has_unowned_gate` from T08a
+    /// on, and a `todo!()` there would fail every T08a test.
     fn unowned_gate_anywhere(&self) -> bool {
-        todo!("T07")
+        todo!("T08")
     }
 }
 

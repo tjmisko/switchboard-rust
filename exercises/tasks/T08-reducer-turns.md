@@ -1,15 +1,15 @@
-# T07 — Reducer I: routing, sessions, turns, tools
+# T08 — Reducer I: routing, sessions, turns, tools
 
-**Core: 2h, as two halves: T07a 45m, T07b 1h15 (about half of each writing
+**Core: 2h, as two halves: T08a 45m, T08b 1h15 (about half of each writing
 tests)** · Gaps: **ownership in real APIs**: mutating an enum in place
 through `&mut`, split borrows of struct fields, returning a `Copy` key
-instead of a reference · Test: **`t07_turns`, which you write**
+instead of a reference · Test: **`t08_turns`, which you write**
 
 This is the heart of the daemon, and it's where your model stops being a
-sketch. It is one task in two halves with one test file: T07a is the
+sketch. It is one task in two halves with one test file: T08a is the
 lifecycle (routing, sessions, death, cwd) and gives you a passing harness
-before any semantic decision; T07b is turns and tools, where the decisions
-are. Do not start T07b until every T07a group is green.
+before any semantic decision; T08b is turns and tools, where the decisions
+are. Do not start T08b until every T08a group is green.
 
 ## Read first
 
@@ -25,7 +25,7 @@ Also read `Effects::push`: an `AppendHistory` implies a publish. That decides
 which tests can assert `fx.is_empty()` and which can only assert
 `!publishes(&fx)`.
 
-## Write the tests first: `tests/t07_turns.rs`
+## Write the tests first: `tests/t08_turns.rs`
 
 `tests/common/mod.rs` gives you a builder harness, so a test is three to six
 lines:
@@ -44,15 +44,15 @@ Each stub says which builder it needs where it is not `board_with`
 is whether an `AgentFound` entry or an `Idle` chip already exists). Before
 implementing anything, write the body of every test in one group, run them,
 and check they fail. Then implement just enough to pass that group, and move
-to the next. No T07 test may use `from_subagent`: the first line of
+to the next. No T08 test may use `from_subagent`: the first line of
 `transition` hands a subagent's event to `subagent_transition`, which is
-T08's and stays `todo!()`.
+T09's and stays `todo!()`.
 
 The golden has its own version of each test, which I run when you grade.
 Where your test and mine disagree, one of us has found a spec ambiguity, and
 that's worth talking through.
 
-## T07a — Routing, sessions, death, cwd
+## T08a — Routing, sessions, death, cwd
 
 **`src/reduce/mod.rs`**:
 
@@ -73,10 +73,10 @@ that's worth talking through.
   hold `&mut Agent` and `&Account` at the same time.
 - `transition` arms: `SessionStarted`, `SessionEnded`, `CompactionStarted` /
   `CompactionEnded`, `CwdChanged`, and `Died` as a no-op (it was handled
-  already). Leave the turn and tool arms and the T08 arms as `todo!()`.
+  already). Leave the turn and tool arms and the T09 arms as `todo!()`.
 - `idle`, because `SessionStarted` needs it for the reset.
 
-The rules the T07a tests pin:
+The rules the T08a tests pin:
 
 - Nothing is created for an event naming no tracked agent.
 - A pid that's tracked wins over the session. An untracked pid falls back to
@@ -102,28 +102,28 @@ The rules the T07a tests pin:
   matches the screen. The reason to run it anyway: an escalation whose dwell
   has elapsed promotes on the next event instead of waiting for a tick.
 
-**Checkpoint:** the three T07a groups pass:
-`cargo test --test t07_turns -- should_create should_route should_drop should_adopt should_ignore_a_late should_reset should_show_unknown should_go_idle_on should_remove should_follow should_publish_nothing_for_session`.
+**Checkpoint:** the three T08a groups pass:
+`cargo test --test t08_turns -- should_create should_route should_drop should_adopt should_ignore_a_late should_reset should_show_unknown should_go_idle_on should_remove should_follow should_publish_nothing_for_session`.
 
-## T07b — Turns and tools
+## T08b — Turns and tools
 
 **`src/reduce/event.rs`**:
 
 - `transition` arms: `TurnStarted`, `TurnEnded`, `ToolDispatched` /
-  `ToolSettled` (**agent actor only**; T08 does subagents).
+  `ToolSettled` (**agent actor only**; T09 does subagents).
 - Helpers: `working`, `end_turn`, `dispatch`, `settle_call`. Their doc
   comments are the rules; `end_turn`'s lists the idle and unobserved cases.
-- `end_turn`, `dispatch` and `settle_call` call T08's `*_unjoined` helpers.
+- `end_turn`, `dispatch` and `settle_call` call T09's `*_unjoined` helpers.
   The scaffold ships those as placeholders (`clear_unjoined` and
   `lift_sole_unjoined` return `false`, `take_unjoined` returns `None`, each
-  marked `// T08`), so you write the calls now and T08 fills them in. Put
+  marked `// T09`), so you write the calls now and T09 fills them in. Put
   the calls where the doc comments say, on every path: `end_turn` lifts the
   agent's parked prompts before it looks at the key, idle included, and
-  `TurnStarted` lifts them after its duplicate check. T08's
+  `TurnStarted` lifts them after its duplicate check. T09's
   `should_lift_every_agent_prompt_when_the_turn_ends_or_a_new_one_starts`
   is the test that finds a call in the wrong place.
 
-The rules the T07b tests pin:
+The rules the T08b tests pin:
 
 - `TurnStarted` with the same key twice publishes nothing, and the duplicate
   check comes before anything else in the arm. A different key mid-turn
@@ -140,19 +140,19 @@ The rules the T07b tests pin:
   publishes nothing.
 - `ToolSettled{Failed{interrupt: true}}` ends the turn as interrupted. A
   plain failure, or a denial, removes the call and keeps the turn.
-- A settle for a call never dispatched publishes nothing (until T08 gives
+- A settle for a call never dispatched publishes nothing (until T09 gives
   it a parked prompt to lift).
 - `last_event` is stamped only when something changed.
 - De-escalation and user-caused escalation show immediately. An inferred,
   agent-caused escalation is truth-but-not-shown, with `pending` set.
 
 **`src/model.rs`**, last: implement the `unowned_gate_anywhere` stub
-(`todo!("T07")`), then make it the body of `Agent::has_unowned_gate` and
+(`todo!("T08")`), then make it the body of `Agent::has_unowned_gate` and
 delete the stub. Your sketch only checks parked prompts. It must also see
 tool gates and subagent gates, and its call in `Agent::phase` must move
 above the `Turn → Working` check.
 `should_render_an_unowned_gate_grey_never_red_even_mid_turn` fails until you
-do both; its stub says how to build the state without T08's `ask`.
+do both; its stub says how to build the state without T09's `ask`.
 
 ## Katas
 
@@ -176,5 +176,5 @@ do both; its stub says how to build the state without T08's `ask`.
 
 ## Done when
 
-Your `t07_turns` passes, both halves. Grading runs the hidden
-`t07_turns_golden`, which has 33 tests.
+Your `t08_turns` passes, both halves. Grading runs the hidden
+`t08_turns_golden`, which has 33 tests.

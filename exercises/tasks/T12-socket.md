@@ -1,8 +1,8 @@
-# T11 — async II: the socket
+# T12 — async II: the socket
 
 **Core: 1h** · Gaps: `AsyncRead` / `AsyncWrite` generics, `into_split`,
 `AsyncBufReadExt::lines`, `spawn_blocking` and `'static` closures, `Arc<Path>`,
-`try_send` versus `send`, `Send` futures · Test: `cargo test --test t11_rpc`
+`try_send` versus `send`, `Send` futures · Test: `cargo test --test t12_rpc`
 
 A hook connection sends one line and waits for one verdict. A subscriber sends
 one line and then reads forever. Nothing here may stall an agent, which is why
@@ -78,7 +78,7 @@ or run the tests, to see it. It bites once in `resolve` and twice in `handle`
        view change, so a subscriber that disconnects during a quiet period
        leaves its task parked on `changed()` until then. Noticing it
        promptly needs a `select!` between `changed()` and `next_line()`; both
-       are cancel-safe (T10), and that is a T13 stretch, not part of this
+       are cancel-safe (T11), and that is a T15 stretch, not part of this
        task.
 5. **`serve`**: accept in a loop, `into_split` the stream, spawn `handle`
    with clones of the inbox, the view and the root. `into_split` returns two
@@ -94,7 +94,7 @@ daemon's side of the protocol meet for the first time here.
 ## Katas
 
 1. `handle` is generic over its two halves instead of taking a `UnixStream`.
-   What does that buy in `t11_rpc`, and what does `Unpin` have to do with
+   What does that buy in `t12_rpc`, and what does `Unpin` have to do with
    calling `.read()` / `.write_all()` on a `&mut W`?
 2. What happens if you hold `let r = view.borrow();` across
    `spawn_blocking(..).await`? Is it a compile error or a runtime problem, and
@@ -108,5 +108,5 @@ daemon's side of the protocol meet for the first time here.
 
 ## Done when
 
-`t11_rpc` passes. That includes a real Unix socket served end to end to the
+`t12_rpc` passes. That includes a real Unix socket served end to end to the
 synchronous `client::send` from T02.

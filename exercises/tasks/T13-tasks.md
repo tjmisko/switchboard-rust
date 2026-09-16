@@ -1,8 +1,8 @@
-# T12 — async III: tasks that own things
+# T13 — async III: tasks that own things
 
 **Core: 1h** · Gaps: moving owned state into `spawn_blocking` and getting it
 back, `JoinHandle::abort`, `Drop` as cleanup, `HashMap<K, JoinHandle<()>>`,
-set difference on `BTreeSet` · Test: `cargo test --test t12_tasks`
+set difference on `BTreeSet` · Test: `cargo test --test t13_tasks`
 
 `scanner::run` and `history::run` are provided and are the two shapes you
 need: a ticking loop that moves an owned clone into `spawn_blocking` and gets a
@@ -43,8 +43,8 @@ E0382, "borrow of moved value: `rows`".
   `start`; `Forget` to `stop`; `AppendHistory` to `history.try_send`
   (best-effort: a full appender drops the entry rather than letting a slow
   disk back up into the core). The match must also name `PublishState`. It
-  never arrives, because your T10 `dispatch` consumed it; an empty arm with a
-  comment saying so is right, and is not a sign that T10 is wrong. The
+  never arrives, because your T11 `dispatch` consumed it; an empty arm with a
+  comment saying so is right, and is not a sign that T11 is wrong. The
   `WatchSpec` wants an account: `default_account()`. Its path is
   `transcript_path(&layout.claude_projects, &cwd, &session)`, and its poll
   and replay sizes come from `Settings`.
@@ -98,5 +98,5 @@ The loop is `scanner::run`'s shape.
 
 ## Done when
 
-`t12_tasks` passes, all ten tests, and `cargo test` is green across the whole
+`t13_tasks` passes, all ten tests, and `cargo test` is green across the whole
 crate.

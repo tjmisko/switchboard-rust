@@ -1,8 +1,8 @@
-# T06 — Finding agents in `/proc`
+# T05 — Finding agents in `/proc`
 
 **Core: 45m** · Gaps: `ok_or` into `?` over many fields, `Cow<str>`,
 `AsRef<str>` generics, `iter::successors`, `impl Iterator + '_` ·
-Test: `cargo test --test t06_proc`
+Test: `cargo test --test t05_proc`
 
 ## Implement
 
@@ -52,5 +52,5 @@ in one call.
 
 ## Done when
 
-`t06_proc` passes. That includes a sweep over a fake `/proc` built in the
+`t05_proc` passes. That includes a sweep over a fake `/proc` built in the
 target directory.

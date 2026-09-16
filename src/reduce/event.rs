@@ -31,7 +31,7 @@ use crate::reduce::{Effects, limits_for, route, settle};
 ///    screen; and an escalation whose dwell has elapsed promotes on the
 ///    next event rather than waiting for a tick.
 pub fn apply_event(board: &mut Board, event: Event) -> Vec<Effect> {
-    todo!("T07")
+    todo!("T08")
 }
 
 /// Apply one event to one agent. Returns whether anything changed.
@@ -50,7 +50,7 @@ fn transition(
     now: Instant,
     effects: &mut Effects,
 ) -> bool {
-    todo!("T07a (session, compaction, cwd arms), T07b (turn and tool arms), T08 (route subagent events, then the permission and subagent arms)")
+    todo!("T08a (session, compaction, cwd arms), T08b (turn and tool arms), T09 (route subagent events, then the permission and subagent arms)")
 }
 
 /// Apply an event a subagent sent to that subagent's row. Returns whether
@@ -70,29 +70,29 @@ fn subagent_transition(
     event: &Event,
     now: Instant,
 ) -> bool {
-    todo!("T08")
+    todo!("T09")
 }
 
 /// `Idle`, carrying how the turn that just ended did. Private to this
 /// module: `tick.rs` writes the `Idle` literal itself.
 fn idle(now: Instant, after: Option<TurnOutcome>) -> Activity {
-    todo!("T07")
+    todo!("T08")
 }
 
 /// A fresh turn with no calls open. `key` is `None` for a turn a dispatch
 /// started, because no prompt was seen.
 fn working(key: Option<TurnKey>, now: Instant) -> Activity {
-    todo!("T07")
+    todo!("T08")
 }
 
 fn blocked(u: &Unjoined) -> Gate {
-    todo!("T08")
+    todo!("T09")
 }
 
 /// Whether a prompt's hash admits a call's. A prompt that arrived without a
 /// hash matches on name alone.
 fn hash_admits(prompt: Option<InputHash>, call: InputHash) -> bool {
-    todo!("T08")
+    todo!("T09")
 }
 
 /// The agent's turn ended, by whichever signal said so.
@@ -117,7 +117,7 @@ fn end_turn(
     outcome: &TurnOutcome,
     now: Instant,
 ) -> bool {
-    todo!("T07")
+    todo!("T08")
 }
 
 /// A call was dispatched. While idle (or unobserved) this starts a keyless
@@ -130,12 +130,12 @@ fn dispatch(
     hash: InputHash,
     now: Instant,
 ) -> bool {
-    todo!("T07")
+    todo!("T08")
 }
 
 /// A call finished, by id.
 fn settle_call(agent: &mut crate::model::Agent, call: &ToolUseId, now: Instant) -> bool {
-    todo!("T07")
+    todo!("T08")
 }
 
 /// A prompt from the agent itself. Three paths: the call id is known, the
@@ -157,7 +157,7 @@ fn ask(
     kind: GateKind,
     now: Instant,
 ) -> bool {
-    todo!("T08")
+    todo!("T09")
 }
 
 /// A prompt from a subagent: its row is gated, or the prompt is parked under
@@ -171,7 +171,7 @@ fn ask_subagent(
     kind: GateKind,
     now: Instant,
 ) -> bool {
-    todo!("T08")
+    todo!("T09")
 }
 
 /// Hold a prompt that arrived before its call.
@@ -185,7 +185,7 @@ fn park(
     kind: GateKind,
     now: Instant,
 ) -> bool {
-    todo!("T08")
+    todo!("T09")
 }
 
 /// Remove and return the oldest prompt this call satisfies.
@@ -195,26 +195,26 @@ fn take_unjoined(
     tool: &ToolName,
     hash: InputHash,
 ) -> Option<Unjoined> {
-    // T08. A placeholder so T07's `dispatch` compiles and runs: nothing is
-    // ever parked before T08, so nothing is ever taken.
+    // T09. A placeholder so T08's `dispatch` compiles and runs: nothing is
+    // ever parked before T09, so nothing is ever taken.
     None
 }
 
 /// Drop every unjoined prompt held by `actor`. Returns whether any were.
 fn clear_unjoined(prompts: &mut Prompts, actor: &Actor) -> bool {
-    // T08. A placeholder so T07's `end_turn` and `TurnStarted` can call it
-    // from the right place now; nothing is parked before T08.
+    // T09. A placeholder so T08's `end_turn` and `TurnStarted` can call it
+    // from the right place now; nothing is parked before T09.
     false
 }
 
 fn lift_sole_unjoined(prompts: &mut Prompts, actor: &Actor) -> bool {
-    // T08. A placeholder so T07's `settle_call` can call it now.
+    // T09. A placeholder so T08's `settle_call` can call it now.
     false
 }
 
 /// Anything from a subagent that shows it is moving again lifts its gate.
 fn lift_subagent(agent: &mut crate::model::Agent, id: &SubagentId) -> bool {
-    todo!("T08")
+    todo!("T09")
 }
 
 /// A permission prompt was answered.
@@ -231,5 +231,5 @@ fn answer(
     outcome: Decision,
     now: Instant,
 ) -> bool {
-    todo!("T08")
+    todo!("T09")
 }

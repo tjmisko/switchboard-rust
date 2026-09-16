@@ -43,7 +43,7 @@ pub struct WatchSpec {
 /// them and handing them to the transcript adapter happens here, and a line
 /// that is not JSON is skipped.
 pub async fn run(spec: WatchSpec, inbox: mpsc::Sender<Input>) {
-    todo!("T12")
+    todo!("T13")
 }
 
 /// One blocking step: open the file if needed, then read what is new.
@@ -53,9 +53,9 @@ fn poll_once(
     path: &std::path::Path,
     replay_bytes: u64,
 ) -> (Option<(File, Tail)>, Option<Polled>) {
-    todo!("T12")
+    todo!("T13")
 }
 
 fn open_at_tail(path: &std::path::Path, replay_bytes: u64) -> io::Result<(File, Tail)> {
-    todo!("T12")
+    todo!("T13")
 }

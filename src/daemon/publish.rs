@@ -32,5 +32,5 @@ pub async fn run(mut view: watch::Receiver<Arc<View>>, path: PathBuf, coalesce: 
 /// sees the old file or the new one, never half of either. Creates the
 /// parent directory; a path with no file name is `InvalidInput`.
 pub async fn write_atomic(path: &Path, bytes: &[u8]) -> io::Result<()> {
-    todo!("T12")
+    todo!("T13")
 }

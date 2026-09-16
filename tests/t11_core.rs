@@ -1,4 +1,4 @@
-//! T10 — the core task: one owner, two wake-ups, paused time.
+//! T11 — the core task: one owner, two wake-ups, paused time.
 //!
 //! `start_paused = true` freezes tokio's clock. When every task is idle the
 //! runtime jumps the clock to the next timer, so a ten-second dwell takes no

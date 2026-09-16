@@ -1,6 +1,6 @@
 # Switchboard in Rust: an implementation course
 
-Thirteen ordered tasks, about 14 hours of core work plus stretch. When they are
+Fifteen ordered tasks, about 15 hours of core work plus stretch. When they are
 done you have a daemon that finds every Claude Code agent on the machine, tells
 you which one wants you, and keeps a history of it. That daemon is the plan in
 *Understanding Switchboard's Signals* and `src/model.rs`.
@@ -10,13 +10,14 @@ one drills a gap from your list, on code the next task builds on:
 
 | Gap | Where it is drilled hardest |
 |---|---|
-| Option / Result combinators, type flow | **T03** (hook adapter), T02 (frames), T05 (transcript), T06 (`/proc`) |
-| Ownership and borrowing in real APIs | **T07–T09** (mutating enums in place, split borrows), T12 (moving state through `spawn_blocking`) |
-| Deref, `as_ref`, `as_deref`, `&str` / `&Path` | **T01** (newtypes, paths), T06 (`Cow<str>`), T03 (`&'a Value -> &'a str`) |
+| Option / Result combinators, type flow | **T03** (hook adapter), T02 (frames), T07 (transcript), T05 (`/proc`) |
+| Ownership and borrowing in real APIs | **T08–T10** (mutating enums in place, split borrows), T13 (moving state through `spawn_blocking`), T14 (the same, in code you already own) |
+| Operator traits and borrowed map keys | **T06** (`Add`, `Sum`, a `BTreeMap<&'a str, _>` that borrows its input) |
+| Deref, `as_ref`, `as_deref`, `&str` / `&Path` | **T01** (newtypes, paths), T05 (`Cow<str>`), T03 (`&'a Value -> &'a str`) |
 | Error architecture | **T02** (four error enums, `?` conversions, `transpose`), T04 (line-numbered errors) |
-| `Read` / `BufRead` / `Write`, `R: BufRead` | **T04** (tail and history), T12 (`File` + `Tail` across threads) |
-| Iterators: `map`/`filter_map`/`flat_map`/`zip`/`fold`/`try_fold` | T03, T05, T06, T09 (`next_deadline`), T08 (`position`, `retain`) |
-| async / tokio (engineering-driven) | **T10** (the core actor), **T11** (the socket), **T12** (tasks that own things) |
+| `Read` / `BufRead` / `Write`, `R: BufRead` | **T04** (tail and history), T13 (`File` + `Tail` across threads) |
+| Iterators: `map`/`filter_map`/`flat_map`/`zip`/`fold`/`try_fold` | T03, T07, T05, T10 (`next_deadline`), T09 (`position`, `retain`) |
+| async / tokio (engineering-driven) | **T11** (the core actor), **T12** (the socket), **T13** (tasks that own things), **T14** (`select!`, cancellation and shutdown, second pass) |
 
 ## How it works
 
@@ -27,7 +28,7 @@ one drills a gap from your list, on code the next task builds on:
 - **Tests are the spec.** Each task has a test file under `tests/`:
   `cargo test --test t03_hook`. Most are provided.
 - **Three tasks are test-first, and you write the tests** (T02 forwarder, T04
-  tail, T07 reducer). The file lists *most* of the test names, each with a doc
+  tail, T08 reducer). The file lists *most* of the test names, each with a doc
   comment saying what it must pin down, and asks you to find a few more
   yourself. You write the bodies first, watch them fail, then implement. When
   you're done I run a hidden golden suite for the same behaviours against your
@@ -51,27 +52,30 @@ The repository carries far more documentation than the course needs. This
 is the whole reading list, in order:
 
 1. This file.
-2. The header of `src/model.rs`, which now maps each of its sections to the
+2. The header of `src/model.rs`, which maps each of its sections to the
    task that first needs it. Read a section when its task arrives, not before.
-3. [`docs/03-types-and-transitions.md`](../docs/03-types-and-transitions.md)
-   before T03: which harness signal drives each transition.
-4. [`docs/02-session-machine.md`](../docs/02-session-machine.md) before T07:
-   phase as a fold, the turn's tool map, one machine per child.
-5. [`docs/04-cost-model.md`](../docs/04-cost-model.md) before T09: where
-   every timeout and hysteresis constant comes from.
-6. The [architecture explorer](../docs/architecture-explorer/README.md),
+3. Before T03: the field table in
+   `docs/product/survey/14-hook-events-verified.md` §1.1 and the module
+   comment at the top of `src/ingest/claude/hook.rs`. That is the whole
+   hook-to-event mapping. Nothing else.
+4. Before T07: `docs/product/survey/10-transcript-facts.md` §5 (the table of
+   user-line shapes) and §6 (error lines). Skip the rest.
+5. Before T08: the module comment at the top of `src/reduce/mod.rs`, which
+   carries the three conclusions the reducer rests on and translates the
+   design documents' vocabulary into the code's. Then, only if you want the
+   argument behind them, `docs/02-session-machine.md` §0.1, §2 and §3 and
+   `docs/03-types-and-transitions.md` §4 and §13. Both documents use older
+   type names and spend half their length on a second provider the course
+   has frozen out; read them for the reasoning, not the names.
+6. Before T10: [`docs/04-cost-model.md`](../docs/04-cost-model.md), which is
+   short and is where every timeout and hysteresis constant comes from.
+7. The [architecture explorer](../docs/architecture-explorer/README.md),
    whenever you want the picture.
-
-Reference, only when a task sheet points at it: the signal fixtures in
-`docs/product/survey/09-signal-fixtures.md` and the verified hook fields in
-`docs/product/survey/14-hook-events-verified.md` (T03), the transcript facts
-in `docs/product/survey/10-transcript-facts.md` (T05), and the live signals
-guide at https://claude.ai/code/artifact/3e90d067-8f18-40cd-9217-51018bb323c2.
 
 Ignore everything else under `docs/product/` and `todo.md`. Those are the
 owner's notes for the product track: the rewrite plan, the surveys, the
 audits, the handoffs. They change without notice and the course does not
-depend on them. The course is frozen as Claude-only and hooks-only until T13
+depend on them. The course is frozen as Claude-only and hooks-only until T15
 is graded; a Codex adapter exists on the `codex` branch and is the material
 for what comes after.
 
@@ -80,21 +84,33 @@ for what comes after.
 | # | Task | Core | Stretch | Test file |
 |---|---|---|---|---|
 | [T01](tasks/T01-names.md) | Identifiers and borrowed strings | 1h | | `t01_names` |
-| [T02](tasks/T02-errors.md) | Error architecture | 1h15 | | `t02_errors`, **`t02_forward` (yours)** |
+| [T02](tasks/T02-errors.md) | Error architecture | 1h | | `t02_errors`, **`t02_forward` (yours)** |
 | [T03](tasks/T03-hook-adapter.md) | JSON navigation and the hook adapter | 2h | | `t03_hook` |
-| [T04](tasks/T04-tail-and-history.md) | Line-oriented I/O: tail and history | 1h30 | | `t04_history`, **`t04_tail` (yours)** |
-| [T05](tasks/T05-transcript.md) | The transcript adapter and usage | 45m | 30m pricing | `t05_transcript` |
-| [T06](tasks/T06-proc.md) | Finding agents in `/proc` | 45m | | `t06_proc` |
-| [T07](tasks/T07-reducer-turns.md) | Reducer I: routing, sessions, turns, tools | 2h | | **`t07_turns` (yours)** |
-| [T08](tasks/T08-reducer-join.md) | Reducer II: gates, the join, subagents | 1h15 | | `t08_join` |
-| [T09](tasks/T09-snapshots-and-time.md) | Snapshots and time | 1h | | `t09_snapshot_tick` |
-| [T10](tasks/T10-core-actor.md) | async I: the core actor | 1h | | `t10_core` |
-| [T11](tasks/T11-socket.md) | async II: the socket | 1h | | `t11_rpc` |
-| [T12](tasks/T12-tasks.md) | async III: tasks that own things | 1h | | `t12_tasks` |
-| [T13](tasks/T13-capstone.md) | Capstone: run it on your own agents | 30m | open-ended | — |
+| [T04](tasks/T04-tail-and-history.md) | Line-oriented I/O: history, then tail | 1h45 | | `t04_history`, **`t04_tail` (yours)** |
+| [T05](tasks/T05-proc.md) | Finding agents in `/proc` | 55m | | `t05_proc` |
+| [T06](tasks/T06-usage.md) | Usage: operator traits and borrowed keys | 20m | 30m pricing | `t06_usage` |
+| [T07](tasks/T07-transcript.md) | The transcript adapter | 40m | | `t07_transcript` |
+| [T08](tasks/T08-reducer-turns.md) | Reducer I: routing, sessions, turns, tools (T08a, T08b) | 2h | | **`t08_turns` (yours)** |
+| [T09](tasks/T09-reducer-join.md) | Reducer II: gates, the join, subagents | 1h15 | | `t09_join` |
+| [T10](tasks/T10-snapshots-and-time.md) | Snapshots and time | 1h | | `t10_snapshot_tick` |
+| [T11](tasks/T11-core-actor.md) | async I: the core actor | 1h | | `t11_core` |
+| [T12](tasks/T12-socket.md) | async II: the socket | 1h | | `t12_rpc` |
+| [T13](tasks/T13-tasks.md) | async III: tasks that own things | 1h | | `t13_tasks` |
+| [T14](tasks/T14-second-pass.md) | async IV: the second pass, in code you own | 1h | 1h file replacement | `t14_second_pass` |
+| [T15](tasks/T15-capstone.md) | Capstone: run it on your own agents | 30m | open-ended | — |
 
-Order matters up to T09: each task uses the one before it. T10–T12 depend only
-on T09 and can be done in any order.
+Order matters throughout. Up to T10 each task uses the one before it. T11–T13
+each compile and test on their own against T10, but do them as numbered: T11
+builds the two channels from the core's side, T12 uses both from the other
+side, and T13 spawns the tasks that feed them. T14 changes code T12 and T13
+wrote, so it comes after both. T08 is the course's one real jump and its
+sheet is in two halves, T08a and T08b, with a passing suite between them.
+
+Numbering changed on 2026-09-16, after a dry run of the course: `/proc` moved
+ahead of the transcript adapter, usage became its own short task, a fourth
+async task was added, and the capstone became T15. Documents under
+`docs/product/` written before that day use the old numbers: old T05 is now
+T07, old T06 is T05, old T07–T12 are T08–T13, and old T13 is T15.
 
 ## Rules of the road
 
@@ -157,4 +173,4 @@ Two things the golden does *not* do that the plan says it should, because they
 need a syscall crate: **pidfd** (the scanner diffs sweeps instead, and a
 vanished `ProcKey` becomes `Died`), and **inotify** (watchers poll the file
 length every 200 ms, which is inside the cost model's latency budget). Both
-are listed as T13 stretch work.
+are listed as T15 stretch work.

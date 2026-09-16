@@ -1,8 +1,8 @@
-# T10 — async I: the core actor
+# T11 — async I: the core actor
 
 **Core: 1h** · Gaps: `tokio::select!` and cancellation safety, futures as
 values, `mpsc` and `watch`, `Arc` for shared read-only state, testing with
-paused time · Test: `cargo test --test t10_core`
+paused time · Test: `cargo test --test t11_core`
 
 The concurrency design on one line: **one task owns the board**. Inputs arrive
 on an `mpsc`, the view leaves on a `watch`, and effects leave on an unbounded
@@ -10,7 +10,7 @@ on an `mpsc`, the view leaves on a `watch`, and effects leave on an unbounded
 waits on exactly two things, the next input and the next deadline.
 
 Read `src/daemon/mod.rs` first. It is provided, and it's the wiring diagram in
-code. Then read the header of `tests/t10_core.rs`: it explains `start_paused`
+code. Then read the header of `tests/t11_core.rs`: it explains `start_paused`
 and auto-advance, which is why a ten-second dwell costs the test no real time,
 and why the two deadline tests below are not mysterious.
 
@@ -37,7 +37,7 @@ and why the two deadline tests below are not mysterious.
   something every time the other arm wins (`AsyncReadExt::read_exact` drops
   the bytes it had read so far; `mpsc::Sender::send` with a value already
   moved in drops the value). Read the "Cancellation safety" section of the
-  `tokio::select!` docs before writing the loop, and from here to T12 check
+  `tokio::select!` docs before writing the loop, and from here to T13 check
   every future you put in a `select!` against the cancel-safety line in its
   own docs.
 
@@ -71,6 +71,6 @@ tick arm is the only place in this file that needs a clock.
 
 ## Done when
 
-`t10_core` passes, including the two tests that send a few inputs and then let
+`t11_core` passes, including the two tests that send a few inputs and then let
 only time pass (`should_promote_a_dwell_with_no_further_input` and
 `should_end_a_stale_turn_on_its_own_deadline`).
