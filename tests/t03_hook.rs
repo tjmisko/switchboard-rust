@@ -178,6 +178,22 @@ fn only_event(inputs: Vec<Input>) -> Event {
     events.remove(0)
 }
 
+/// 0 of 49 captured `SessionStart` payloads carry `session_title`. The
+/// adapter reads it as tolerance for a build that sends it, and the name
+/// otherwise comes from the session file (T06, `name_from_file`).
+#[test]
+fn should_start_a_session_with_no_title_when_the_payload_carries_none() {
+    let e = only_event(through_socket("session_start_startup.json", "SessionStart"));
+    assert_eq!(e.cause, Cause::Agent);
+    assert!(matches!(
+        e.kind,
+        EventKind::SessionStarted {
+            source: StartSource::Startup,
+            title: None
+        }
+    ));
+}
+
 #[test]
 fn should_start_a_session_caused_by_the_user_when_source_is_clear() {
     let e = only_event(through_socket("session_start_clear.json", "SessionStart"));
@@ -214,6 +230,50 @@ fn should_key_a_typed_prompt_by_prompt_id_and_attribute_it_to_the_user() {
         }
         other => panic!("{other:?}"),
     }
+}
+
+/// The shape 2.1.269/2.1.270 actually send: no `source` on any of 83
+/// captured prompts. The hook cannot tell a typed prompt from a machine
+/// wake-up, so it must not claim the operator did it.
+#[test]
+fn should_leave_the_origin_unknown_and_the_cause_agent_when_a_prompt_has_no_source() {
+    let e = only_event(through_socket(
+        "user_prompt_submit_no_source.json",
+        "UserPromptSubmit",
+    ));
+    assert_eq!(e.cause, Cause::Agent);
+    match e.kind {
+        EventKind::TurnStarted { turn, origin } => {
+            assert!(turn.is_some(), "the key still comes from prompt_id");
+            assert_eq!(origin, Origin::Unknown);
+        }
+        other => panic!("{other:?}"),
+    }
+}
+
+/// The documented `source` vocabulary, when a build sends it: `system` is a
+/// task notification, anything else unrecognised is a machine.
+#[test]
+fn should_map_a_system_source_to_a_task_notification() {
+    let mut raw = fixture_json("claude/hooks/user_prompt_submit.json");
+    raw["source"] = json!("system");
+    let line = scrub(raw, Some("UserPromptSubmit"), 4036).to_string();
+    let Request::Hook(frame) = decode_request(&line).unwrap() else {
+        panic!()
+    };
+    let ctx = Ctx {
+        now: Instant::now(),
+        process: Some(key(4036)),
+    };
+    let e = only_event(claude::hook(&frame, &ctx));
+    assert_eq!(e.cause, Cause::Agent);
+    assert!(matches!(
+        e.kind,
+        EventKind::TurnStarted {
+            origin: Origin::TaskNotification,
+            ..
+        }
+    ));
 }
 
 #[test]
@@ -254,7 +314,11 @@ fn should_turn_a_question_tools_pre_tool_use_into_a_question_gate_from_the_subag
         "pre_tool_use_ask_subagent.json",
         "PreToolUse",
     ));
-    assert_eq!(e.actor, Actor::Subagent(SubagentId::from("agent-child")));
+    // Every captured `agent_id` is bare: no `agent-` prefix to strip.
+    assert_eq!(
+        e.actor,
+        Actor::Subagent(SubagentId::from("a2f2907c1e0b3d4f5"))
+    );
     match e.kind {
         EventKind::PermissionAsked {
             call,
@@ -355,11 +419,42 @@ fn should_end_the_turn_and_snapshot_only_live_waits_when_stop_reports_them() {
     assert_eq!(
         got,
         [
-            ("bg-1", WaitKind::BackgroundShell),
-            ("bg-2", WaitKind::Monitor),
+            ("bseu0k9zt", WaitKind::BackgroundShell),
+            ("s1mtxe3nx", WaitKind::Monitor),
+            ("w91emaqf0", WaitKind::Workflow),
             ("cron-1", WaitKind::Cron),
         ]
     );
+}
+
+/// A task type this crate has not seen still counts as a wait: it is
+/// carried as `Other`, not guessed to be a shell and not dropped.
+#[test]
+fn should_carry_an_unknown_background_task_type_as_other() {
+    let mut raw = fixture_json("claude/hooks/stop_with_waits.json");
+    raw["background_tasks"] = json!([
+        {"id": "new-1", "type": "sandbox", "status": "running"},
+        {"id": "new-2", "status": "running"}
+    ]);
+    raw.as_object_mut().unwrap().remove("session_crons");
+    let line = scrub(raw, Some("Stop"), 4036).to_string();
+    let Request::Hook(frame) = decode_request(&line).unwrap() else {
+        panic!()
+    };
+    let ctx = Ctx {
+        now: Instant::now(),
+        process: Some(key(4036)),
+    };
+    let inputs = claude::hook(&frame, &ctx);
+    let Some(Input::Snapshot(Snapshot {
+        kind: SnapshotKind::Waits { rows, .. },
+        ..
+    })) = inputs.get(1)
+    else {
+        panic!("waits snapshot second: {inputs:?}");
+    };
+    let kinds: Vec<WaitKind> = rows.iter().map(|r| r.kind).collect();
+    assert_eq!(kinds, [WaitKind::Other, WaitKind::Other]);
 }
 
 #[test]
@@ -383,6 +478,57 @@ fn should_classify_a_stop_failure() {
             ..
         }
     ));
+}
+
+/// 47 of 56 captured `StopFailure` payloads carry `agent_id`: the turn that
+/// failed was a child's, and the event must say so. (The `error` value is
+/// still unconfirmed by capture; `rate_limit` is the documented one.)
+#[test]
+fn should_attribute_a_stop_failure_to_the_subagent_that_sent_it() {
+    let e = only_event(through_socket("stop_failure_subagent.json", "StopFailure"));
+    assert_eq!(
+        e.actor,
+        Actor::Subagent(SubagentId::from("a753e2b1c9d0e4f67"))
+    );
+    assert!(matches!(
+        e.kind,
+        EventKind::TurnEnded {
+            outcome: TurnOutcome::Failed { .. },
+            ..
+        }
+    ));
+}
+
+/// One question, announced twice: `PreToolUse` with the call id, then
+/// `PermissionRequest` without it and with the same `tool_input`. Both are
+/// question gates on the same hash; joining them is the reducer's job (T08).
+#[test]
+fn should_announce_one_question_as_two_gates_sharing_a_hash() {
+    let pre = only_event(through_socket("pre_tool_use_ask.json", "PreToolUse"));
+    let req = only_event(through_socket(
+        "permission_request_ask.json",
+        "PermissionRequest",
+    ));
+    let (
+        EventKind::PermissionAsked {
+            call: Some(call),
+            hash: pre_hash,
+            kind: GateKind::Question,
+            ..
+        },
+        EventKind::PermissionAsked {
+            call: None,
+            hash: req_hash,
+            kind: GateKind::Question,
+            ..
+        },
+    ) = (pre.kind, req.kind)
+    else {
+        panic!("both must be question gates, the first with its id");
+    };
+    assert_eq!(call.as_str(), "toolu_01Ask");
+    assert!(pre_hash.is_some());
+    assert_eq!(pre_hash, req_hash, "the same input hashes the same");
 }
 
 #[test]

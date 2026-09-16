@@ -30,8 +30,11 @@ so you can hash it without cloning.
 
 **`src/ingest/claude/hook.rs`**: `hook(frame: &HookFrame, ctx: &Ctx) -> Vec<Input>`
 and its helpers (`actor`, `prompt_key`, `prompt_origin`, `call_and_tool`,
-`frame_hash` and `waits`). The mapping table is in the module comment. Read
-all of it before writing a line.
+`frame_hash`, `waits` and `wait_kind`). The mapping table is in the module
+comment. Read all of it before writing a line, including the two documented
+fields that no captured payload carries: `session_title` and
+`UserPromptSubmit.source`. A prompt with no `source` has an `Unknown`
+origin, not a human one.
 
 ## Constraints that make it a workout
 
@@ -45,6 +48,8 @@ all of it before writing a line.
 - `waits`: `filter`, `filter_map`, `chain`, `collect`. Note the difference
   between "neither key is present" (`None`) and "present and empty"
   (`Some(vec![])`). The reducer treats those two very differently.
+- `wait_kind`: the captured `type` vocabulary is `shell`, `monitor` and
+  `workflow`. Anything else is `Other`: carried, not guessed.
 
 ## Katas
 
@@ -70,5 +75,8 @@ all of it before writing a line.
 
 ## Done when
 
-`t03_hook` passes: 25 tests covering helpers, hash, scrub, and the adapter end
-to end from raw fixture payloads.
+`t03_hook` passes: 30 tests covering helpers, hash, scrub, and the adapter end
+to end from raw fixture payloads. The fixtures under `tests/fixtures/claude/`
+are captured shapes from Claude Code 2.1.269/2.1.270, September 2026; the
+`session_start_clear.json` title and `user_prompt_submit.json` source are the
+documented shape, kept so the adapter tolerates a build that sends them.

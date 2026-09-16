@@ -137,8 +137,12 @@ pub struct PaneKey(pub Box<str>);
 pub struct WindowId(pub Box<str>);
 
 /// A background task or timer an agent is waiting on, from
-/// `Stop.background_tasks[]` and `Stop.session_crons[]`. Element shapes are
-/// inferred; confirm against a recording before depending on them.
+/// `Stop.background_tasks[]` and `Stop.session_crons[]`.
+///
+/// A background task element is `{id, type, status, description}` plus a
+/// `name` for workflows and a `command` for shells (captured, September 2026).
+/// No `session_crons` element has ever been captured; that shape is still
+/// inferred.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct WaitId(pub Box<str>);
 
@@ -251,6 +255,11 @@ pub enum EventKind {
     },
     /// Ends the open turn unless both sides carry a key and the keys differ,
     /// which is the late close of an earlier turn.
+    ///
+    /// Applies to the actor that sent it. A subagent's turn is not the
+    /// agent's turn: Claude fires `StopFailure` inside a child with
+    /// `agent_id` set, and 47 of 56 captured failures were a child's. That
+    /// outcome lands on the child's row, never on the agent's activity.
     TurnEnded {
         turn: Option<TurnKey>,
         outcome: TurnOutcome,
@@ -322,6 +331,10 @@ pub enum StartSource {
 
 /// Claude transcript `origin.kind`. A machine wake-up and a typed prompt are
 /// the same line shape apart from this field.
+///
+/// `UserPromptSubmit` carries no `source` on 2.1.269/2.1.270 (0 of 83
+/// captured), so the hook cannot tell them apart and reports `Unknown`; the
+/// transcript line for the same prompt is what says who typed it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Origin {
     Human,
@@ -330,6 +343,8 @@ pub enum Origin {
     Coordinator,
     AutoContinuation,
     Machine,
+    /// The source did not say. Not a claim that a person typed it.
+    Unknown,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -681,6 +696,11 @@ pub struct ProcessRow {
     /// matches `key.start`. A stale file from a recycled pid names someone
     /// else's conversation.
     pub session: Option<SessionId>,
+    /// The same file's `name`: the display name the operator recognises,
+    /// under the same `procStart` guard. `SessionStart.session_title` is
+    /// documented as the hook-side source but no captured payload carries
+    /// it, so this is the name that actually reaches the chip.
+    pub name: Option<Box<str>>,
     pub tty: Option<u64>,
     pub cpu_ticks: u64,
 }
@@ -810,11 +830,16 @@ pub struct Wait {
     pub expires: Instant,
 }
 
+/// Captured `background_tasks[].type` values: `shell`, `monitor`, `workflow`.
+/// A type this crate has not seen is carried as `Other` rather than guessed
+/// at: it still counts as a wait, it just has no better name yet.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WaitKind {
     BackgroundShell,
     Monitor,
+    Workflow,
     Cron,
+    Other,
 }
 
 /// One outstanding wait as a `Stop` payload reports it.
@@ -848,6 +873,12 @@ pub struct Beat {
 /// snapshot is itself a fact.
 ///
 /// Events refine a row between snapshots. They may never create or remove one.
+///
+/// Time may. A row whose `last_seen` is older than `reduce::SUBAGENT_STALE`
+/// is a claim nothing supports any more: 54 of 168 captured children started
+/// and never reported a stop. Every panel refresh and every child hook
+/// refreshes `last_seen`, so a live child never expires; a row holding an
+/// open gate is exempt, because a tick never clears a live gate.
 #[derive(Debug, Clone, Default)]
 pub struct Subagents {
     pub rows: BTreeMap<SubagentId, Subagent>,
@@ -886,6 +917,8 @@ pub struct Subagent {
     /// agent's terminal, so attention travels up to the agent — but the
     /// agent's own `Stop` must never clear it.
     pub gate: Option<Gate>,
+    /// The last panel refresh or child hook that mentioned this row. See
+    /// `Subagents` for the expiry it drives.
     pub last_seen: Instant,
 }
 

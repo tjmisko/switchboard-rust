@@ -46,8 +46,8 @@ per-event keys below are exact.
 
 | Event | Event-specific keys | Notes |
 |---|---|---|
-| `SessionStart` | `source, agent_type, model, session_title` | `session_title` is the session's display name (custom title, else generated) |
-| `UserPromptSubmit` | `prompt, session_title` | plus `source` ∈ `user\|sdk\|system\|loop_wakeup\|schedule_wakeup\|poll_event` per the input schema (survey 12 §1.3); fires on machine wake-ups too |
+| `SessionStart` | `source, agent_type, model, session_title` | `session_title` is the session's display name (custom title, else generated). **Never captured**: 0 of 49 payloads on 2.1.269/2.1.270 (2026-09-15); the name is read from `~/.claude/sessions/<pid>.json` instead |
+| `UserPromptSubmit` | `prompt, session_title` | plus `source` ∈ `user\|sdk\|system\|loop_wakeup\|schedule_wakeup\|poll_event` per the input schema (survey 12 §1.3); fires on machine wake-ups too. **`source` never captured** (0 of 83, 2026-09-15); newer payloads carry `turn_id` in place of `prompt_id` |
 | `PreToolUse` | `tool_name, tool_input, tool_use_id` | id on every tool; Go restricts the matcher to `AskUserQuestion\|ExitPlanMode` |
 | `PermissionRequest` | `tool_name, tool_input, permission_suggestions` | **still no `tool_use_id`** |
 | `PermissionDenied` | `tool_name, tool_input, tool_use_id, reason` | fires on auto-mode denials; whether a human decline at the prompt fires it is unmeasured |
@@ -83,7 +83,7 @@ other subsystems; treat `reason` as an open string).
 | `Notification{idle_prompt}` | Candidate replacement for the lost pane-title H9 recovery |
 | `Elicitation` | MCP user-input requests as attention |
 | `SubagentStop{agent_transcript_path}` | Child completion at hook speed; the `subagents/` scan becomes backfill |
-| `SessionStart{session_title}`, `UserPromptSubmit{session_title}` | Naming without reading `~/.claude/sessions/<pid>.json` or transcript title lines |
+| `SessionStart{session_title}`, `UserPromptSubmit{session_title}` | Naming without reading `~/.claude/sessions/<pid>.json` or transcript title lines. Not delivered in practice (see above); the session file's `name` is the working source |
 | `Stop{last_assistant_message}` | Same display text Codex naming already uses |
 | `CwdChanged` | Go captures cwd once at discovery |
 | `PreCompact`/`PostCompact` | A compaction reads as a long silent turn today |

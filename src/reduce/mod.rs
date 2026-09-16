@@ -43,6 +43,12 @@ pub const WAIT_EXPIRY: Duration = Duration::from_secs(30 * 60);
 /// not a status rule: a real prompt is lifted long before by the call's
 /// settle, the next prompt, or the end of the turn.
 pub const UNJOINED_EXPIRY: Duration = Duration::from_secs(30 * 60);
+/// A subagent row nothing has mentioned for this long is forgotten. The
+/// panel refreshes every 5 s while it runs and a working child fires hooks
+/// far more often, so only an orphan reaches this. Thirty minutes matches
+/// `WAIT_EXPIRY`: both bound a claim that its source stopped repeating, and
+/// being wrong in either direction moves the chip between two greens.
+pub const SUBAGENT_STALE: Duration = Duration::from_secs(30 * 60);
 
 /// The account every Claude agent bills against until a source names one.
 pub fn default_account() -> AccountId {
