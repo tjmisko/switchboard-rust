@@ -13,6 +13,12 @@ use crate::reduce::{
     COMPACTION_STALE, Effects, SUBAGENT_STALE, TURN_STALE, UNJOINED_EXPIRY, limits_for, settle,
 };
 
+/// Time passed. Every agent is expired, then re-settled with `Cause::Agent`
+/// and `Confidence::Inferred`: nothing a tick learns was confirmed by
+/// anyone, so an escalation it uncovers waits its dwell like any other
+/// inferred one. The same settle is what promotes a pending escalation
+/// whose deadline has arrived, which is why the core ticks at
+/// `next_deadline` rather than on a timer.
 pub fn tick(board: &mut Board, now: Instant) -> Vec<Effect> {
     let mut effects = Effects::new();
     let Board { agents, accounts } = board;
@@ -32,6 +38,14 @@ pub fn tick(board: &mut Board, now: Instant) -> Vec<Effect> {
     effects.finish()
 }
 
+/// Everything with a deadline that has passed, in one agent. Returns
+/// whether anything changed.
+///
+/// A stale turn closes to `Idle { after: None }`: how it ended is unknown,
+/// so no outcome is claimed. `Activity::Idle` is written as a literal here
+/// (`event::idle` is private to its module). Waits, parked prompts and
+/// subagent rows past their bounds are dropped; a compaction past
+/// `COMPACTION_STALE` is over.
 fn expire(agent: &mut Agent, now: Instant) -> bool {
     let mut changed = false;
 
