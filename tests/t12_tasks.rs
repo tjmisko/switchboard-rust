@@ -122,7 +122,31 @@ async fn should_stop_when_the_inbox_closes() {
         .unwrap();
 }
 
+#[tokio::test]
+async fn should_stop_when_the_inbox_closes_while_the_transcript_is_quiet() {
+    let dir = common::scratch_dir("watcher_close_quiet");
+    let path = dir.join("s.jsonl");
+    std::fs::write(&path, format!("{PROMPT}\n")).unwrap();
+    let (tx, mut inbox) = mpsc::channel(16);
+    let task = tokio::spawn(watcher::run(spec(path, 1 << 20), tx));
+
+    // The watcher is following the file: the replay has arrived.
+    recv(&mut inbox).await;
+    // Now nobody is listening, and nothing more is ever appended. A watcher
+    // that learns of a closed inbox only from a failed send never sends
+    // again, so it never exits. Golden asks `is_closed` at the top of every
+    // pass.
+    drop(inbox);
+    tokio::time::timeout(Duration::from_secs(2), task)
+        .await
+        .expect("watcher exits without another line being written")
+        .unwrap();
+}
+
 /// A task that records whether it was dropped before finishing.
+///
+/// `abort` is observable only as the task's future being dropped without
+/// completing, so the guard's `Drop` is what records it.
 fn sentinel() -> (tokio::task::JoinHandle<()>, Arc<AtomicBool>) {
     struct SetOnDrop(Arc<AtomicBool>);
     impl Drop for SetOnDrop {
