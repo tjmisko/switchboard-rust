@@ -1,14 +1,17 @@
 //! Time passing.
 //!
-//! A tick may end a turn that went quiet, forget a wait or a prompt past its
-//! leak bound, and promote an escalation whose dwell has elapsed. It may
-//! never clear a live gate or a limit: an agent parked on a permission prompt
-//! has no CPU and no transcript growth, and looks exactly like a dead turn.
+//! A tick may end a turn that went quiet, forget a wait, a prompt or a
+//! subagent row past its leak bound, and promote an escalation whose dwell
+//! has elapsed. It may never clear a live gate or a limit: an agent parked on
+//! a permission prompt has no CPU and no transcript growth, and looks exactly
+//! like a dead turn.
 
 use std::time::Instant;
 
-use crate::model::{Activity, Agent, Board, Cause, Compaction, Confidence, Effect, Gate};
-use crate::reduce::{COMPACTION_STALE, Effects, TURN_STALE, UNJOINED_EXPIRY, limits_for, settle};
+use crate::model::{Activity, Agent, Board, Cause, Compaction, Confidence, Effect, Gate, Subagent};
+use crate::reduce::{
+    COMPACTION_STALE, Effects, SUBAGENT_STALE, TURN_STALE, UNJOINED_EXPIRY, limits_for, settle,
+};
 
 pub fn tick(board: &mut Board, now: Instant) -> Vec<Effect> {
     let mut effects = Effects::new();
@@ -53,6 +56,16 @@ fn expire(agent: &mut Agent, now: Instant) -> bool {
         .retain(|u| u.since + UNJOINED_EXPIRY > now);
     changed |= agent.prompts.unjoined.len() != prompts_before;
 
+    // 54 of 168 captured children started and never reported a stop. A row
+    // nothing has mentioned for the cap is removed whoever owns the table:
+    // a panel that stopped refreshing is no longer authoritative either.
+    let rows_before = agent.subagents.rows.len();
+    agent
+        .subagents
+        .rows
+        .retain(|_, row| stale_subagent_deadline(row).is_none_or(|at| at > now));
+    changed |= agent.subagents.rows.len() != rows_before;
+
     if let Compaction::InProgress { since, .. } = agent.compaction
         && now >= since + COMPACTION_STALE
     {
@@ -78,6 +91,14 @@ fn stale_turn_deadline(agent: &Agent) -> Option<Instant> {
     (!gated && !compacting).then(|| *last_event + TURN_STALE)
 }
 
+/// When a silent subagent row would be forgotten, or `None` while it holds
+/// a gate: a tick never clears a live gate, and the settle that answers it
+/// refreshes `last_seen`.
+fn stale_subagent_deadline(row: &Subagent) -> Option<Instant> {
+    let gated = matches!(row.gate, Some(Gate::Blocked { .. }));
+    (!gated).then(|| row.last_seen + SUBAGENT_STALE)
+}
+
 /// The earliest moment a `tick` could change anything. The core sleeps until
 /// then instead of polling.
 pub fn next_deadline(board: &Board) -> Option<Instant> {
@@ -97,6 +118,11 @@ fn deadlines(agent: &Agent) -> impl Iterator<Item = Instant> + '_ {
         .unjoined
         .iter()
         .map(|u| u.since + UNJOINED_EXPIRY);
+    let subagents = agent
+        .subagents
+        .rows
+        .values()
+        .filter_map(stale_subagent_deadline);
 
     pending
         .into_iter()
@@ -104,4 +130,5 @@ fn deadlines(agent: &Agent) -> impl Iterator<Item = Instant> + '_ {
         .chain(compaction)
         .chain(waits)
         .chain(prompts)
+        .chain(subagents)
 }
