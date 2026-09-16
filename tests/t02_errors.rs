@@ -2,7 +2,7 @@
 
 use std::error::Error;
 
-use switchboard::error::{FrameError, RecordError, StatError, UnknownName};
+use switchboard::error::{FrameError, RecordError, UnknownName};
 use switchboard::ingest::frame::{Request, decode_request, error_reply, ok_reply};
 use switchboard::model::{Denier, Phase, StartSource};
 
@@ -151,18 +151,9 @@ fn should_render_replies_as_single_line_json() {
 // Error chains
 // ---------------------------------------------------------------------------
 
-#[test]
-fn should_expose_the_parse_error_as_the_source_of_a_bad_stat_number() {
-    let source = "x".parse::<u64>().unwrap_err();
-    let err = StatError::BadNumber {
-        field: "starttime",
-        source,
-    };
-    assert!(err.to_string().contains("starttime"));
-    let inner = err.source().expect("has a source");
-    assert_eq!(inner.to_string(), "invalid digit found in string");
-}
-
+/// Only the three `From` impls are exercised here. `RecordError`'s
+/// `Display` and `source` are T04's, written next to `read_day`, and
+/// `t04_history` pins them; `StatError`'s are T05's.
 #[test]
 fn should_convert_with_question_mark_into_a_record_error() {
     fn parse(line: &str) -> Result<Phase, RecordError> {
@@ -174,8 +165,7 @@ fn should_convert_with_question_mark_into_a_record_error() {
     assert!(matches!(parse("nope"), Err(RecordError::Json(_))));
     assert!(matches!(parse("{}"), Err(RecordError::Missing("to"))));
     let name = parse(r#"{"to":"permission"}"#).unwrap_err();
-    assert!(matches!(name, RecordError::Name(_)));
-    assert!(name.source().is_some());
+    assert!(matches!(name, RecordError::Name(n) if &*n.value == "permission"));
 }
 
 #[test]

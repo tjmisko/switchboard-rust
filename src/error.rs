@@ -118,6 +118,9 @@ impl From<serde_json::Error> for FrameError {
 // ---------------------------------------------------------------------------
 
 /// `/proc/<pid>/stat` that does not parse.
+///
+/// Its `Display` and `source` are T05 work, written next to `parse_stat`,
+/// the only thing that raises it; `t05_proc` pins them.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum StatError {
     /// No `(comm)` section: the parentheses are missing or out of order.
@@ -157,6 +160,10 @@ impl Error for StatError {
 // ---------------------------------------------------------------------------
 
 /// One history line that cannot become a `Record`.
+///
+/// The three `From` impls below are T02 work, because `?` conversion is
+/// that task's subject. `Display` and `source` are T04 work, written next
+/// to `read_day`, the only thing that raises it; `t04_history` pins them.
 #[derive(Debug)]
 pub enum RecordError {
     Io(io::Error),
