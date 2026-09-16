@@ -12,7 +12,7 @@ Inputs:
 
 Nothing here is committed. `tools/` and `todo.md` are untracked on `golden`.
 
-## Status, 2026-09-15 evening: F1–F7 done, F8–F9 open
+## Status, 2026-09-15 evening: F1–F8 done, F9 open
 
 All four tests in `tests/t13_capture_findings.rs` are green, along with the
 whole suite (266 tests) and `cargo clippy --all-targets`. The same changes
@@ -32,7 +32,7 @@ in Rust.html`; every rewritten checkpoint filter re-verified with
 | F5 | `proc::name_from_file` under the same `written_by` guard as the session; `ProcessRow.name`; discovery sets `title`, a later sweep with a different name renames and publishes, no name leaves it | `proc.rs`, `model.rs`, `reduce/snapshot.rs` | `t06 …display_name_from_the_session_file…`, sweep assertions; `t09 …follow_a_rename` |
 | F6 | `WaitKind::{Workflow, Other}`; `wait_kind` maps `shell`/`monitor`/`workflow` exactly and carries anything else as `Other` | `model.rs`, `ingest/claude/hook.rs` | `t03 …stop_reports_them` (refreshed fixture), `…unknown_background_task_type_as_other` |
 | F7 | `Origin::Unknown`; `prompt_origin(None)` is `Unknown` with `Cause::Agent`; `source`, when present, still maps as documented. The transcript side is unchanged: 35 of 53 human prompt lines in local transcripts carry no `origin` at all, so absent → human stays right there | `model.rs`, `ingest/claude/hook.rs` | `t03 …when_a_prompt_has_no_source` |
-| F8 | not started: blocked on the Codex adapter | | |
+| F8 | the Codex hook adapter exists (`ingest/codex/hook.rs`): the forwarder hashes the command alone for Codex and names the provider on the frame, `decode_request` reads it (default Claude), the listener dispatches by it, `classify` recognises the Codex TUI, turns key on `turn_id`, `Interrupt` is the user-caused stop, a `PermissionRequest` gate is `Ownership::Unknown` and renders grey, and no transcript is watched for a Codex agent | `ingest/codex/`, `ingest/forward.rs`, `ingest/frame.rs`, `daemon/rpc.rs`, `proc.rs`, `bin/switchboard-hook.rs`, `reduce/mod.rs` | `tests/t14_codex.rs` (13 tests), `t06 …interactive_codex_tui…`, `t11 …codex_adapter…`, unit tests in `frame.rs`, `forward.rs` and the forwarder binary |
 | F9 | not started: all 56 `StopFailure` records still show `<str:10>`; no record has arrived since the scrub fix | | |
 
 Fixtures refreshed or added from captured shapes: `stop_with_waits.json`
@@ -69,14 +69,11 @@ in place):
 
 Found while fixing, not in the queue:
 
-- **175 of 263 captured `UserPromptSubmit` payloads carry `turn_id` and
-  `model` and no `prompt_id`** (the newer shape on 2.1.270); the other 88
-  carry `prompt_id`. `Stop` always carries `prompt_id`. `prompt_key` still
-  reads `prompt_id` only, so those prompts start a keyless turn, which
-  `Stop{prompt_id}` still ends. Mapping `turn_id` into `TurnKey` is unsafe
-  until it is known whether it equals the transcript's `promptId`: if it does
-  not, a hook `Stop` would look like the late close of a different turn.
-  Needs one marked scenario.
+- **Retracted the same evening:** an unfiltered tally read 175 prompts with
+  `turn_id` and no `prompt_id` as a new Claude shape. Filtered by provider
+  they are all Codex (183 of 183 Codex prompts carry `turn_id`; 101 of 101
+  Claude prompts carry `prompt_id`). Codex turns are keyed by `turn_id` in
+  its own adapter; `prompt_key` on the Claude side is right as it is.
 - The mutation driver at `~/.cache/sbr-audit/mutate.py` had six anchors in
   code the fixes rewrote. `~/.cache/sbr-audit/mutate_capture.py` retires
   them, adds replacements plus 17 mutations against the new rules, and
@@ -327,8 +324,23 @@ Answered on 2026-09-15; see the status section at the top.
 
 Still open:
 
-5. Does `UserPromptSubmit.turn_id` equal the transcript's `promptId`? Until
-   marked, `prompt_key` ignores it.
+5. ~~Does `UserPromptSubmit.turn_id` equal the transcript's `promptId`?~~
+   Withdrawn: those prompts were Codex's. See the retraction above.
 6. The mutation bar. The survivors from handoff 11 (Queue B) are untouched
    by this queue; the kill rate on the 17 new mutations is the measure of
    these fixes, the overall rate is the measure of the remaining audit work.
+
+## Course impact of the Codex adapter (not yet propagated)
+
+The adapter landed on `golden` only. It changes shapes the scaffold compiles
+against, so the five-place rule is owed before the next course cut:
+
+- `HookFrame` gained `provider: Provider` and `decode_request` reads an
+  optional `provider` (T02: one more row in the frame table).
+- `forward::scrub_for(provider, …)` is new; `scrub` delegates to it (T03).
+- `classify` recognises the Codex TUI (T06: a second rule set).
+- The listener dispatches by provider (T11), and `Effects::watch` replaces
+  four hand-built `WatchTranscript` pushes (T07/T09).
+- `tests/t14_codex.rs` and `tests/fixtures/codex/hooks/` are the natural
+  material for a T14 "the second provider" task once the provider table (D1)
+  is decided.
