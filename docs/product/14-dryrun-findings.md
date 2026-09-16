@@ -190,8 +190,26 @@ Recommendation: do 1 and 2 before the learner starts T01, since both are
 cheap now and expensive after; do 3 only if T05 still feels heavy after 2;
 keep 4 as the first post-capstone task rather than adding it to the core.
 
-### Owed after the fixes land
+### Status, 2026-09-16 evening
 
-- Propagation to `exercises` and `main` (docs, sheets and tests cherry-pick cleanly; `src/` comment and import changes are applied by hand against the stubbed bodies).
-- The rendered guide under `~/Guides/` was not updated. Its behaviour rows and checkpoint filters change only where a test was added or renamed.
-- The three `dryrun-*` worktrees and branches can be removed once this document and the journals are committed.
+Tiers 1 and 2 are applied for all three ranges, by three fix agents working
+from worktrees off golden, and merged into golden as linear history. Every
+scaffold-only edit is recorded in `scaffold-notes/` and was ported to
+`exercises` and `main` (one scaffold commit per range on each). Golden's
+full suite and clippy are clean; both scaffold trees compile with every
+`todo!` stub intact.
+
+One fix-agent change was reverted: an absent transcript `origin` stays
+`Origin::Human`, per the F7 decision in `13-capture-fix-handoff.md`; the
+comment, sheet and test now state the rule. One golden behaviour change was
+kept: a duplicate `TurnStarted` no longer clears a prompt parked between the
+hook's and the transcript's report of the same prompt (pinned in the hidden
+T07 suite).
+
+Still owed:
+
+- The rendered guide under `~/Guides/` was not updated. Its behaviour rows
+  and checkpoint filters change where tests were added or renamed (T02, T03,
+  T04, T05, T06, T07, T08, T12) and the T03 and T07 checkpoint commands are
+  new.
+- Tier 3 is undecided.

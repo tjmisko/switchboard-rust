@@ -10,6 +10,7 @@ Decisions are tracked in the [Switchboard Decision Record](https://claude.ai/cod
 - [x] Commit the capture fixes: golden as atomic commits, `exercises` as one scaffold commit, `main` as one squashed commit the learner merges (2026-09-15)
 - [x] ~~Settle whether `UserPromptSubmit.turn_id` equals the transcript's `promptId`~~ Withdrawn: those prompts were all Codex, whose adapter keys turns by `turn_id` (2026-09-15)
 - [x] Codex hook adapter built (2026-09-15) and parked on the `codex` branch (2026-09-16): `ingest/codex/`, provider-named frames, command-only join hash, `classify` for the TUI. Not propagated to the course on purpose; see docs/13 *Course impact*
+- [x] Dry-run the course with three learner agents, consolidate, and apply the Tier 1 and 2 fixes to golden, exercises and main (2026-09-16; docs/product/14). Tier 3 (T06 before T05, T02 error impls to their consumers, a usage mini-task, a fourth async task) undecided; the rendered guide is owed
 - [x] Freeze the course as Claude-only, hooks-only (2026-09-16): no scaffold-shaping change lands on `golden`, `exercises` or `main` until T13 is graded. Product work below waits, or becomes the advanced course (T14+)
 - [ ] Run `analyze.py`, settle O4 (subagent signals) and O5 (Claude's status file) from the data, then `install.py uninstall`
 - [ ] Decide O1–O3: who owns Codex approvals, what happens after a daemon restart, output schema

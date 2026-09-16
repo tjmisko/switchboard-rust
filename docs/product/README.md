@@ -16,7 +16,7 @@ one level up in `docs/`.
 | 10 | `10-open-items.md` | what is undecided or unrecorded, ordered by how much it blocks |
 | 11 | `11-golden-audit-handoff.md` | the golden audit and the redesign-planning handoff (golden only) |
 | 13 | `13-capture-fix-handoff.md` | the September 2026 capture fix queue and its status (golden only) |
-| 14 | `14-dryrun-findings.md` | the 2026-09-16 dry run of the course by three learner agents: measured ramp, findings, tiered fix plan; journals in `dryrun/` |
+| 14 | `14-dryrun-findings.md` | the 2026-09-16 dry run of the course by three learner agents: measured ramp, findings, tiered fix plan; journals in `dryrun/`, per-range scaffold porting notes in `scaffold-notes/` |
 | | `survey/` | read-only investigations of the Go daemon, the prior Rust attempt and the harness binaries |
 | | `audit/` | parity, complexity, adversarial and coverage audits of golden, with repros (golden only) |
 
