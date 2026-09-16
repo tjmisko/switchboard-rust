@@ -17,7 +17,7 @@ use common::{Clock, board_with, fixture_json, key, truth};
 use switchboard::ingest::claude;
 use switchboard::ingest::frame::{HookFrame, StatuslineFrame};
 use switchboard::ingest::{Ctx, Input};
-use switchboard::model::{Board, LimitStatus, LimitWindow, Limits, Phase, SnapshotKind};
+use switchboard::model::{Board, LimitStatus, LimitWindow, Limits, Phase, Provider, SnapshotKind};
 use switchboard::reduce;
 
 const PID: u32 = 100;
@@ -33,6 +33,7 @@ fn ctx(at: Instant) -> Ctx {
 /// Adapt a hook payload the way the daemon does, then reduce every input.
 fn fire(board: &mut Board, event: &str, at: Instant, payload: Value) {
     let frame = HookFrame {
+        provider: Provider::Claude,
         event: event.into(),
         pid: Some(PID),
         session: SESSION.into(),

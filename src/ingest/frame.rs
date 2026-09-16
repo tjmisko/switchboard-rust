@@ -19,7 +19,7 @@
 use serde_json::{Value, json};
 
 use crate::error::FrameError;
-use crate::model::SessionId;
+use crate::model::{Provider, SessionId};
 
 /// A decoded request line.
 #[derive(Debug, Clone, PartialEq)]
@@ -34,6 +34,10 @@ pub enum Request {
 /// `tool_input` replaced by `tool_input_hash`.
 #[derive(Debug, Clone, PartialEq)]
 pub struct HookFrame {
+    /// Which harness fired the hook, from the frame's `provider`. Absent
+    /// means Claude: the forwarder was Claude-only before Codex was wired,
+    /// and a Claude registration never names itself.
+    pub provider: Provider,
     /// The hook event name, e.g. `PermissionRequest`.
     pub event: Box<str>,
     /// The forwarder's parent pid. Absent when the forwarder could not tell.
@@ -65,7 +69,9 @@ pub fn decode_request(line: &str) -> Result<Request, FrameError> {
             let event = required_str(&v, "event")?.into();
             let pid = optional_pid(&v)?;
             let session = required_str(&v, "session_id")?.into();
+            let provider = optional_provider(&v)?;
             Ok(Request::Hook(HookFrame {
+                provider,
                 event,
                 pid,
                 session,
@@ -113,6 +119,23 @@ fn optional_pid(v: &Value) -> Result<Option<u32>, FrameError> {
         .transpose()
 }
 
+/// `provider` may be absent, which means Claude. When present it must name a
+/// provider this crate has an adapter for: the forwarder is ours, so a name
+/// it does not know is a bug in the registration, not a new harness.
+fn optional_provider(v: &Value) -> Result<Provider, FrameError> {
+    v.get("provider")
+        .map(|raw| {
+            raw.as_str()
+                .and_then(|s| s.parse().ok())
+                .ok_or(FrameError::WrongType {
+                    field: "provider",
+                    expected: "claude or codex",
+                })
+        })
+        .transpose()
+        .map(|p| p.unwrap_or(Provider::Claude))
+}
+
 /// `{"ok":true}`
 pub fn ok_reply() -> String {
     json!({"ok": true}).to_string()
@@ -143,6 +166,34 @@ mod tests {
         assert!(matches!(
             decode_request(missing),
             Ok(Request::Hook(HookFrame { pid: None, .. }))
+        ));
+    }
+
+    #[test]
+    fn should_default_the_provider_to_claude_and_reject_one_it_has_no_adapter_for() {
+        let bare = r#"{"cmd":"hook","event":"Stop","session_id":"s"}"#;
+        assert!(matches!(
+            decode_request(bare),
+            Ok(Request::Hook(HookFrame {
+                provider: Provider::Claude,
+                ..
+            }))
+        ));
+        let codex = r#"{"cmd":"hook","event":"Stop","session_id":"s","provider":"codex"}"#;
+        assert!(matches!(
+            decode_request(codex),
+            Ok(Request::Hook(HookFrame {
+                provider: Provider::Codex,
+                ..
+            }))
+        ));
+        let unknown = r#"{"cmd":"hook","event":"Stop","session_id":"s","provider":"gemini"}"#;
+        assert!(matches!(
+            decode_request(unknown),
+            Err(FrameError::WrongType {
+                field: "provider",
+                ..
+            })
         ));
     }
 }

@@ -75,6 +75,30 @@ async fn should_reply_ok_and_deliver_inputs_for_a_hook_frame() {
 }
 
 #[tokio::test]
+async fn should_pick_the_codex_adapter_when_the_frame_names_it() {
+    let mut c = connect(View { agents: vec![] });
+    let reply = c
+        .ask(r#"{"cmd":"hook","provider":"codex","event":"Stop","session_id":"t","turn_id":"turn-7"}"#)
+        .await;
+    assert_eq!(reply, serde_json::json!({"ok": true}));
+    let input = c.inbox.recv().await.unwrap();
+    assert!(matches!(
+        input,
+        Input::Event(Event {
+            kind: EventKind::TurnEnded {
+                turn: Some(TurnKey::Turn(ref id)),
+                ..
+            },
+            ..
+        }) if id.as_str() == "turn-7"
+    ));
+    let bad = c
+        .ask(r#"{"cmd":"hook","provider":"gemini","event":"Stop","session_id":"t"}"#)
+        .await;
+    assert_eq!(bad["ok"], false);
+}
+
+#[tokio::test]
 async fn should_reply_ok_and_deliver_nothing_for_an_untracked_event() {
     let mut c = connect(View { agents: vec![] });
     let reply = c

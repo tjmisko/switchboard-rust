@@ -13,6 +13,7 @@ use std::time::Instant;
 use crate::model::{Event, ProcKey, Snapshot};
 
 pub mod claude;
+pub mod codex;
 pub mod forward;
 pub mod frame;
 pub mod hash;

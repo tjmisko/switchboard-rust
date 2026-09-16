@@ -17,8 +17,8 @@ use std::str::FromStr;
 
 use crate::error::UnknownName;
 use crate::model::{
-    AccountId, Denier, ErrorClass, Host, MessageId, Origin, Phase, PromptId, RequestId, SessionId,
-    StartSource, SubagentId, ToolName, ToolUseId, TurnId,
+    AccountId, Denier, ErrorClass, Host, MessageId, Origin, Phase, PromptId, Provider, RequestId,
+    SessionId, StartSource, SubagentId, ToolName, ToolUseId, TurnId,
 };
 
 macro_rules! id_impls {
@@ -139,6 +139,34 @@ impl FromStr for Phase {
             .into_iter()
             .find(|p| p.as_str() == s)
             .ok_or_else(|| UnknownName::new("phase", s))
+    }
+}
+
+impl Provider {
+    /// The name a frame carries and a history record stores.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Provider::Claude => "claude",
+            Provider::Codex => "codex",
+        }
+    }
+}
+
+impl fmt::Display for Provider {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl FromStr for Provider {
+    type Err = UnknownName;
+
+    fn from_str(s: &str) -> Result<Provider, UnknownName> {
+        match s {
+            "claude" => Ok(Provider::Claude),
+            "codex" => Ok(Provider::Codex),
+            other => Err(UnknownName::new("provider", other)),
+        }
     }
 }
 

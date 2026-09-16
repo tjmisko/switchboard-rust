@@ -16,8 +16,8 @@ use tokio::sync::{mpsc, watch};
 
 use crate::daemon::now;
 use crate::ingest::frame::{Request, decode_request, error_reply, ok_reply};
-use crate::ingest::{Ctx, Input, claude};
-use crate::model::ProcKey;
+use crate::ingest::{Ctx, Input, claude, codex};
+use crate::model::{ProcKey, Provider};
 use crate::proc::ancestors;
 use crate::reduce::default_account;
 use crate::view::View;
@@ -77,7 +77,11 @@ pub async fn handle<R, W>(
                     now: now(),
                     process,
                 };
-                offer(&inbox, claude::hook(&frame, &ctx));
+                let inputs = match frame.provider {
+                    Provider::Claude => claude::hook(&frame, &ctx),
+                    Provider::Codex => codex::hook(&frame, &ctx),
+                };
+                offer(&inbox, inputs);
                 ok_reply()
             }
 
