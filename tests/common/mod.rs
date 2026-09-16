@@ -57,6 +57,7 @@ pub fn row(pid: u32, session: Option<&str>) -> ProcessRow {
         provider: Provider::Claude,
         cwd: PathBuf::from(format!("/home/u/Projects/p{pid}")),
         session: session.map(SessionId::from),
+        name: None,
         tty: Some(34816),
         cpu_ticks: 0,
     }

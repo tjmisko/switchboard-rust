@@ -8,7 +8,7 @@ use serde_json::json;
 
 use common::*;
 use switchboard::model::*;
-use switchboard::reduce::{self, TURN_STALE, WAIT_EXPIRY, next_deadline, tick};
+use switchboard::reduce::{self, SUBAGENT_STALE, TURN_STALE, WAIT_EXPIRY, next_deadline, tick};
 use switchboard::view::{View, describe, reason};
 
 fn snapshot(taken: std::time::Instant, kind: SnapshotKind) -> Snapshot {
@@ -79,6 +79,54 @@ fn should_adopt_a_session_a_later_sweep_discovers() {
         fx.iter()
             .any(|e| matches!(e, Effect::WatchTranscript { .. }))
     );
+}
+
+/// The session file's `name` is the name the operator recognises, and no
+/// captured hook carries one. A sweep sets it, and a rename lands on the
+/// next sweep.
+#[test]
+fn should_name_an_agent_from_the_sweep_and_follow_a_rename() {
+    let t = Clock::new();
+    let mut b = Board::default();
+    let named = |name: &str| {
+        let mut r = row(1, Some("s"));
+        r.name = Some(name.into());
+        r
+    };
+    reduce::apply_snapshot(
+        &mut b,
+        snapshot(
+            t.at(0),
+            SnapshotKind::Processes(vec![named("switchboard-rust-7f")]),
+        ),
+    );
+    assert_eq!(agent(&b, 1).title.as_deref(), Some("switchboard-rust-7f"));
+
+    let again = reduce::apply_snapshot(
+        &mut b,
+        snapshot(
+            t.at(1),
+            SnapshotKind::Processes(vec![named("switchboard-rust-7f")]),
+        ),
+    );
+    assert!(again.is_empty(), "the same name again changes nothing");
+
+    let renamed = reduce::apply_snapshot(
+        &mut b,
+        snapshot(
+            t.at(2),
+            SnapshotKind::Processes(vec![named("capture-fixes")]),
+        ),
+    );
+    assert!(publishes(&renamed));
+    assert_eq!(agent(&b, 1).title.as_deref(), Some("capture-fixes"));
+
+    // A file that stops naming the session does not unname the agent.
+    reduce::apply_snapshot(
+        &mut b,
+        snapshot(t.at(3), SnapshotKind::Processes(vec![row(1, Some("s"))])),
+    );
+    assert_eq!(agent(&b, 1).title.as_deref(), Some("capture-fixes"));
 }
 
 #[test]
@@ -214,6 +262,96 @@ fn should_keep_a_gate_an_event_set_on_a_row_the_panel_still_shows() {
     );
     reduce::apply_snapshot(&mut b, panel(3));
     assert_eq!(truth(&b, 1), Phase::Attention);
+}
+
+/// 54 of 168 captured children started and never reported a stop. A row
+/// nothing mentions for the cap is forgotten, and its expiry is a deadline
+/// the core sleeps towards.
+#[test]
+fn should_forget_a_subagent_row_nothing_has_mentioned_for_the_stale_cap() {
+    let t = Clock::new();
+    let mut b = board_with(&[(1, "s")], t.at(0));
+    apply(
+        &mut b,
+        hook(
+            1,
+            "s",
+            t.at(1),
+            EventKind::SubagentStarted {
+                subagent: "a1".into(),
+                kind: SubagentKind::Task,
+            },
+        ),
+    );
+    assert_eq!(truth(&b, 1), Phase::Delegating);
+    assert_eq!(next_deadline(&b), Some(t.at(1) + SUBAGENT_STALE));
+
+    // Any signal from the child refreshes the row.
+    apply(
+        &mut b,
+        from_subagent(1, "s", "a1", t.at(100), settled("c-child")),
+    );
+    assert_eq!(next_deadline(&b), Some(t.at(100) + SUBAGENT_STALE));
+
+    assert!(
+        tick(
+            &mut b,
+            t.at(100) + SUBAGENT_STALE - Duration::from_millis(1)
+        )
+        .is_empty()
+    );
+    let fx = tick(&mut b, t.at(100) + SUBAGENT_STALE);
+    assert!(publishes(&fx));
+    assert!(agent(&b, 1).subagents.rows.is_empty());
+    assert_eq!(truth(&b, 1), Phase::Idle);
+}
+
+/// A tick never clears a live gate, so a row holding one is exempt from the
+/// stale cap until the child moves again.
+#[test]
+fn should_keep_a_gated_subagent_row_past_the_stale_cap() {
+    let t = Clock::new();
+    let mut b = board_with(&[(1, "s")], t.at(0));
+    apply(
+        &mut b,
+        hook(
+            1,
+            "s",
+            t.at(1),
+            EventKind::SubagentStarted {
+                subagent: "a1".into(),
+                kind: SubagentKind::Task,
+            },
+        ),
+    );
+    apply(
+        &mut b,
+        from_subagent(1, "s", "a1", t.at(2), question("q", "AskUserQuestion")),
+    );
+    assert_eq!(next_deadline(&b), None, "a gated row has no expiry");
+    tick(&mut b, t.at(2) + SUBAGENT_STALE * 3);
+    assert_eq!(truth(&b, 1), Phase::Attention);
+}
+
+/// A panel that stopped refreshing is no longer authoritative: its rows
+/// expire like any other.
+#[test]
+fn should_expire_panel_rows_too_when_the_panel_stops_refreshing() {
+    let t = Clock::new();
+    let mut b = board_with(&[(1, "s")], t.at(0));
+    reduce::apply_snapshot(
+        &mut b,
+        snapshot(
+            t.at(1),
+            SnapshotKind::Subagents {
+                session: "s".into(),
+                rows: vec![sub_row("a", SubagentStatus::Running)],
+            },
+        ),
+    );
+    assert_eq!(truth(&b, 1), Phase::Delegating);
+    tick(&mut b, t.at(1) + SUBAGENT_STALE);
+    assert_eq!(truth(&b, 1), Phase::Idle);
 }
 
 // ---------------------------------------------------------------------------

@@ -9,9 +9,9 @@ use std::time::{Instant, UNIX_EPOCH};
 
 use crate::model::{
     Activity, Actor, Board, Compaction, Decision, Effect, Event, EventKind, Gate, GateKind,
-    HistoryEntry, InputHash, Ownership, Prompts, StartSource, Subagent, SubagentSource,
-    SubagentStatus, Subagents, Tool, ToolName, ToolOutcome, ToolUseId, TurnKey, TurnOutcome,
-    Unjoined,
+    HistoryEntry, InputHash, Ownership, Prompts, StartSource, Subagent, SubagentId,
+    SubagentSource, SubagentStatus, Subagents, Tool, ToolName, ToolOutcome, ToolUseId, TurnKey,
+    TurnOutcome, Unjoined,
 };
 use crate::paths::workspace_name;
 use crate::reduce::{Effects, limits_for, route, settle};
@@ -21,13 +21,38 @@ pub fn apply_event(board: &mut Board, event: Event) -> Vec<Effect> {
 }
 
 /// Apply one event to one agent. Returns whether anything changed.
+///
+/// An event is applied to the actor it names: the first thing this does is
+/// hand a subagent's event to `subagent_transition`. A subagent's turn is not
+/// the agent's turn, so a child's `StopFailure` must never end the agent's
+/// turn or paint it Blocked (47 of 56 captured failures were a child's).
 fn transition(
     agent: &mut crate::model::Agent,
     event: &Event,
     now: Instant,
     effects: &mut Effects,
 ) -> bool {
-    todo!("T07 (agent arms) and T08 (subagent and permission arms)")
+    todo!("T07 (agent arms) and T08 (route subagent events, then the permission arms)")
+}
+
+/// Apply an event a subagent sent to that subagent's row. Returns whether
+/// anything visible changed.
+///
+/// A child can legitimately report a turn ending, a tool dispatched or
+/// settled, and a permission asked or settled. Its turn outcome is recorded
+/// on the row: a failed child is a fact worth showing, and by R3 it may raise
+/// the agent's phase only through a gate, never by itself. Everything else a
+/// child could send says nothing about the agent and is dropped.
+///
+/// Every signal from a child refreshes the row's `last_seen`, which is what
+/// keeps `tick` from expiring a child that is still working.
+fn subagent_transition(
+    agent: &mut crate::model::Agent,
+    id: &SubagentId,
+    event: &Event,
+    now: Instant,
+) -> bool {
+    todo!("T08")
 }
 
 fn idle(now: Instant, after: Option<TurnOutcome>) -> Activity {
@@ -72,11 +97,33 @@ fn settle_call(agent: &mut crate::model::Agent, call: &ToolUseId, now: Instant) 
     todo!("T07")
 }
 
-#[allow(clippy::too_many_arguments)]
+/// A prompt from the agent itself. Three paths: the call id is known, the
+/// call is open and matches, or the prompt is parked.
+///
+/// Without a call id, a running call on the same `(tool, hash)` takes the
+/// gate. A call *already blocked* on the same `(tool, hash)` means this is
+/// the same prompt said twice: Claude sends `PreToolUse` (with the id) and
+/// then `PermissionRequest` (without) for one question, 16-214 ms apart. The
+/// id is the richer evidence and the hash must not contradict it, so the
+/// second announcement is a duplicate, not a second question. Two identical
+/// calls are still two gates: a running one is preferred.
 fn ask(
     agent: &mut crate::model::Agent,
-    actor: &Actor,
     call: Option<&ToolUseId>,
+    tool: &ToolName,
+    hash: Option<InputHash>,
+    owner: Ownership,
+    kind: GateKind,
+    now: Instant,
+) -> bool {
+    todo!("T08")
+}
+
+/// A prompt from a subagent: its row is gated, or the prompt is parked under
+/// that subagent until the row appears.
+fn ask_subagent(
+    agent: &mut crate::model::Agent,
+    id: &SubagentId,
     tool: &ToolName,
     hash: Option<InputHash>,
     owner: Ownership,
@@ -120,7 +167,7 @@ fn lift_sole_unjoined(prompts: &mut Prompts, actor: &Actor) -> bool {
 }
 
 /// Anything from a subagent that shows it is moving again lifts its gate.
-fn lift_subagent(agent: &mut crate::model::Agent, id: &crate::model::SubagentId) -> bool {
+fn lift_subagent(agent: &mut crate::model::Agent, id: &SubagentId) -> bool {
     todo!("T08")
 }
 

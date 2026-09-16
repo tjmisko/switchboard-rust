@@ -115,6 +115,13 @@ forced by a test that could not be written otherwise. Push back on any of them.
 10. Small ones: `ProcessRow` gained `session` and derives `PartialEq`, `Gate`
     derives `PartialEq`, and `Reason::Interrupted` was added so a Stopped chip
     has a tooltip.
+11. **From the September 2026 signal capture** (`tools/hookcap/`):
+    `WaitKind` gained `Workflow` and `Other` (the captured task types are
+    `shell`, `monitor`, `workflow`); `Origin` gained `Unknown`, because
+    `UserPromptSubmit` never carries `source`; `ProcessRow` gained `name`,
+    read from `~/.claude/sessions/<pid>.json`, because `session_title` is
+    never sent; and `reduce::SUBAGENT_STALE` bounds a subagent row that no
+    hook or panel mentions, because a third of children never report a stop.
 
 Two things the golden does *not* do that the plan says it should, because they
 need a syscall crate: **pidfd** (the scanner diffs sweeps instead, and a

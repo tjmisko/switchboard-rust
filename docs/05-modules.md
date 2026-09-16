@@ -144,7 +144,7 @@ Then policy is a function of capabilities, never of provider and version:
 | `turn_failure` | `Blocked` on a real signal | infer from a transcript error line, at `Confidence::Inferred` |
 | `child_panel` | subagents are level-triggered, no expiry needed | `subagents/` scan plus the stale cap |
 | `gate_ownership` | `Ownership::Human`, render `Attention` | `Ownership::Unknown`, render `Unknown` after the grace |
-| `limits_feed` | `Blocked` with a real `resets_at` | tail-scan the transcript |
+| `limits_feed` | `Blocked` with a real `resets_at`. The 2.1.269 status line reports `rate_limits.{five_hour, seven_day}.{used_percentage, resets_at}` and no status; the fullest window decides, at snapshot confidence | tail-scan the transcript |
 
 Every row is a fallback that already exists. A new harness release flips a flag
 and the fallback stops being used. No code changes, and — more to the point —

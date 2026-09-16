@@ -1,14 +1,19 @@
 //! Time passing.
 //!
-//! A tick may end a turn that went quiet, forget a wait or a prompt past its
-//! leak bound, and promote an escalation whose dwell has elapsed. It may
-//! never clear a live gate or a limit: an agent parked on a permission prompt
-//! has no CPU and no transcript growth, and looks exactly like a dead turn.
+//! A tick may end a turn that went quiet, forget a wait, a prompt or a
+//! subagent row past its leak bound, and promote an escalation whose dwell
+//! has elapsed. It may never clear a live gate or a limit: an agent parked on
+//! a permission prompt has no CPU and no transcript growth, and looks exactly
+//! like a dead turn.
 
 use std::time::Instant;
 
-use crate::model::{Activity, Agent, Board, Cause, Compaction, Confidence, Effect, Gate};
-use crate::reduce::{COMPACTION_STALE, Effects, TURN_STALE, UNJOINED_EXPIRY, limits_for, settle};
+use crate::model::{
+    Activity, Agent, Board, Cause, Compaction, Confidence, Effect, Gate, Subagent,
+};
+use crate::reduce::{
+    COMPACTION_STALE, Effects, SUBAGENT_STALE, TURN_STALE, UNJOINED_EXPIRY, limits_for, settle,
+};
 
 pub fn tick(board: &mut Board, now: Instant) -> Vec<Effect> {
     todo!("T09")
@@ -21,6 +26,15 @@ fn expire(agent: &mut Agent, now: Instant) -> bool {
 /// When a quiet turn would be declared over, or `None` if it cannot be:
 /// not in a turn, a gate is open, or a compaction is running.
 fn stale_turn_deadline(agent: &Agent) -> Option<Instant> {
+    todo!("T09")
+}
+
+/// When a silent subagent row would be forgotten, or `None` while it holds
+/// a gate: a tick never clears a live gate, and the settle that answers it
+/// refreshes `last_seen`. 54 of 168 captured children started and never
+/// reported a stop; `expire` removes a row past this deadline whoever owns
+/// the table, and `deadlines` includes it.
+fn stale_subagent_deadline(row: &Subagent) -> Option<Instant> {
     todo!("T09")
 }
 

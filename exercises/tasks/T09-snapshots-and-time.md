@@ -32,11 +32,18 @@ dwells promote.
 **`src/reduce/tick.rs`**:
 
 - `tick` and `expire`. Staleness may end a turn, but never one that is parked
-  on a gate.
-- `stale_turn_deadline` (one `then`)
+  on a gate. It also forgets a subagent row past `SUBAGENT_STALE` (54 of 168
+  captured children never reported a stop), whoever owns the table, unless
+  the row holds a gate.
+- `stale_turn_deadline` (one `then`) and `stale_subagent_deadline` (another)
 - `next_deadline` and `deadlines`: the pending promotion, the stale turn, the
-  compaction, every wait, and every parked prompt. That's one `chain` of
-  `Option`s and iterators, `flat_map`ped over agents, then `min`.
+  compaction, every wait, every parked prompt, and every ungated subagent
+  row. That's one `chain` of `Option`s and iterators, `flat_map`ped over
+  agents, then `min`.
+
+Discovery is provided, and now carries the session file's `name` onto
+`Agent::title`: a first sweep sets it, a later sweep with a different name
+renames and publishes, and a sweep with no name leaves it alone.
 
 `view.rs` is provided. `reason()` is a nice read after this task: it follows
 the same order as `Agent::phase`.

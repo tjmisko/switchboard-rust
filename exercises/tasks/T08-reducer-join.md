@@ -11,9 +11,22 @@ cost model's **R4 — liberal in what lifts**.
 
 ## Implement (`src/reduce/event.rs`)
 
+- First, in `transition`: an event is applied to the actor it names. A
+  subagent's event goes to `subagent_transition` before anything else
+  matches on the kind. A child's `StopFailure` (47 of 56 captured carry
+  `agent_id`) must never end the agent's turn.
+- `subagent_transition`: refresh the row's `last_seen`; a failed turn marks
+  the row `Failed` and clears its gate; tool dispatched joins a parked
+  prompt onto the row; tool or permission settled lifts the gate;
+  a permission asked goes to `ask_subagent`. Everything else is a no-op.
 - `ask`: three paths. The call id is known (gate it, and create the call if
-  this is a question tool). The call is open and matches (gate it). Otherwise,
-  park the prompt.
+  this is a question tool). A *running* call matches (gate it). A call
+  already *blocked* on the same `(tool, hash)` matches: that is the same
+  prompt said twice (Claude sends `PreToolUse` with the id, then
+  `PermissionRequest` without), so it is a no-op. Otherwise, park the
+  prompt.
+- `ask_subagent`: the row is gated, or the prompt is parked under that
+  subagent.
 - `park`: a duplicate park is a no-op.
 - `take_unjoined(prompts, actor, tool, hash) -> Option<Unjoined>`: the
   oldest matching prompt, **removed and returned by value**.
@@ -42,6 +55,10 @@ cost model's **R4 — liberal in what lifts**.
    `or_insert(Tool { .. })`?
 3. An agent's own `Stop` must not clear a subagent's gate. Find the one line
    in `end_turn` that guarantees it.
+4. Two identical `AskUserQuestion` calls are open, each gated by its own
+   `PreToolUse`. A third, call-less announcement arrives for the same input.
+   Why must it be a no-op rather than a third gate, and why must a *running*
+   identical call still take a call-less prompt?
 
 ## Done when
 
