@@ -15,7 +15,7 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use serde_json::Value;
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, watch};
 use tokio::time::{MissedTickBehavior, interval};
 
 use crate::daemon::now;
@@ -34,15 +34,35 @@ pub struct WatchSpec {
     pub replay_bytes: u64,
 }
 
-/// Run until the inbox closes, which is checked at the top of every pass: a
-/// quiet transcript never sends, so a failed send alone would never notice.
-/// The effect runner ends a watcher by aborting its task.
+/// Run until the inbox closes. The effect runner ends a watcher by aborting
+/// its task; this is `run_until` with a stop that is never raised.
+///
+/// The stop sender is held for the whole body on purpose: a dropped sender
+/// reads as a stop, so binding it to `_` would end the watcher on its first
+/// pass.
+pub async fn run(spec: WatchSpec, inbox: mpsc::Sender<Input>) {
+    let (_stop, never) = watch::channel(false);
+    run_until(spec, inbox, never).await
+}
+
+/// Run until the inbox closes or `stop` says so.
+///
+/// The inbox is checked at the top of every pass: a quiet transcript never
+/// sends, so a failed send alone would never notice. The stop is a `watch`:
+/// its value becoming `true`, or its sender being dropped, ends the watcher
+/// at once, without waiting for the next tick. A poll already on the
+/// blocking pool runs to completion and the lines it read are sent before
+/// the stop is seen; nothing read is lost, and nothing is read after.
 ///
 /// Each tick moves the open file and its cursor into a blocking closure and
 /// takes them back with the result. The lines come back as text; parsing
 /// them and handing them to the transcript adapter happens here, and a line
 /// that is not JSON is skipped.
-pub async fn run(spec: WatchSpec, inbox: mpsc::Sender<Input>) {
+pub async fn run_until(
+    spec: WatchSpec,
+    inbox: mpsc::Sender<Input>,
+    mut stop: watch::Receiver<bool>,
+) {
     let mut ticker = interval(spec.poll);
     ticker.set_missed_tick_behavior(MissedTickBehavior::Delay);
 
@@ -52,7 +72,16 @@ pub async fn run(spec: WatchSpec, inbox: mpsc::Sender<Input>) {
     let mut confidence = Confidence::Inferred;
 
     loop {
-        ticker.tick().await;
+        // Both arms are cancel-safe: a `tick` that loses has consumed no tick,
+        // and a `wait_for` that loses has marked no `true` as seen. `biased`
+        // puts the stop first, so one raised while a poll was running wins
+        // over a tick that came due meanwhile. `wait_for` also resolves at
+        // once when the value is already `true`, which `changed` would not.
+        tokio::select! {
+            biased;
+            _ = stop.wait_for(|stopped| *stopped) => return,
+            _ = ticker.tick() => {}
+        }
         // A quiet transcript never sends, so it would never learn the core
         // is gone by a failed send.
         if inbox.is_closed() {
