@@ -174,11 +174,7 @@ fn discover(board: &mut Board, row: ProcessRow, taken: Instant, effects: &mut Ef
         }
         // A sweep may name the session before any hook does.
         if let (None, Some(session)) = (&agent.session, row.session) {
-            effects.push(Effect::WatchTranscript {
-                process: agent.process,
-                session: session.clone(),
-                cwd: agent.cwd.clone(),
-            });
+            effects.watch(agent, &session);
             agent.session = Some(session);
             effects.publish_if(true);
         }
@@ -191,11 +187,7 @@ fn discover(board: &mut Board, row: ProcessRow, taken: Instant, effects: &mut Ef
         cwd: agent.cwd.clone(),
     }));
     if let Some(session) = &agent.session {
-        effects.push(Effect::WatchTranscript {
-            process: agent.process,
-            session: session.clone(),
-            cwd: agent.cwd.clone(),
-        });
+        effects.watch(&agent, session);
     }
     board.agents.insert(agent.process, agent);
 }

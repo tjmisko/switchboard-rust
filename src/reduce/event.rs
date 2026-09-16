@@ -49,11 +49,7 @@ pub fn apply_event(board: &mut Board, event: Event) -> Vec<Effect> {
         Some(current) if *current != event.session && !starting => return effects.finish(),
         None if !starting => {
             agent.session = Some(event.session.clone());
-            effects.push(Effect::WatchTranscript {
-                process: key,
-                session: event.session.clone(),
-                cwd: agent.cwd.clone(),
-            });
+            effects.watch(agent, &event.session);
         }
         _ => {}
     }
@@ -101,11 +97,7 @@ fn transition(
             }
             if rotated {
                 agent.session = Some(event.session.clone());
-                effects.push(Effect::WatchTranscript {
-                    process: agent.process,
-                    session: event.session.clone(),
-                    cwd: agent.cwd.clone(),
-                });
+                effects.watch(agent, &event.session);
             }
             if let Activity::Unobserved { .. } = agent.activity {
                 agent.activity = idle(now, None);

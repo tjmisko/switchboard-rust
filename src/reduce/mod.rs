@@ -21,7 +21,7 @@ use std::time::{Duration, Instant};
 use crate::ingest::Input;
 use crate::model::{
     Account, AccountId, Agent, Board, Cause, Confidence, Effect, HistoryEntry, Limits, ProcKey,
-    SessionId,
+    Provider, SessionId,
 };
 
 mod event;
@@ -149,6 +149,20 @@ impl Effects {
 
     pub fn publish_if(&mut self, changed: bool) {
         self.publish |= changed;
+    }
+
+    /// Ask for `session`'s transcript to be followed, when the provider has
+    /// one this crate reads. Only Claude does: a Codex rollout lives under a
+    /// dated path the effect could not name, and no adapter reads it yet.
+    pub fn watch(&mut self, agent: &Agent, session: &SessionId) {
+        if agent.provider != Provider::Claude {
+            return;
+        }
+        self.push(Effect::WatchTranscript {
+            process: agent.process,
+            session: session.clone(),
+            cwd: agent.cwd.clone(),
+        });
     }
 
     pub fn finish(mut self) -> Vec<Effect> {
