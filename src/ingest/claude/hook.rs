@@ -27,6 +27,17 @@
 //! applies each event to the actor it names, so a child's failed turn lands
 //! on the child's row and never on the agent's activity.
 //!
+//! The one exception is `SubagentStart` and `SubagentStop`. Those fire in
+//! the parent, and their `agent_id` names the child being started or
+//! stopped, not the sender. Their actor is therefore `Actor::Agent`, and the
+//! child goes in the event's `subagent` field.
+//!
+//! Where a payload leaves something out, the adapter fills in rather than
+//! dropping the event, except for the two fields a tool event cannot do
+//! without (`tool_use_id`, `tool_name`) and the `agent_id` a lifecycle event
+//! is about. The fallbacks are listed on the T03 sheet under "decisions the
+//! tests do not make", and each one is pinned by a test in `t03_hook`.
+//!
 //! Two documented fields have never been captured on 2.1.269/2.1.270 and are
 //! read only as tolerance for other builds: `SessionStart.session_title`
 //! (the name comes from the session file instead, see `proc::name_from_file`)
