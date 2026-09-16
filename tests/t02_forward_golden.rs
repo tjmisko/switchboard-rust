@@ -5,13 +5,19 @@ use std::io::{BufRead, BufReader, Write};
 use std::os::unix::net::UnixListener;
 use std::path::PathBuf;
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use serde_json::json;
 
 use switchboard::client::send;
 use switchboard::error::ForwardError;
 use switchboard::ingest::forward::interpret_reply;
+
+/// How long the silent daemon holds a connection open before giving up on
+/// it. Far longer than any timeout a test passes, so a `send` that never
+/// installs a read timeout sits here for the whole five seconds and fails
+/// the elapsed-time check instead of passing on the daemon's hang-up.
+const SILENT_FOR: Duration = Duration::from_secs(5);
 
 fn socket(name: &str) -> PathBuf {
     // Short: SUN_LEN is 108 bytes.
@@ -21,18 +27,24 @@ fn socket(name: &str) -> PathBuf {
     p
 }
 
-/// A one-shot daemon that reads one line and replies with `reply`.
+/// A one-shot daemon that reads one line and replies with `reply`. With
+/// `None` it says nothing and keeps the connection open until the client
+/// hangs up or `SILENT_FOR` passes, whichever is first.
 fn one_shot(path: &PathBuf, reply: Option<&'static str>) -> thread::JoinHandle<String> {
     let listener = UnixListener::bind(path).unwrap();
     thread::spawn(move || {
         let (stream, _) = listener.accept().unwrap();
+        let mut reader = BufReader::new(&stream);
         let mut line = String::new();
-        BufReader::new(&stream).read_line(&mut line).unwrap();
+        reader.read_line(&mut line).unwrap();
         if let Some(reply) = reply {
             (&stream).write_all(reply.as_bytes()).unwrap();
             (&stream).write_all(b"\n").unwrap();
         } else {
-            thread::sleep(Duration::from_millis(400));
+            // Wait for a second line that never comes. A correct client
+            // times out and drops the stream, which ends this read at once.
+            stream.set_read_timeout(Some(SILENT_FOR)).unwrap();
+            let _ = reader.read_line(&mut String::new());
         }
         line
     })
@@ -105,8 +117,16 @@ fn should_send_one_newline_terminated_frame_and_accept_ok() {
 fn should_report_io_when_the_daemon_never_answers_within_the_timeout() {
     let path = socket("slow");
     let server = one_shot(&path, None);
+    let started = Instant::now();
     let err = send(&path, &json!({"cmd":"hook"}), Duration::from_millis(100)).unwrap_err();
+    let elapsed = started.elapsed();
     assert!(matches!(err, ForwardError::Io(_)), "{err:?}");
+    // The timeout fired, not the daemon's hang-up: without a read timeout
+    // on the stream, `send` would sit here for all of `SILENT_FOR`.
+    assert!(
+        elapsed < SILENT_FOR / 2,
+        "returned after {elapsed:?}: the read timeout was never installed"
+    );
     server.join().unwrap();
     let _ = std::fs::remove_file(&path);
 }
