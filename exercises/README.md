@@ -1,6 +1,6 @@
 # Switchboard in Rust: an implementation course
 
-Fifteen ordered tasks, about 15 hours of core work plus stretch. When they are
+Fifteen ordered tasks, about 16 hours of core work plus stretch. When they are
 done you have a daemon that finds every Claude Code agent on the machine, tells
 you which one wants you, and keeps a history of it. That daemon is the plan in
 *Understanding Switchboard's Signals* and `src/model.rs`.

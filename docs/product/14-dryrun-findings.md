@@ -206,10 +206,12 @@ kept: a duplicate `TurnStarted` no longer clears a prompt parked between the
 hook's and the transcript's report of the same prompt (pinned in the hidden
 T07 suite).
 
-Still owed:
-
-- The rendered guide under `~/Guides/` was not updated. Its behaviour rows
-  and checkpoint filters change where tests were added or renamed (T02, T03,
-  T04, T05, T06, T07, T08, T12) and the T03 and T07 checkpoint commands are
-  new.
-- Tier 3 is undecided.
+Later the same day, all four Tier 3 items were taken: the course was
+renumbered to fifteen tasks (`/proc` at T05, usage at T06, the transcript
+adapter at T07, the reducer at T08–T10, the runtime at T11–T14, the
+capstone at T15), the two error impls moved next to their consumers, usage
+became its own task, and T14 "the second pass" was added with nine provided
+tests. The guide's sources moved into `exercises/guide/` with a build
+script, and the guide was rewritten from the new sheets. Task numbers in
+this document and in `dryrun/` are the old ones; `exercises/README.md` gives
+the map.
