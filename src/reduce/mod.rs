@@ -70,7 +70,15 @@ pub fn apply(board: &mut Board, input: Input) -> Vec<Effect> {
 /// arm and a search in the other cannot both hold a mutable borrow of the map
 /// across an `or_else`, but a `Copy` key can be found first and used after.
 pub fn route(board: &Board, process: Option<ProcKey>, session: &SessionId) -> Option<ProcKey> {
-    todo!("T07")
+    process
+        .filter(|key| board.agents.contains_key(key))
+        .or_else(|| {
+            board
+                .agents
+                .iter()
+                .find(|(_, agent)| agent.session.as_ref() == Some(session))
+                .map(|(key, _)| *key)
+        })
 }
 
 /// The limits an agent is subject to. Takes the accounts map rather than the
@@ -80,7 +88,10 @@ pub fn limits_for<'a>(
     accounts: &'a BTreeMap<AccountId, Account>,
     agent: &Agent,
 ) -> Option<&'a Limits> {
-    todo!("T07")
+    accounts
+        .get(&agent.account)
+        .and_then(|account| account.limits.as_ref())
+        .map(|as_of| &as_of.value)
 }
 
 /// Recompute the truth for one agent and let `Shown` decide whether the
@@ -92,7 +103,19 @@ pub fn settle(
     confidence: Confidence,
     now: Instant,
 ) -> Option<HistoryEntry> {
-    todo!("T07")
+    let truth = agent.phase(limits);
+    let from = agent.shown.phase;
+    let shown_since = agent.shown.since;
+    if !agent.shown.settle(truth, cause, confidence, now) {
+        return None;
+    }
+    Some(HistoryEntry::Shown {
+        process: agent.process,
+        session: agent.session.clone(),
+        from,
+        to: agent.shown.phase,
+        held: now.saturating_duration_since(shown_since),
+    })
 }
 
 /// Collects effects and guarantees at most one `PublishState`, last.

@@ -86,17 +86,75 @@ impl Record {
     }
 
     pub fn to_json(&self) -> Value {
-        todo!("T04")
+        let mut v = json!({
+            "ts": format_rfc3339(self.at),
+            "type": self.type_name(),
+            "pid": self.pid,
+        });
+        if let Some(s) = &self.session {
+            v["session_id"] = s.as_str().into();
+        }
+        match &self.kind {
+            RecordKind::SessionStart { cwd } => {
+                v["cwd"] = cwd.to_string_lossy().into();
+            }
+            RecordKind::SessionEnd => {}
+            RecordKind::Shown { from, to, held } => {
+                v["from"] = from.as_str().into();
+                v["to"] = to.as_str().into();
+                v["held_ms"] = (held.as_millis() as u64).into();
+            }
+        }
+        v
     }
 
     /// `Ok(None)` for a line of a type this crate does not write.
     pub fn from_json(v: &Value) -> Result<Option<Record>, RecordError> {
-        todo!("T04")
+        let kind_name = str_at(v, "type").ok_or(RecordError::Missing("type"))?;
+
+        let kind = match kind_name {
+            "session_start" => {
+                let cwd = str_at(v, "cwd").ok_or(RecordError::Missing("cwd"))?;
+                RecordKind::SessionStart {
+                    cwd: PathBuf::from(cwd),
+                }
+            }
+            "session_end" => RecordKind::SessionEnd,
+            "shown" => RecordKind::Shown {
+                from: phase_at(v, "from")?,
+                to: phase_at(v, "to")?,
+                held: Duration::from_millis(u64_at(v, "held_ms").unwrap_or(0)),
+            },
+            _ => return Ok(None),
+        };
+
+        let ts = str_at(v, "ts").ok_or(RecordError::Missing("ts"))?;
+        let at = parse_rfc3339(ts).ok_or_else(|| RecordError::BadValue {
+            field: "ts",
+            value: ts.into(),
+        })?;
+        let pid = u64_at(v, "pid")
+            .ok_or(RecordError::Missing("pid"))
+            .and_then(|n| {
+                u32::try_from(n).map_err(|_| RecordError::BadValue {
+                    field: "pid",
+                    value: n.to_string().into(),
+                })
+            })?;
+        let session = str_at(v, "session_id").map(SessionId::from);
+
+        Ok(Some(Record {
+            at,
+            pid,
+            session,
+            kind,
+        }))
     }
 }
 
 fn phase_at(v: &Value, field: &'static str) -> Result<Phase, RecordError> {
-    todo!("T04")
+    let name = str_at(v, field).ok_or(RecordError::Missing(field))?;
+    Ok(name.parse::<Phase>()?)
 }
 
 /// Appends records, one per line.
@@ -113,7 +171,9 @@ impl<W: Write> HistoryWriter<W> {
     /// written with a single `write_all`, so an appender sharing the file
     /// never interleaves inside a line.
     pub fn append(&mut self, record: &Record) -> io::Result<()> {
-        todo!("T04")
+        let mut line = record.to_json().to_string();
+        line.push('\n');
+        self.out.write_all(line.as_bytes())
     }
 
     pub fn flush(&mut self) -> io::Result<()> {
@@ -144,7 +204,23 @@ pub struct DayFile {
 /// recorded the same way, and ends the read, because nothing after it can be
 /// trusted to be where it claims.
 pub fn read_day<R: BufRead>(reader: R) -> DayFile {
-    todo!("T04")
+    let mut day = DayFile::default();
+    for (number, line) in numbered_lines(reader) {
+        let parsed = line
+            .map_err(RecordError::from)
+            .and_then(|l| serde_json::from_str::<Value>(&l).map_err(RecordError::from))
+            .and_then(|v| Record::from_json(&v));
+        match parsed {
+            Ok(Some(record)) => day.records.push(record),
+            Ok(None) => day.foreign += 1,
+            Err(RecordError::Io(e)) if e.kind() != io::ErrorKind::InvalidData => {
+                day.errors.push((number, RecordError::Io(e)));
+                break;
+            }
+            Err(e) => day.errors.push((number, e)),
+        }
+    }
+    day
 }
 
 /// `<dir>/<YYYY-MM-DD>.jsonl` for a UTC day.
