@@ -4,6 +4,11 @@
 //! board says it has — and after either it applies the reducer, publishes the
 //! view if it changed, and hands every other effect to the runner. It never
 //! does I/O and never awaits anything that can stall.
+//!
+//! The wait is a `select!` between the inbox and a deadline. Racing the two is
+//! sound only because `mpsc::Receiver::recv` is cancel-safe: when the deadline
+//! wins, the dropped `recv` future has taken nothing, and the next pass
+//! receives it.
 
 use std::future;
 use std::sync::Arc;
