@@ -45,6 +45,36 @@ Conventions carried over from the rest of your setup: tests are named
 `should_<behaviour>_when_<condition>`, commits are conventional, early returns
 beat nesting.
 
+## What to read, and what to ignore
+
+The repository carries far more documentation than the course needs. This
+is the whole reading list, in order:
+
+1. This file.
+2. The header of `src/model.rs`, which now maps each of its sections to the
+   task that first needs it. Read a section when its task arrives, not before.
+3. [`docs/03-types-and-transitions.md`](../docs/03-types-and-transitions.md)
+   before T03: which harness signal drives each transition.
+4. [`docs/02-session-machine.md`](../docs/02-session-machine.md) before T07:
+   phase as a fold, the turn's tool map, one machine per child.
+5. [`docs/04-cost-model.md`](../docs/04-cost-model.md) before T09: where
+   every timeout and hysteresis constant comes from.
+6. The [architecture explorer](../docs/architecture-explorer/README.md),
+   whenever you want the picture.
+
+Reference, only when a task sheet points at it: the signal fixtures in
+`docs/product/survey/09-signal-fixtures.md` and the verified hook fields in
+`docs/product/survey/14-hook-events-verified.md` (T03), the transcript facts
+in `docs/product/survey/10-transcript-facts.md` (T05), and the live signals
+guide at https://claude.ai/code/artifact/3e90d067-8f18-40cd-9217-51018bb323c2.
+
+Ignore everything else under `docs/product/` and `todo.md`. Those are the
+owner's notes for the product track: the rewrite plan, the surveys, the
+audits, the handoffs. They change without notice and the course does not
+depend on them. The course is frozen as Claude-only and hooks-only until T13
+is graded; a Codex adapter exists on the `codex` branch and is the material
+for what comes after.
+
 ## The tasks
 
 | # | Task | Core | Stretch | Test file |

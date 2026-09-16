@@ -4,8 +4,8 @@
 //! but no behaviour is implemented.
 //!
 //! Sources for the field names and enum variants:
-//!   docs/survey/09-signal-fixtures.md        captured payloads
-//!   docs/survey/14-hook-events-verified.md   hook events, read from the binaries
+//!   docs/product/survey/09-signal-fixtures.md        captured payloads
+//!   docs/product/survey/14-hook-events-verified.md   hook events, read from the binaries
 //!   docs/03-types-and-transitions.md         the reasoning behind these types
 //!
 //! Three ideas carry the design:
@@ -25,6 +25,35 @@
 //!      it. `Shown` is what the operator sees, and it lags the truth in
 //!      exactly one direction, because the cost of being wrong is asymmetric
 //!      — see docs/04-cost-model.md.
+//!
+//! ## Where each task takes you in this file
+//!
+//! This file is long because it is the whole daemon's vocabulary, and no
+//! task needs all of it. Read a section when the task below first names it,
+//! and skip the rest until then. The tests for a task only ever compile
+//! against the types its row lists.
+//!
+//! | Section | First needed | Types it brings in |
+//! |---|---|---|
+//! | 1. Identity | T01 | the `id!` types (`SessionId`, `PromptId`, `TurnId`, `ToolUseId`, `SubagentId`, `ToolName`, `Host`, and the rest); `InputHash`, `WaitId`, `Actor` in T03; `ProcKey` in T04; `Provider` in T06 |
+//! | 3. Inputs, the wire enums | T01 | `StartSource`, `Origin`, `ErrorClass`, `Denier`: their wire names and display, alongside `Phase` from section 7 |
+//! | 3. Inputs, the rest | T03 | `Event`, `EventKind`, `Cause`, `Confidence`, `TurnKey`, `Snapshot`, `SnapshotKind`, and the small enums an adapter fills in: `TurnOutcome`, `ToolOutcome`, `Decision`, `Ownership`, `SubagentKind`, `SubagentOutcome`, `Trigger` |
+//! | 2. Time | T03 | `Moment`; `AsOf` (in section 3) waits for T09 |
+//! | 5. Agent, part one | T03 | `GateKind`, `WaitKind`, `WaitRow`, and `Agent` as a value the adapter never builds |
+//! | 8. Effects | T04 | `HistoryEntry` in T04; `Effect` in T07 |
+//! | 7. The derived view | T04 | `Shown` |
+//! | 4. The board, part one | T05 | `Limits`, `LimitStatus`, `LimitWindow` |
+//! | 5. Agent, part two | T06 | `ProcessRow` |
+//! | 4. The board, 5. Agent | T07 | `Board`, `Account`, `Agent`, `Activity`, `Tool`, `Gate`, `Prompts`, `Unjoined`, `Compaction` |
+//! | 6. Subagent | T07, T08 | `Subagents`, `Subagent`, `SubagentSource`, `SubagentStatus`; `Lamp` from section 7 in T08 |
+//! | 5. Agent, part three | T09 | `Life`, `Wait`, `Beat`; `Placement` from section 4; `SubagentRow` from section 6 |
+//! | 9. Tests | any time | the model's own unit tests, provided |
+//! | 10. Federation | no task | |
+//!
+//! Types no task touches, kept because the design needs them and the
+//! capstone may reach for them: `PaneKey`, `WindowId`, `PlacementRow`,
+//! `Severity`, `Escalation`, `Flags`, `Chip`, `Reason`, `RowKey`, `Reach`,
+//! `Freshness`, `Row`, `Fleet`.
 
 #![allow(dead_code)]
 
