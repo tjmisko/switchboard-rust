@@ -2,13 +2,14 @@
 
 mod common;
 
+use std::error::Error;
 use std::fs::File;
-use std::io::{BufReader, Cursor, Write};
+use std::io::{self, BufReader, Cursor, Write};
 use std::path::PathBuf;
 use std::time::{Duration, SystemTime};
 
 use common::{fixture, key};
-use switchboard::error::RecordError;
+use switchboard::error::{RecordError, UnknownName};
 use switchboard::history::{HistoryWriter, Record, RecordKind, day_path, read_day};
 use switchboard::model::{HistoryEntry, Phase, SessionId};
 use switchboard::time::parse_rfc3339;
@@ -114,6 +115,40 @@ fn should_skip_foreign_lines_and_report_bad_ones_with_line_numbers() {
         RecordError::BadValue { field: "ts", .. }
     ));
     assert!(matches!(kinds[4], RecordError::Missing("type")));
+}
+
+/// `RecordError`'s `Display` and `source` are written here, next to
+/// `read_day`, which is the only thing that raises them. A variant that
+/// wraps another error names it in the message *and* returns it from
+/// `source`, per the `error.rs` policy; the two bare variants have none.
+#[test]
+fn should_name_the_field_and_expose_the_cause_when_a_record_is_bad() {
+    let io_err = RecordError::Io(io::Error::other("disk on fire"));
+    assert_eq!(io_err.to_string(), "read failed: disk on fire");
+    assert!(io_err.source().is_some());
+
+    let json_err =
+        RecordError::Json(serde_json::from_str::<serde_json::Value>("nope").unwrap_err());
+    assert!(json_err.to_string().starts_with("malformed JSON: "));
+    assert!(json_err.source().is_some());
+
+    let missing = RecordError::Missing("pid");
+    assert_eq!(missing.to_string(), "missing field `pid`");
+    assert!(missing.source().is_none());
+
+    let bad = RecordError::BadValue {
+        field: "ts",
+        value: "yesterday".into(),
+    };
+    assert_eq!(
+        bad.to_string(),
+        "field `ts` has unusable value \"yesterday\""
+    );
+    assert!(bad.source().is_none());
+
+    let name = RecordError::Name(UnknownName::new("phase", "permission"));
+    assert_eq!(name.to_string(), "unknown phase: \"permission\"");
+    assert!(name.source().is_some(), "the UnknownName is the source");
 }
 
 #[test]

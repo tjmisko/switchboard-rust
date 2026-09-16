@@ -3,6 +3,7 @@
 mod common;
 
 use std::borrow::Cow;
+use std::error::Error;
 use std::path::Path;
 
 use serde_json::json;
@@ -65,6 +66,23 @@ fn should_say_which_field_is_missing_or_malformed() {
         parse_stat(&REAL.replacen("6002", "x", 1)),
         Err(StatError::BadNumber { field: "pid", .. })
     ));
+}
+
+/// `StatError`'s `Display` and `source` are written here, next to the
+/// parser that raises them: a wrapped `ParseIntError` is named in the
+/// message *and* returned from `source`, per the `error.rs` policy.
+#[test]
+fn should_expose_the_parse_error_as_the_source_of_a_bad_stat_number() {
+    let source = "x".parse::<u64>().unwrap_err();
+    let err = StatError::BadNumber {
+        field: "starttime",
+        source,
+    };
+    assert!(err.to_string().contains("starttime"));
+    let inner = err.source().expect("has a source");
+    assert_eq!(inner.to_string(), "invalid digit found in string");
+    assert!(StatError::NoComm.source().is_none());
+    assert!(StatError::Missing("state").source().is_none());
 }
 
 #[test]

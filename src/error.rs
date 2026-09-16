@@ -107,6 +107,9 @@ impl From<serde_json::Error> for FrameError {
 // ---------------------------------------------------------------------------
 
 /// `/proc/<pid>/stat` that does not parse.
+///
+/// Its `Display` and `source` are T05 work, written next to `parse_stat`,
+/// the only thing that raises it; `t05_proc` pins them.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum StatError {
     /// No `(comm)` section: the parentheses are missing or out of order.
@@ -122,13 +125,13 @@ pub enum StatError {
 
 impl fmt::Display for StatError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        todo!("T02")
+        todo!("T05")
     }
 }
 
 impl Error for StatError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
-        todo!("T02")
+        todo!("T05")
     }
 }
 
@@ -137,6 +140,10 @@ impl Error for StatError {
 // ---------------------------------------------------------------------------
 
 /// One history line that cannot become a `Record`.
+///
+/// The three `From` impls below are T02 work, because `?` conversion is
+/// that task's subject. `Display` and `source` are T04 work, written next
+/// to `read_day`, the only thing that raises it; `t04_history` pins them.
 #[derive(Debug)]
 pub enum RecordError {
     Io(io::Error),
@@ -151,13 +158,13 @@ pub enum RecordError {
 
 impl fmt::Display for RecordError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        todo!("T02")
+        todo!("T04")
     }
 }
 
 impl Error for RecordError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
-        todo!("T02")
+        todo!("T04")
     }
 }
 

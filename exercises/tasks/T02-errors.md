@@ -1,6 +1,6 @@
 # T02 — Error architecture
 
-**Core: 1h15** · Gaps: hand-written errors, `Display` / `Error::source`,
+**Core: 1h** · Gaps: hand-written errors, `Display` / `Error::source`,
 `From` and `?`, `ok_or` vs `ok_or_else`, `transpose`, `Box<dyn Error>` ·
 Tests: `cargo test --test t02_errors`, and **`t02_forward`, which you write**
 
@@ -16,17 +16,23 @@ variant that wraps an error names it in `Display` *and* returns it from
 
 **`src/error.rs`**. The enums are given. Write:
 
-- `Display` for `UnknownName`, `FrameError`, `StatError`, `RecordError` and
-  `ForwardError`. `t02_errors` pins the exact wording of the `UnknownName`
-  and `FrameError` messages and of `ok_reply` / `error_reply`. `StatError`
-  and `RecordError` are pinned only loosely (`starttime` must appear in the
-  bad-number message); choose wording in the same voice as the pinned ones.
-  For `ForwardError`, one message is pinned by the hidden suite: a refusal
-  displays as `daemon refused the frame: <reason>`, exactly that prefix.
-- `Error::source` wherever a variant wraps another error.
+- `Display` for `UnknownName`, `FrameError` and `ForwardError`.
+  `t02_errors` pins the exact wording of the `UnknownName` and `FrameError`
+  messages and of `ok_reply` / `error_reply`. For `ForwardError`, one
+  message is pinned by the hidden suite: a refusal displays as
+  `daemon refused the frame: <reason>`, exactly that prefix.
+- `Error::source` on those three, wherever a variant wraps another error.
 - `From<serde_json::Error>` for `FrameError`, `RecordError` and
   `ForwardError`; `From<io::Error>` and `From<UnknownName>` for
   `RecordError`.
+- **Not yet** `Display` or `source` for `StatError` and `RecordError`. Both
+  enums are declared in this file, but nothing in T02 raises either, and
+  wording chosen with no consumer in sight is wording chosen blind. Their
+  four bodies stay `todo!` until T04 (`RecordError`, next to `read_day`) and
+  T05 (`StatError`, next to `parse_stat`). `RecordError`'s three `From`
+  impls *are* yours now: the `?` conversions are this task's subject, and
+  `should_convert_with_question_mark_into_a_record_error` walks all three
+  without ever formatting the error.
 - **Not** `From<io::Error>` for `ForwardError`. The doc comment says why. Make
   sure you agree before moving on.
 
@@ -99,7 +105,7 @@ The tests should make each one impossible to confuse with the others.
 2. Give the type at each step:
    `v.get("pid")` → `.map(|raw| raw.as_u64().and_then(|n| u32::try_from(n).ok()).ok_or(E))` → `.transpose()`
 3. `fn main() -> Result<(), BoxError>` can `?` a `FrameError`, a
-   `StatError` and an `io::Error` in the same body. Which trait impls make
+   `ForwardError` and an `io::Error` in the same body. Which trait impls make
    that work, and which of them did you write?
 
 ## Done when

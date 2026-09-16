@@ -1,10 +1,25 @@
 # T05 — Finding agents in `/proc`
 
-**Core: 45m** · Gaps: `ok_or` into `?` over many fields, `Cow<str>`,
-`AsRef<str>` generics, `iter::successors`, `impl Iterator + '_` ·
+**Core: 55m** · Gaps: `ok_or` into `?` over many fields, `Cow<str>`,
+`AsRef<str>` generics, `iter::successors`, `impl Iterator + '_`, an error's
+`Display` and `source` written next to its raiser ·
 Test: `cargo test --test t05_proc`
 
 ## Implement
+
+**`src/error.rs`** first, and it is short: `Display` and `Error::source` for
+`StatError`, the two bodies T02 left as `todo!`. `parse_stat` is the only
+thing that raises this error, so write the messages for the person reading
+a daemon log about a process that vanished mid-sweep. `t05_proc` pins them
+only loosely: `starttime` must appear in the bad-number message, and the
+`ParseIntError` inside `BadNumber` must come back from `source`, while
+`NoComm` and `Missing` have none. The policy is the one in the `error.rs`
+module comment: a variant that wraps another error names it in `Display`
+*and* returns it from `source`, so a one-line `eprintln!("{e}")` says
+everything and a reporter that walks the chain prints the cause twice, which
+is the accepted price. Use the voice of the messages T02 pinned
+(`stat field \`starttime\` is not a number: invalid digit found in string`
+is golden's).
 
 **`src/proc.rs`**:
 
