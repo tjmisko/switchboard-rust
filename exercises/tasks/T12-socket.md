@@ -78,8 +78,7 @@ or run the tests, to see it. It bites once in `resolve` and twice in `handle`
        view change, so a subscriber that disconnects during a quiet period
        leaves its task parked on `changed()` until then. Noticing it
        promptly needs a `select!` between `changed()` and `next_line()`; both
-       are cancel-safe (T11), and that is a T15 stretch, not part of this
-       task.
+       are cancel-safe (T11), and that is T14, not part of this task.
 5. **`serve`**: accept in a loop, `into_split` the stream, spawn `handle`
    with clones of the inbox, the view and the root. `into_split` returns two
    owned halves, unlike `split`, which borrows the stream: the spawned future
@@ -110,3 +109,5 @@ daemon's side of the protocol meet for the first time here.
 
 `t12_rpc` passes. That includes a real Unix socket served end to end to the
 synchronous `client::send` from T02.
+
+T14 changes this: the `Subscribe` arm learns to notice a peer hanging up.

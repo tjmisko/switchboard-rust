@@ -181,3 +181,33 @@
 3. `ProcKey` includes `start`, so the old key is in `known` but not in `seen`
    (a death), and the new key is in `seen` (a birth). Keyed by pid alone, the
    new process would inherit the dead agent's session, gates and history.
+
+## T14
+1. Part A, `changed` loses to `next_line`: it could have marked a version
+   seen without the snapshot being written, so the subscriber misses one
+   change and shows stale state until the next. `next_line` loses to
+   `changed`: it could have dropped the bytes of a half-read line; here every
+   later line is ignored anyway, so the visible symptom would only be a
+   missed EOF, i.e. the very hang-up this task exists to notice, if the peer
+   closed mid-line. Part B, `tick` loses to the stop: it could have consumed
+   the tick, which does not matter because the arm returns. `wait_for` loses
+   to `tick`: it could have marked the `true` as seen and never returned it,
+   so the watcher would run until aborted. (Both arms of both selects are
+   cancel-safe by their docs; the poll itself is outside the `select!` and is
+   never cancelled by it, only by `abort`.)
+2. `_` does not bind, so the sender is dropped at the end of the `let`.
+   `wait_for` sees a closed channel on the first poll and, with `biased;`,
+   before the first tick: `run` returns without ever polling the file. In
+   `t13_tasks`, `should_replay_the_tail_as_inferred_then_follow_new_lines_as_confirmed`
+   is the first to time out waiting for the replay; in `t14_second_pass`,
+   `should_keep_following_when_run_holds_its_own_stop` names the cause. No
+   warning: `_` is the language's explicit "discard", dropping a value is
+   never an error, and `watch::Sender` is not `#[must_use]`.
+3. The future `run_until` returns would borrow the receiver, and
+   `tokio::spawn` needs `'static`. `effects::run` could not pass a receiver
+   it owns on its stack; it would have to move the receiver into a wrapper
+   `async move` block that owns it and calls `run_until(&mut rx)` from
+   inside, at which point the task owns the receiver anyway, just one layer
+   out. By-value is the honest signature: a spawned task owns everything it
+   holds across its awaits, and a `&mut` parameter on an `async fn` that is
+   meant to be spawned only pushes the ownership to the caller's wrapper.
