@@ -11,6 +11,7 @@
 //!     one reuses the allocation.
 
 use std::borrow::Borrow;
+use std::boxed::Box;
 use std::fmt;
 use std::ops::Deref;
 use std::str::FromStr;
@@ -25,47 +26,49 @@ macro_rules! id_impls {
     ($($name:ident),* $(,)?) => {$(
         impl $name {
             pub fn as_str(&self) -> &str {
-                todo!("T01")
+                &self.0 // same?
             }
         }
 
         impl Deref for $name {
             type Target = str;
             fn deref(&self) -> &str {
-                todo!("T01")
+                &self.0 // just get value inside the Box
             }
         }
 
         impl AsRef<str> for $name {
             fn as_ref(&self) -> &str {
-                todo!("T01")
+                &self.0 // same?
             }
         }
 
         // What contract does `Borrow` add over `AsRef`, and why does this
         // type meet it? (T01 kata territory.)
+        //
+        // AsRef has the same signature as Borrow, but
         impl Borrow<str> for $name {
             fn borrow(&self) -> &str {
-                todo!("T01")
+                &self.0 // same?
             }
         }
 
         impl fmt::Display for $name {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-                todo!("T01")
+                f.write_str(self.as_str())
             }
         }
 
         impl From<&str> for $name {
             fn from(s: &str) -> Self {
-                todo!("T01")
+                Self(Box::from(s))
             }
         }
 
         /// Must reuse the `String`'s allocation.
         impl From<String> for $name {
             fn from(s: String) -> Self {
-                todo!("T01")
+                Self(Box::from(s))
             }
         }
     )*};
@@ -81,13 +84,15 @@ impl SubagentId {
     /// exactly once: a subagent genuinely named `agent-x` lives at
     /// `agent-agent-x`, and stripping twice would call it `x`.
     pub fn from_file_stem(stem: &str) -> Option<SubagentId> {
-        todo!("T01")
+        stem.strip_prefix("agent-")
+            .map(|stripped| SubagentId(Box::from(stripped)))
     }
 
     /// The hook `agent_id` field is already the bare id. Taken as-is, with
     /// surrounding whitespace removed; blank means "not a subagent".
     pub fn from_hook(raw: &str) -> Option<SubagentId> {
-        todo!("T01")
+        let trimmed = raw.trim();
+        (!trimmed.is_empty()).then(|| SubagentId(Box::from(trimmed)))
     }
 }
 
